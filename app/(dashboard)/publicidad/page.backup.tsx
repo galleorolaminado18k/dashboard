@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import useSWR from "swr"
@@ -14,7 +14,7 @@ type Campaign = {
 }
 
 export default function Advertising() {
-  const [range, setRange] = React.useState("Últimos 30 días")
+  const [range, setRange] = React.useState("├Ültimos 30 d├¡as")
   const [tab, setTab] = React.useState<"camps" | "sets" | "ads">("camps")
   const [q, setQ] = React.useState("")
   const [selectedFilter, setSelectedFilter] = React.useState("Todas")
@@ -44,7 +44,7 @@ export default function Advertising() {
     name: r.name,
     status: r.status as "active" | "paused",
     delivery: r.delivery as "Activa" | "Pausada",
-    receive: r.receive ?? "—",
+    receive: r.receive ?? "ÔÇö",
     budget: r.budget ?? 0,
     spend: r.spend ?? 0,
     conv: r.conversions ?? 0,
@@ -69,7 +69,7 @@ export default function Advertising() {
             <h1 className="text-2xl font-bold tracking-tight">Administrador de anuncios</h1>
             <LiveBadge />
           </div>
-          <p className="text-sm text-neutral-500">Gestiona tus campañas publicitarias</p>
+          <p className="text-sm text-neutral-500">Gestiona tus campa├▒as publicitarias</p>
 
           <div className="mt-4">
             <Toolbar
@@ -78,7 +78,7 @@ export default function Advertising() {
               onExport={() => {
                 // Exportar CSV
                 const csv = [
-                  ["ID", "Campaña", "Estado", "Gastado", "Conv", "Ventas", "Ingresos", "ROAS", "CTR"].join(","),
+                  ["ID", "Campa├▒a", "Estado", "Gastado", "Conv", "Ventas", "Ingresos", "ROAS", "CTR"].join(","),
                   ...rows.map((r: any) =>
                     [
                       r.id,
@@ -104,8 +104,8 @@ export default function Advertising() {
                 document.body.removeChild(a)
               }}
               onCharts={() => {
-                // Navegar a gráficos o abrir panel
-                alert("Función de gráficos - implementar según necesites")
+                // Navegar a gr├íficos o abrir panel
+                alert("Funci├│n de gr├íficos - implementar seg├║n necesites")
               }}
             />
           </div>
@@ -129,7 +129,7 @@ export default function Advertising() {
           <Kpi
             title="VENTAS"
             value={kpis.sales?.toLocaleString?.() ?? 0}
-            sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
+            sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversi├│n</span>}
             tone="gold"
           />
           <Kpi
@@ -150,7 +150,7 @@ export default function Advertising() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex rounded-xl border border-neutral-200 overflow-hidden">
-            <TabButton label="Campañas" active={tab === "camps"} onClick={() => setTab("camps")} />
+            <TabButton label="Campa├▒as" active={tab === "camps"} onClick={() => setTab("camps")} />
             <TabButton label="Conjuntos de anuncios" active={tab === "sets"} onClick={() => setTab("sets")} />
             <TabButton label="Anuncios" active={tab === "ads"} onClick={() => setTab("ads")} />
           </div>
@@ -160,7 +160,7 @@ export default function Advertising() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por nombre, identificador o métricas"
+                placeholder="Buscar por nombre, identificador o m├®tricas"
                 className="h-10 w-[380px] rounded-xl border border-neutral-200 bg-white px-4 text-sm outline-none"
               />
               <GoldRing className="rounded-xl" />
@@ -184,12 +184,12 @@ export default function Advertising() {
         )}
         {tab === "sets" && (
           <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-neutral-500">
-            Vista "Conjuntos de anuncios" (conéctala a /api/ads/adsets …)
+            Vista "Conjuntos de anuncios" (con├®ctala a /api/ads/adsets ÔÇª)
           </div>
         )}
         {tab === "ads" && (
           <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-neutral-500">
-            Vista "Anuncios" (conéctala a /api/ads/ads …)
+            Vista "Anuncios" (con├®ctala a /api/ads/ads ÔÇª)
           </div>
         )}
       </div>
