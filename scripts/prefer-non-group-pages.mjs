@@ -101,9 +101,12 @@ function main() {
       }
     }
 
-    // 2) Si inGroup tiene page.* y existe nonGroup page.* => sombrear el inGroup
-    const someNonGroupPage = nonGroup.some((f) => path.basename(f).startsWith('page.'))
-    if (someNonGroupPage) {
+    // 2) Si inGroup tiene page.* y existe (o existirá tras promover) nonGroup page.* => sombrear el inGroup
+    const willHaveNonGroupPage =
+      nonGroup.some((f) => path.basename(f).startsWith('page.')) ||
+      nonGroup.some((f) => path.basename(f).startsWith('page.shadow'))
+
+    if (willHaveNonGroupPage) {
       for (const f of inGroup) {
         const dir = path.dirname(f)
         const ext = path.extname(f)
@@ -130,4 +133,3 @@ try {
   console.error('[prefer-non-group-pages] ERROR:', err?.message || err)
   process.exit(0)
 }
-
