@@ -1,0 +1,3 @@
+{
+  "buildCommand": "node scripts/next-fix-route-collisions.mjs && pnpm run build"
+}
