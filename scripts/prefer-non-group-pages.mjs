@@ -24,15 +24,23 @@ const byRoute = new Map()
 for (const f of files){ const r=routeFrom(f); if(!byRoute.has(r)) byRoute.set(r,[]); byRoute.get(r).push(f) }
 
 const acts=[]
+const preferGroupRoutes = new Set(["/publicidad"]) // En estas rutas, priorizar layout del grupo (sidebar)
 for (const [route,list] of byRoute){ if(list.length<=1) continue
   const nonGroup=list.filter(f=>!inGroup(f))
   const inGrp=list.filter(inGroup)
   if(nonGroup.length===0||inGrp.length===0) continue
 
-  // Promover page.shadow.* fuera de grupos
+  if (preferGroupRoutes.has(route)) {
+    // 1) Promover page.shadow.* dentro del grupo a page.*
+    for(const f of inGrp){ const ext=path.extname(f), bn=path.basename(f); if(bn.startsWith('page.shadow')){ const t=path.join(path.dirname(f),`page${ext}`); if(mv(f,t)) acts.push(`promote(group): ${f} -> ${t}`) } }
+    // 2) Sombrear page.* fuera del grupo
+    for(const f of nonGroup){ const ext=path.extname(f), bn=path.basename(f); if(bn.startsWith('page.') && !bn.startsWith('page.shadow')){ const t=path.join(path.dirname(f),`page.shadow${ext}`); if(mv(f,t)) acts.push(`shadow(root): ${f} -> ${t}`) } }
+    continue
+  }
+
+  // Por defecto: preferir fuera de grupos
   for(const f of nonGroup){ const ext=path.extname(f), bn=path.basename(f); if(bn.startsWith('page.shadow')){ const t=path.join(path.dirname(f),`page${ext}`); if(mv(f,t)) acts.push(`promote: ${f} -> ${t}`) } }
 
-  // Sombrear page.* dentro del grupo si habrá page fuera
   const willHaveNonGroup = nonGroup.some(f=>/^page(\.shadow)?\./.test(path.basename(f)))
   if(willHaveNonGroup){ for(const f of inGrp){ const ext=path.extname(f), bn=path.basename(f); if(bn.startsWith('page.') && !bn.startsWith('page.shadow')){ const t=path.join(path.dirname(f),`page.shadow${ext}`); if(mv(f,t)) acts.push(`shadow: ${f} -> ${t}`) } } }
 }

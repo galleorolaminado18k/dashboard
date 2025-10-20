@@ -1,14 +1,7 @@
-export const dynamic = "force-dynamic"
-export const fetchCache = "force-no-store"
-export const revalidate = 0
+"use client"
 
-import dynamic from "next/dynamic"
-
-const PublicidadClient = dynamic(() => import("../(dashboard)/publicidad/page"), {
-  ssr: false,
-})
+import PublicidadClient from "./_client/PublicidadFixed"
 
 export default function PublicidadPage() {
   return <PublicidadClient />
 }
-
