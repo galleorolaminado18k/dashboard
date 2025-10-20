@@ -37,7 +37,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { useTheme } from "@/lib/theme-context"
+import { useTheme } from "next-themes"
 import { useFiscalYear } from "@/lib/fiscal-year-context"
 // import { put } from "@vercel/blob" // Eliminar import de put de @vercel/blob
 import { uploadLogo } from "@/app/actions/upload-logo" // y agregar import de uploadLogo
@@ -223,6 +223,8 @@ const mockNotifications: NotificationPref[] = [
 ]
 
 export default function ConfiguracionPage() {
+  const [mounted, setMounted] = useState(false)
+
   const [activeSection, setActiveSection] = useState("general")
   const [hasChanges, setHasChanges] = useState(false)
   const [showUserDialog, setShowUserDialog] = useState(false)
@@ -243,6 +245,8 @@ export default function ConfiguracionPage() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+
     const savedTheme = localStorage.getItem("sidebarTheme")
     if (savedTheme) {
       setSidebarThemeState(savedTheme)
@@ -439,6 +443,21 @@ export default function ConfiguracionPage() {
     localStorage.removeItem("logoUrl")
     window.dispatchEvent(new CustomEvent("logoChange", { detail: { url: "" } }))
     setHasChanges(true)
+  }
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="border-b border-gray-200 bg-white px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-serif text-4xl font-bold text-gray-900">Configuración</h1>
+              <p className="mt-1 text-sm text-gray-600">Cargando...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

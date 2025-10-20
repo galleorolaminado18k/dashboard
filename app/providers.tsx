@@ -1,7 +1,7 @@
 "use client"
 
 import type * as React from "react"
-import { ThemeProvider } from "@/lib/theme-context"
+import { ThemeProvider } from "next-themes"
 import { FiscalYearProvider } from "@/lib/fiscal-year-context"
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 
 export default function Providers({ children }: Props) {
   return (
-    <ThemeProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
       <FiscalYearProvider>{children}</FiscalYearProvider>
     </ThemeProvider>
   )

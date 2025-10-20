@@ -30,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning data-sidebar-theme="onyx-soft-gold">
+    <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         <Providers>
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
