@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "node scripts/next-fix-route-collisions.mjs",
+    "prebuild": "node scripts/next-fix-route-collisions.mjs && node scripts/prefer-non-group-pages.mjs",
     "build": "next build",
     "dev": "next dev",
-    "postinstall": "node scripts/next-fix-route-collisions.mjs",
+    "postinstall": "node scripts/next-fix-route-collisions.mjs && node scripts/prefer-non-group-pages.mjs",
     "lint": "eslint .",
     "start": "next start"
   },
