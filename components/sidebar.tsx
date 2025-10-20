@@ -29,7 +29,7 @@ type Item = {
 const nav: Item[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "CRM", href: "/crm", icon: Users },
-  { label: "Publicidad", href: "/anuncios", icon: Megaphone },
+  { label: "Publicidad", href: "/publicidad", icon: Megaphone },
   { label: "Ventas", href: "/ventas", icon: ShoppingCart },
   { label: "Facturaci\u00F3n", href: "/facturacion", icon: FileText },
   { label: "Entregas", href: "/entregas", icon: Package },

@@ -13,7 +13,8 @@ const nextConfig = {
 
 export default nextConfig
 
-// Add rewrites to bypass ad-blockers for legacy paths
+// Add rewrites to bypass ad-blockers and keep public URLs stable
 nextConfig.rewrites = async () => ([
-  { source: '/publicidad', destination: '/anuncios' },
+  { source: '/publicidad', destination: '/campanas' },
+  { source: '/anuncios', destination: '/campanas' },
 ])
