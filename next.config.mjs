@@ -12,3 +12,8 @@ const nextConfig = {
 }
 
 export default nextConfig
+
+// Add rewrites to bypass ad-blockers for legacy paths
+nextConfig.rewrites = async () => ([
+  { source: '/publicidad', destination: '/anuncios' },
+])
