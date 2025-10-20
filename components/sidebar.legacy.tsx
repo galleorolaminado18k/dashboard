@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type React from "react"
 
@@ -31,14 +31,14 @@ const nav: Item[] = [
   { label: "CRM", href: "/crm", icon: Users },
   { label: "Publicidad", href: "/anuncios", icon: Megaphone },
   { label: "Ventas", href: "/ventas", icon: ShoppingCart },
-  { label: "Facturación", href: "/facturacion", icon: FileText },
+  { label: "FacturaciÃ³n", href: "/facturacion", icon: FileText },
   { label: "Entregas", href: "/entregas", icon: Package },
   { label: "Pagos", href: "/pagos", icon: CreditCard },
   { label: "Clientes", href: "/clientes", icon: Users },
   { label: "Inventario", href: "/inventario", icon: BoxesIcon },
   { label: "Ventas Totales", href: "/ventastotales", icon: TrendingUp },
-  { label: "Geografía", href: "/geografia", icon: Map },
-  { label: "Configuración", href: "/configuracion", icon: Settings },
+  { label: "GeografÃ­a", href: "/geografia", icon: Map },
+  { label: "ConfiguraciÃ³n", href: "/configuracion", icon: Settings },
 ]
 
 export function Sidebar() {
@@ -64,12 +64,12 @@ export function Sidebar() {
     }
 
     const handleThemeChange = (e: CustomEvent) => {
-      setSidebarTheme((e as any).detail.theme)
-      document.documentElement.setAttribute("data-sidebar-theme", (e as any).detail.theme)
+      setSidebarTheme(e.detail.theme)
+      document.documentElement.setAttribute("data-sidebar-theme", e.detail.theme)
     }
 
     const handleLogoChange = (e: CustomEvent) => {
-      setLogoUrl((e as any).detail.url)
+      setLogoUrl(e.detail.url)
     }
 
     window.addEventListener("sidebarThemeChange" as any, handleThemeChange)
@@ -86,7 +86,7 @@ export function Sidebar() {
         "h-screen sticky top-0 z-40",
         "text-[#F4F1EA]",
         "shadow-[0_20px_60px_rgba(0,0,0,.45)]",
-        collapsed ? "w-[88px]" : "w-[220px]",
+        collapsed ? "w-[92px]" : "w-[264px]",
         "transition-[width] duration-200 ease-in-out",
       ].join(" ")}
       style={{
@@ -134,16 +134,15 @@ export function Sidebar() {
 
         <button
           onClick={() => setCollapsed((v) => !v)}
-          className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+          className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 transition-colors"
           aria-label={collapsed ? "Expandir barra lateral" : "Colapsar barra lateral"}
         >
-          <ChevronLeft className={`h-4 w-4 ${collapsed ? "rotate-180" : ""}`} />
-          {!collapsed && <span>Colapsar</span>}
+          {collapsed ? "â–¶ï¸Ž" : "â—€ï¸Ž"} {collapsed ? "" : "Colapsar"}
         </button>
       </div>
 
       <div className="px-3 pb-2">
-        {!collapsed && <p className="px-2 pb-2 text-xs uppercase tracking-wide text-[#C8A96A]">Navegación</p>}
+        {!collapsed && <p className="px-2 pb-2 text-xs uppercase tracking-wide text-[#C8A96A]">NavegaciÃ³n</p>}
         <nav className="space-y-1">
           {nav.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || (href !== "/" && pathname.startsWith(href))
@@ -188,7 +187,7 @@ export function Sidebar() {
           {!collapsed && (
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">Usuario</p>
-              <p className="truncate text-xs text-zinc-400">Sistema de Gestión</p>
+              <p className="truncate text-xs text-zinc-400">Sistema de GestiÃ³n</p>
             </div>
           )}
         </div>
