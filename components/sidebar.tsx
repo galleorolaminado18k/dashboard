@@ -31,14 +31,14 @@ const nav: Item[] = [
   { label: "CRM", href: "/crm", icon: Users },
   { label: "Publicidad", href: "/anuncios", icon: Megaphone },
   { label: "Ventas", href: "/ventas", icon: ShoppingCart },
-  { label: "FacturaciÃ³n", href: "/facturacion", icon: FileText },
+  { label: "Facturaci\u00F3n", href: "/facturacion", icon: FileText },
   { label: "Entregas", href: "/entregas", icon: Package },
   { label: "Pagos", href: "/pagos", icon: CreditCard },
   { label: "Clientes", href: "/clientes", icon: Users },
   { label: "Inventario", href: "/inventario", icon: BoxesIcon },
   { label: "Ventas Totales", href: "/ventastotales", icon: TrendingUp },
-  { label: "GeografÃ­a", href: "/geografia", icon: Map },
-  { label: "ConfiguraciÃ³n", href: "/configuracion", icon: Settings },
+  { label: "Geograf\u00EDa", href: "/geografia", icon: Map },
+  { label: "Configuraci\u00F3n", href: "/configuracion", icon: Settings },
 ]
 
 export function Sidebar() {
@@ -196,5 +196,7 @@ export function Sidebar() {
     </aside>
   )
 }
+
+
 
 
