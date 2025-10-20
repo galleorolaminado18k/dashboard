@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -301,7 +301,7 @@
   background-color: rgba(26, 26, 28, 0.3) !important;
 }
 
-/* Agregando animación de parpadeo para mensajes urgentes */
+/* Agregando animaciÃ³n de parpadeo para mensajes urgentes */
 @keyframes urgent-pulse {
   0%,
   100% {
@@ -315,3 +315,6 @@
 .animate-urgent-pulse {
   animation: urgent-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Gold card gradient */
+.gold-card{background:linear-gradient(180deg,#ffffff 62%,rgba(216,192,138,.22) 100%);box-shadow:0 24px 60px rgba(0,0,0,.06), inset 0 -12px 35px rgba(216,192,138,.12);}

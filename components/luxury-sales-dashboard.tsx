@@ -1,4 +1,4 @@
-import type React from "react"
+﻿import type React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,18 +28,18 @@ import {
 } from "recharts"
 
 /**
- * ————————————————————————————————————————————————
- * LUXURY SALES DASHBOARD ✨ (v2 — Ultra Luxury / brillante / estético)
+ * â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
+ * LUXURY SALES DASHBOARD âœ¨ (v2 â€” Ultra Luxury / brillante / estÃ©tico)
  *
  * Concepto visual:
- *  - Fondo blanco puro, tipografía negra, acentos dorado champagne.
+ *  - Fondo blanco puro, tipografÃ­a negra, acentos dorado champagne.
  *  - Tarjetas con "glass-lux": blur + brillo sutil + borde con gradiente dorado.
- *  - Jerarquía: Hero KPI (Ventas del Mes) XL, KPIs premium, módulos CRM.
- *  - Línea de ventas con trazo dorado y puntos suaves.
- *  - Pie de métodos con vidrio pulido.
+ *  - JerarquÃ­a: Hero KPI (Ventas del Mes) XL, KPIs premium, mÃ³dulos CRM.
+ *  - LÃ­nea de ventas con trazo dorado y puntos suaves.
+ *  - Pie de mÃ©todos con vidrio pulido.
  *
  * Pasa tus datos reales por props; existen mocks por defecto.
- * ————————————————————————————————————————————————
+ * â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
  */
 
 export type KPI = {
@@ -60,8 +60,8 @@ export type PaymentBreakdown = { metodo: string; monto: number }
 
 export interface LuxurySalesDashboardProps {
   ventasMesUSD: number
-  margenUtilidadPromedio: number // 0–1
-  tasaConversion: number // 0–1
+  margenUtilidadPromedio: number // 0â€“1
+  tasaConversion: number // 0â€“1
   ticketPromedioUSD: number
   pendienteMiPaqueteUSD: number
   mayoristas: MayoristasStats
@@ -73,7 +73,7 @@ export interface LuxurySalesDashboardProps {
 }
 
 // Paleta
-const GOLD = "#D8BD80" // champagne más brillante
+const GOLD = "#D8BD80" // champagne mÃ¡s brillante
 const GOLD_SOFT = "#E8D7A5"
 const INK = "#0B0B0C"
 const GLASS = "bg-white/80 backdrop-blur-xl"
@@ -106,16 +106,16 @@ const fallback: LuxurySalesDashboardProps = {
   ventasRecientes: [
     { id: "VT-008", cliente: "Diego Torres", producto: "Pulsera", total: 280000, estado: "Pagado" },
     { id: "VT-007", cliente: "Valentina Cruz", producto: "Anillo Compromiso", total: 850000, estado: "Pendiente" },
-    { id: "VT-006", cliente: "Sofía Ramírez", producto: "Cadena", total: 190000, estado: "Pagado" },
+    { id: "VT-006", cliente: "SofÃ­a RamÃ­rez", producto: "Cadena", total: 190000, estado: "Pagado" },
   ],
   riesgoFuga: [
-    { cliente: "Ana Martínez", diasSinComprar: 341, ciudad: "Cali" },
+    { cliente: "Ana MartÃ­nez", diasSinComprar: 341, ciudad: "Cali" },
     { cliente: "Patricia Silva", diasSinComprar: 314, ciudad: "Cartagena" },
-    { cliente: "Laura Pérez", diasSinComprar: 284, ciudad: "Pereira" },
+    { cliente: "Laura PÃ©rez", diasSinComprar: 284, ciudad: "Pereira" },
   ],
   rankingCiudades: [
-    { ciudad: "Bogotá", ventas: 45_000_000, ticket: 288_461, share: 32.5 },
-    { ciudad: "Medellín", ventas: 32_000_000, ticket: 326_530, share: 23.1 },
+    { ciudad: "BogotÃ¡", ventas: 45_000_000, ticket: 288_461, share: 32.5 },
+    { ciudad: "MedellÃ­n", ventas: 32_000_000, ticket: 326_530, share: 23.1 },
     { ciudad: "Cali", ventas: 18_500_000, ticket: 276_119, share: 13.4 },
   ],
 }
@@ -158,7 +158,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
   const PIE_COLORS = [GOLD, INK, GOLD_SOFT]
 
   return (
-    <div className="min-h-screen bg-white text-[#0B0B0C]">
+    <div className="min-h-screen bg-white bg-[radial-gradient(1100px_400px_at_-10%_-10%,rgba(216,192,138,.12),transparent)] bg-[radial-gradient(1100px_400px_at_110%_0%,rgba(216,192,138,.10),transparent)] text-[#0B0B0C]">
       {/* HERO */}
       <section className="px-6 lg:px-10 pt-10">
         <div className="flex items-center justify-between">
@@ -208,7 +208,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
               icon={<ReceiptText className="w-4 h-4" />}
             />
             <Kpi
-              label="Tasa de Conversión"
+              label="Tasa de ConversiÃ³n"
               value={`${Math.round(data.tasaConversion * 100)}%`}
               delta={"-2.1 pp"}
               icon={<Percent className="w-4 h-4" />}
@@ -228,7 +228,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UsersRound className="w-4 h-4" /> Nuevos Mayoristas Joyería
+              <UsersRound className="w-4 h-4" /> Nuevos Mayoristas JoyerÃ­a
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.joyeria.nuevos}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -237,7 +237,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UsersRound className="w-4 h-4" /> Recurrentes Joyería
+              <UsersRound className="w-4 h-4" /> Recurrentes JoyerÃ­a
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.joyeria.recurrentes}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -246,7 +246,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UserPlus className="w-4 h-4" /> Nuevos Mayoristas Balinería
+              <UserPlus className="w-4 h-4" /> Nuevos Mayoristas BalinerÃ­a
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.balineria.nuevos}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -255,7 +255,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UserPlus className="w-4 h-4" /> Recurrentes Balinería
+              <UserPlus className="w-4 h-4" /> Recurrentes BalinerÃ­a
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.balineria.recurrentes}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -263,12 +263,12 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         </GradientCard>
       </section>
 
-      {/* TERCERA BANDA: Gráficas principales */}
+      {/* TERCERA BANDA: GrÃ¡ficas principales */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Línea ventas */}
+        {/* LÃ­nea ventas */}
         <GradientCard>
           <div className="p-6 h-[320px]">
-            <div className="text-sm text-neutral-500">Ventas Diarias (7 días)</div>
+            <div className="text-sm text-neutral-500">Ventas Diarias (7 dÃ­as)</div>
             <div className="mt-3 h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.serieVentasDiarias} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -283,10 +283,10 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
           </div>
         </GradientCard>
 
-        {/* Pie métodos */}
+        {/* Pie mÃ©todos */}
         <GradientCard>
           <div className="p-6 h-[320px]">
-            <div className="text-sm text-neutral-500">Métodos de Pago (distribución)</div>
+            <div className="text-sm text-neutral-500">MÃ©todos de Pago (distribuciÃ³n)</div>
             <div className="mt-3 h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -328,11 +328,11 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
                   <div>
                     <p className="font-medium">{r.cliente}</p>
                     <p className="text-xs text-neutral-500 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {r.ciudad ?? "—"}
+                      <MapPin className="w-3 h-3" /> {r.ciudad ?? "â€”"}
                     </p>
                   </div>
                   <Badge variant="secondary" className="rounded-full bg-black text-white border-0">
-                    <Clock3 className="w-3 h-3 mr-1" /> {r.diasSinComprar} días
+                    <Clock3 className="w-3 h-3 mr-1" /> {r.diasSinComprar} dÃ­as
                   </Badge>
                 </li>
               ))}
@@ -341,7 +341,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         </GradientCard>
       </section>
 
-      {/* CUARTA BANDA: Ranking + Últimas ventas */}
+      {/* CUARTA BANDA: Ranking + Ãšltimas ventas */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6 pb-12">
         <GradientCard>
           <div className="p-6">
@@ -386,14 +386,14 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
 
         <GradientCard>
           <div className="p-6">
-            <div className="text-sm text-neutral-500">Últimas Ventas</div>
+            <div className="text-sm text-neutral-500">Ãšltimas Ventas</div>
             <ul className="mt-3 space-y-3">
               {data.ventasRecientes.map((v) => (
                 <li key={v.id} className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3">
                   <div>
                     <p className="font-medium">{v.cliente}</p>
                     <p className="text-xs text-neutral-500">
-                      {v.producto} • {v.id}
+                      {v.producto} â€¢ {v.id}
                     </p>
                   </div>
                   <div className="text-right">
@@ -412,7 +412,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6 flex h-full items-center justify-between">
             <div>
-              <h3 className="text-xl font-semibold">Brilla más este mes ✨</h3>
+              <h3 className="text-xl font-semibold">Brilla mÃ¡s este mes âœ¨</h3>
               <p className="text-sm text-neutral-500 mt-1">Exporta el informe y comparte resultados con tu equipo.</p>
             </div>
             <Button className={`rounded-full bg-[${GOLD}] text-black hover:bg-[${GOLD}]/90`}>Exportar</Button>
@@ -421,8 +421,9 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
       </section>
 
       <footer className="pb-10 text-center text-xs text-neutral-400">
-        GALLE • Ultra Luxury Dashboard • Tailwind + shadcn/ui + Recharts
+        GALLE â€¢ Ultra Luxury Dashboard â€¢ Tailwind + shadcn/ui + Recharts
       </footer>
     </div>
   )
 }
+
