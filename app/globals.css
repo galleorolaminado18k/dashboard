@@ -318,3 +318,42 @@
 
 /* Gold card gradient */
 .gold-card{background:linear-gradient(180deg,#ffffff 62%,rgba(216,192,138,.22) 100%);box-shadow:0 24px 60px rgba(0,0,0,.06), inset 0 -12px 35px rgba(216,192,138,.12);}
+
+/* Luxury tokens + background (no reemplaza lo existente) */
+:root{
+  --lux-ink: 26 26 26;
+  --lux-bg: 248 246 242;
+  --gold-1: #FFF7E6;
+  --gold-2: #F2E2B7;
+  --gold-3: #E4C774;
+  --gold-4: #D4AF37;
+  --gold-5: #C39B2E;
+}
+
+/* Fondo dorado sutil para la app */
+.lux-gradient{
+  background:
+    radial-gradient(1200px 600px at 80% -200px, rgba(212,175,55,0.35), transparent 55%),
+    radial-gradient(900px 480px at 10% -120px, rgba(242,226,183,0.45), transparent 60%),
+    linear-gradient(180deg, #fffdf7 0%, #faf7ef 60%, #f6f2e7 100%);
+}
+
+/* Card brillo dorado opcional */
+.card-lux{
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.03) inset,
+    0 20px 60px -20px rgba(212,175,55,.25),
+    0 10px 30px -15px rgba(0,0,0,.12);
+  background: linear-gradient(180deg,#ffffffcc,#fffdf8f2);
+  border: 1px solid #0000000f;
+  border-radius: 18px;
+}
+
+.border-gold{ border-color: var(--gold-4); }
+.text-gold{ color: var(--gold-4); }
+.bg-gold{ background-color: var(--gold-4); }
+
+@layer utilities {
+  .bg-lux { background-color: rgb(var(--lux-bg)); }
+  .shadow-lux { box-shadow: 0 8px 28px rgba(212,175,55,.20); }
+}
