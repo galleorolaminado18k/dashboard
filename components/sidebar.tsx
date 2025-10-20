@@ -143,8 +143,8 @@ export function Sidebar() {
       </div>
 
       <div className="px-3 pb-2">
-        {!collapsed && <p className="px-2 pb-2 text-xs uppercase tracking-wide text-[#C8A96A]">Navegación</p>}
-        <nav className="space-y-1">
+        {!collapsed && <p className="px-2 pb-1 text-xs uppercase tracking-wide text-[#C8A96A]">Navegación</p>}
+        <nav className="space-y-[2px]">
           {nav.map(({ label, href, icon: Icon }) => {
             const active = pathname === href || (href !== "/" && pathname.startsWith(href))
             return (
@@ -152,7 +152,7 @@ export function Sidebar() {
                 key={href}
                 href={href}
                 className={[
-                  "group flex items-center gap-3 rounded-2xl px-3 py-2.5 outline-none",
+                  "group flex items-center gap-2 rounded-2xl px-3 py-2 outline-none",
                   "transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#C8A96A]/60",
                   active
                     ? "bg-[#C8A96A]/15 text-white shadow-[0_8px_24px_rgba(200,169,106,.15)] border border-[#C8A96A]/30"
@@ -196,4 +196,3 @@ export function Sidebar() {
     </aside>
   )
 }
-
