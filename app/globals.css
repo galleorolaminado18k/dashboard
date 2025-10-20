@@ -357,3 +357,10 @@
   .bg-lux { background-color: rgb(var(--lux-bg)); }
   .shadow-lux { box-shadow: 0 8px 28px rgba(212,175,55,.20); }
 }
+
+/* Soft gold palette and utilities for dashboard */
+:root{ --bg-start:#f7edd9; --bg-mid:#ecd4a6; --bg-end:#f6f2e7; --card-from:#fff7e5; --card-to:#ead19f; --card-shadow:0 10px 30px rgba(198,172,122,.18); }
+@layer utilities{
+  .app-background{ background: radial-gradient(1200px 700px at 50% -200px, var(--bg-start), var(--bg-mid) 60%, var(--bg-end) 95%); }
+  .card-gold{ background-image: linear-gradient(to bottom, color-mix(in oklab, var(--card-from) 90%, white 10%), color-mix(in oklab, var(--card-to) 45%, white 55%)); box-shadow: var(--card-shadow); }
+}
