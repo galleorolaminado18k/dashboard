@@ -285,3 +285,33 @@ Si ves algún error que no entiendes:
 
 **Tiempo total:** 2 minutos  
 **Dificultad:** ⭐☆☆☆☆ (Muy fácil)
+
+---
+
+## 🛒 **PASO EXTRA: Historial de Compras (OPCIONAL)**
+
+Si quieres ver el **historial de compras** de cada cliente:
+
+### 1️⃣ **Ejecuta el segundo script:**
+
+1. Abre de nuevo el SQL Editor en Supabase
+2. Copia el contenido del archivo: `scripts/031_create_purchases_table.sql`
+3. Pégalo en el editor
+4. Haz clic en **"RUN"** ▶️
+
+### 2️⃣ **Verifica:**
+
+Deberías ver una nueva tabla: ✅ `purchases` (con 3 compras de ejemplo)
+
+**Datos de ejemplo**:
+- María González: Vestido Midi Floral ($320.000) + Aretes ($50.000)
+- Carlos Ramírez: Shorts de Mezclilla ($560.000)
+- Ana Martínez: Bolso de Hombro ($200.000)
+
+---
+
+**¿Para qué sirve?**
+- Ver QUÉ compró cada cliente
+- Calcular totales automáticamente
+- Tracking de entregas con código de guía
+- Analytics de ventas por cliente

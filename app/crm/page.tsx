@@ -42,6 +42,7 @@ import useSWR, { mutate } from "swr"
 import { fetchConversations, fetchMessages, sendMessage, updateConversation, type Conversation, type Message, type ConversationStatus } from "@/lib/crm-fetchers"
 import { useEstadoAutomatico } from "@/hooks/use-estado-automatico"
 import { obtenerSugerenciasAgente, type EstadoConversacion } from "@/lib/crm-estados-karla"
+import PurchaseHistory from "@/components/crm/PurchaseHistory"
 
 // Configuración de estados con colores y contadores
 const ESTADOS_CONFIG: Record<ConversationStatus, { label: string; color: string; icon: any }> = {
@@ -665,6 +666,11 @@ export default function CRMPage() {
                     )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* 🛒 Historial de Compras - IQ 145 */}
+              {conversacionSeleccionada?.client_id && (
+                <PurchaseHistory clientId={conversacionSeleccionada.client_id} />
               )}
 
               {/* Cambio manual de estado */}

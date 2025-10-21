@@ -62,3 +62,62 @@ export type CampaignRow = {
   negativesPct?: number
   lastUpdated: string
 }
+
+// ============================================
+// TIPOS PARA HISTORIAL DE COMPRAS (IQ 145)
+// ============================================
+
+export type ConversationStatus =
+  | 'por-contestar'
+  | 'pendiente-datos'
+  | 'por-confirmar'
+  | 'pendiente-guia'
+  | 'pedido-completo'
+
+export type PaymentMethod =
+  | 'transferencia'
+  | 'nequi'
+  | 'daviplata'
+  | 'bancolombia'
+  | 'contraentrega'
+  | 'efectivo'
+  | 'anticipado'
+
+// Producto individual en una compra
+export interface ProductoPurchase {
+  nombre: string
+  precio: number
+  cantidad: number
+}
+
+// Historial de compras
+export interface Purchase {
+  id: string
+  conversation_id?: string | null
+  client_id: string
+  productos: ProductoPurchase[]
+  subtotal: number
+  envio: number
+  descuento: number
+  total: number
+  metodo_pago: PaymentMethod
+  direccion_envio?: string | null
+  ciudad?: string | null
+  codigo_guia?: string | null
+  entregado: boolean
+  fecha_entrega?: string | null
+  notas?: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Resumen de compras por cliente (para vista agregada)
+export interface PurchaseSummary {
+  client_id: string
+  client_name: string
+  email: string
+  total_compras: number
+  monto_total: number
+  ultima_compra: string
+  historial: Purchase[]
+}
