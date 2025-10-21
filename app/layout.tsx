@@ -20,7 +20,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "Dashboard de Ventas",
-  description: "Sistema de gestiÃ³n de ventas con integraciÃ³n MiPaquete",
+  description: "Sistema de gestión de ventas con integración MiPaquete",
   generator: "v0.app",
 }
 
@@ -33,6 +33,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
       </head>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-screen`}>
         <Providers>
