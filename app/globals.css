@@ -364,3 +364,11 @@
   .app-background{ background: radial-gradient(1200px 700px at 50% -200px, var(--bg-start), var(--bg-mid) 60%, var(--bg-end) 95%); }
   .card-gold{ background-image: linear-gradient(to bottom, color-mix(in oklab, var(--card-from) 90%, white 10%), color-mix(in oklab, var(--card-to) 45%, white 55%)); box-shadow: var(--card-shadow); }
 }
+
+/* Soft background without top bar */
+html, body { height: 100%; }
+body {
+  @apply bg-neutral-50 text-neutral-900 dark:bg-[#0b0b0c] dark:text-neutral-100;
+  background-image: radial-gradient(1200px 600px at 50% -200px, #f5ecd8 10%, rgba(245,236,216,0) 60%);
+  background-repeat: no-repeat;
+}

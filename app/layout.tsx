@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>\n      <head>\n        <meta charSet="utf-8" />\n      </head>
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased lux-gradient app-background min-h-dvh`}>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-screen`}>
         <Providers>
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
         </Providers>
