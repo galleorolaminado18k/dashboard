@@ -319,6 +319,45 @@
 /* Gold card gradient */
 .gold-card{background:linear-gradient(180deg,#ffffff 62%,rgba(216,192,138,.22) 100%);box-shadow:0 24px 60px rgba(0,0,0,.06), inset 0 -12px 35px rgba(216,192,138,.12);}
 
+/* ========= 1) APAGAR CUALQUIER “BARRA”/GRADIENTE GLOBAL ========= */
+body::before,
+body > .top-gradient,
+body > .global-gradient,
+body > div[style*="position: fixed"][style*="top: 0"][style*="height: 16px"],
+body > div[style*="position:fixed"][style*="top:0"][style*="height:16px"] {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+/* Fondo base claro/oscuro + halo MUY tenue, sin franja compacta */
+html, body { height: 100%; }
+body {
+  /* base de colores (Tailwind via @apply) */
+  @apply bg-neutral-50 text-neutral-900 dark:bg-[#0b0b0c] dark:text-neutral-100;
+  /* Radial suave desde arriba; se desvanece rápido */
+  background-image: radial-gradient(1200px 600px at 50% -180px, #f5ecd8 12%, rgba(245,236,216,0) 60%);
+  background-repeat: no-repeat;
+}
+
+/* ========= 2) ESTILO “DORADO SUAVE” PARA TARJETAS (sólo cards) ========= */
+.kpi-card {
+  border-radius: 1.25rem; /* ~rounded-2xl */
+  box-shadow: 0 10px 40px -20px rgba(0,0,0,.35);
+  backdrop-filter: saturate(110%) blur(6px);
+  -webkit-backdrop-filter: saturate(110%) blur(6px);
+  outline: 1px solid rgba(0,0,0,.05);
+  background:
+    radial-gradient(140% 120% at 50% 0%, rgba(252,245,230,.85) 0%, rgba(252,245,230,0) 60%),
+    linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.62));
+}
+.dark .kpi-card {
+  background:
+    radial-gradient(140% 120% at 50% 0%, rgba(191,162,114,.20) 0%, rgba(191,162,114,0) 60%),
+    linear-gradient(180deg, rgba(24,24,27,.85), rgba(14,14,16,.75));
+  outline-color: rgba(255,255,255,.06);
+}
+
 /* Luxury tokens + background (no reemplaza lo existente) */
 :root{
   --lux-ink: 26 26 26;

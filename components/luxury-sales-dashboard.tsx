@@ -128,7 +128,7 @@ function GradientCard({ children }: { children: React.ReactNode }) {
   return (
     <div className={`group rounded-[28px] p-[1.5px] bg-gradient-to-r from-[#f7f4ea] via-[${GOLD}] to-[#f7f4ea]`}>
       <div
-        className={`rounded-[26px] ${GLASS} border border-white/60 shadow-[0_20px_60px_rgba(0,0,0,.10)] transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-[0_30px_80px_rgba(0,0,0,.16)]`}
+        className={`rounded-[26px] ${GLASS} kpi-card border border-white/60 transition-all duration-300 ease-out group-hover:-translate-y-1`}
       >
         {children}
       </div>
