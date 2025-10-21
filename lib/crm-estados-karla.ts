@@ -9,6 +9,7 @@ export type EstadoConversacion =
   | 'por-confirmar'        // 3. Agente envió RESUMEN FINAL, esperando confirmación
   | 'pendiente-guia'       // 4. Cliente confirmó (+ pago validado si anticipado), esperando guía
   | 'pedido-completo'      // 5. Guía registrada y enviada al cliente
+  | 'devolucion'           // 🔴 6. DEVOLUCIÓN (Solo desde pedido-completo, marcado por facturación)
 
 // =====================================================
 // DETECTORES DE INTENCIÓN (170+ variaciones)
@@ -236,7 +237,8 @@ export function debeActualizarEstado(
     'pendiente-datos': ['por-confirmar'], // Solo si agente envió RESUMEN
     'por-confirmar': ['pendiente-guia'],  // Solo si confirmó + validó pago
     'pendiente-guia': ['pedido-completo'], // Solo si agente registró guía
-    'pedido-completo': [], // Estado final
+    'pedido-completo': ['devolucion'], // 🔴 Solo puede ir a devolución desde aquí
+    'devolucion': [], // Estado terminal - NO progresa automáticamente
   }
   
   const puedeProgresar = PROGRESION_VALIDA[estadoActual].includes(estadoDetectado)
@@ -361,6 +363,13 @@ export function obtenerSugerenciasAgente(estado: EstadoConversacion, datosClient
       '📋 Guía de rastreo: [Número]',
       '📱 Puedes rastrear tu pedido en [Link]',
       '¿Alguna pregunta sobre tu pedido? 😊'
+    ],
+    'devolucion': [
+      '🔴 DEVOLUCIÓN REGISTRADA',
+      '❌ Este pedido fue marcado como devolución por facturación',
+      '📋 Motivo: Cliente no recibió el producto',
+      '⚠️ Contactar a cliente para coordinar reenvío o reembolso',
+      '📞 Verificar con facturación el estado del proceso'
     ]
   }
   

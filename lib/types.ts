@@ -73,6 +73,7 @@ export type ConversationStatus =
   | 'por-confirmar'
   | 'pendiente-guia'
   | 'pedido-completo'
+  | 'devolucion' // 🔴 Estado rojo - Solo desde pedido-completo
 
 export type PaymentMethod =
   | 'transferencia'
@@ -88,6 +89,7 @@ export interface ProductoPurchase {
   nombre: string
   precio: number
   cantidad: number
+  devuelto?: boolean // 🔴 true si fue devuelto
 }
 
 // Historial de compras

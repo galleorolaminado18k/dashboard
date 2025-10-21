@@ -34,6 +34,7 @@ import {
   Sparkles,
   Bot,
   Info,
+  XCircle, // 🔴 Icono para devolución
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useSWR, { mutate } from "swr"
@@ -70,6 +71,11 @@ const ESTADOS_CONFIG: Record<ConversationStatus, { label: string; color: string;
     label: "Pedido Completo",
     color: "bg-green-100 text-green-700 border-green-300",
     icon: CheckCircle2,
+  },
+  "devolucion": {
+    label: "Devolución",
+    color: "bg-red-100 text-red-700 border-red-300", // 🔴 ROJO
+    icon: XCircle, // Icono de X para devolución
   },
 }
 

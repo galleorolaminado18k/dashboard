@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Purchase } from '@/lib/types'
 import { ChevronDown, ChevronUp, ShoppingBag, Package, Truck } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PurchaseHistoryProps {
   clientId: string
@@ -122,10 +123,19 @@ export default function PurchaseHistory({ clientId, className = '' }: PurchaseHi
                   {purchase.productos.map((producto, idx) => (
                     <div key={idx} className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2 flex-1">
-                        <Package className="h-4 w-4 text-neutral-400 mt-0.5 flex-shrink-0" />
+                        <Package className={cn(
+                          "h-4 w-4 mt-0.5 flex-shrink-0",
+                          producto.devuelto ? "text-red-500" : "text-neutral-400"
+                        )} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate text-neutral-900">
+                          <p className={cn(
+                            "text-sm font-medium truncate",
+                            producto.devuelto ? "text-red-600" : "text-neutral-900"
+                          )}>
                             {producto.nombre}
+                            {producto.devuelto && (
+                              <span className="ml-2 text-red-600 font-bold">(DEVOLUCIÓN)</span>
+                            )}
                           </p>
                           {producto.cantidad > 1 && (
                             <p className="text-xs text-neutral-500">
@@ -134,7 +144,10 @@ export default function PurchaseHistory({ clientId, className = '' }: PurchaseHi
                           )}
                         </div>
                       </div>
-                      <span className="text-sm font-medium whitespace-nowrap text-neutral-900">
+                      <span className={cn(
+                        "text-sm font-medium whitespace-nowrap",
+                        producto.devuelto ? "text-red-600 line-through" : "text-neutral-900"
+                      )}>
                         {formatPrice(producto.precio * producto.cantidad)}
                       </span>
                     </div>
