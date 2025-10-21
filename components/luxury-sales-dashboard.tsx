@@ -272,7 +272,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
                     paddingAngle={3}
                     labelLine={true}
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    labelStyle={{ fontSize: '12px', fill: '#374151', fontWeight: '500' }}
+                    labelStyle={{ fontSize: '10px', fill: '#374151', fontWeight: '400' }}
                   >
                     {data.seriePagosPorMetodo.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
