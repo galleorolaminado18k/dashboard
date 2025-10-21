@@ -244,10 +244,10 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
             <div className="text-sm text-neutral-500">Ventas Diarias (7 días)</div>
             <div className="mt-3 h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.serieVentasDiarias} margin={{ top: 10, right: 15, left: 25, bottom: 5 }}>
+                <LineChart data={data.serieVentasDiarias} margin={{ top: 10, right: 15, left: 35, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#EEE" />
                   <XAxis dataKey="fecha" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-                  <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" width={50} />
+                  <YAxis tick={{ fontSize: 10 }} stroke="#9CA3AF" width={60} />
                   <Tooltip formatter={(v: number) => `$${v.toLocaleString("es-CO")}`} />
                   <Line type="monotone" dataKey="ventas" stroke={GOLD} strokeWidth={3.5} dot={{ r: 3 }} />
                 </LineChart>
