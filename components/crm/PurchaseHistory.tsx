@@ -21,13 +21,23 @@ export default function PurchaseHistory({ clientId, className = '' }: PurchaseHi
 
   async function loadPurchases() {
     try {
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/purchases?client_id=eq.${encodeURIComponent(
+      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!baseUrl || !anonKey) {
+        console.warn('PurchaseHistory: missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY; skipping fetch')
+        setPurchases([])
+        return
+      }
+
+      const url = `${baseUrl.replace(/\/$/, '')}/rest/v1/purchases?client_id=eq.${encodeURIComponent(
         clientId,
       )}&order=created_at.desc`
+
       const res = await fetch(url, {
         headers: {
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
         },
       })
 
