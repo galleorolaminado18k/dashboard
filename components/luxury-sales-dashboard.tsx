@@ -280,17 +280,6 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 space-y-2">
-              {data.seriePagosPorMetodo.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
-                    <span className="text-neutral-700 font-medium">{item.metodo}</span>
-                  </div>
-                  <span className="text-neutral-600 font-semibold">{item.monto}%</span>
-                </div>
-              ))}
-            </div>
           </div>
         </GradientCard>
 
