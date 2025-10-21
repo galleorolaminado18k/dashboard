@@ -126,10 +126,8 @@ function Peso({ value }: { value: number }) {
 
 function GradientCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`group rounded-[28px] p-[1.5px] bg-gradient-to-r from-[#f7f4ea] via-[${GOLD}] to-[#f7f4ea]`}>
-      <div
-        className={`rounded-[26px] ${GLASS} kpi-card border border-white/60 transition-all duration-300 ease-out group-hover:-translate-y-1`}
-      >
+    <div className="card-gold-frame card-with-shadow group">
+      <div className="card-surface transition-all duration-300 ease-out group-hover:-translate-y-1">
         {children}
       </div>
     </div>
@@ -158,7 +156,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
   const PIE_COLORS = [GOLD, INK, GOLD_SOFT]
 
   return (
-    <div className="min-h-screen bg-white bg-[radial-gradient(1100px_400px_at_-10%_-10%,rgba(216,192,138,.12),transparent)] bg-[radial-gradient(1100px_400px_at_110%_0%,rgba(216,192,138,.10),transparent)] text-[#0B0B0C]">
+    <div className="galle-dashboard bg-dashboard-soft min-h-screen bg-white text-[#0B0B0C]">
       {/* HERO */}
       <section className="px-6 lg:px-10 pt-10">
         <div className="flex items-center justify-between">

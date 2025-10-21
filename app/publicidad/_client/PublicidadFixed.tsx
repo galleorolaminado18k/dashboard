@@ -64,7 +64,7 @@ export default function Advertising() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="galle-ads min-h-screen bg-white">
       <div className="sticky top-0 z-10 bg-white/85 backdrop-blur border-b">
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex items-center gap-3">
@@ -114,36 +114,56 @@ export default function Advertising() {
 
       <div className="mx-auto max-w-7xl px-6 py-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Kpi
-            title="GASTO TOTAL"
-            value={`$${kpis.spend.toLocaleString()}`}
-            sub={<span className="text-emerald-600">{kpis.deltaSpend} vs anterior</span>}
-            tone="blue"
-          />
-          <Kpi
-            title="CONVERSIONES"
-            value={kpis.conv?.toLocaleString?.() ?? 0}
-            sub={`$${(kpis.cpa ?? 0).toLocaleString()} por conv.`}
-            tone="violet"
-          />
-          <Kpi
-            title="VENTAS"
-            value={kpis.sales?.toLocaleString?.() ?? 0}
-            sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
-            tone="gold"
-          />
-          <Kpi
-            title="ROAS"
-            value={`${(kpis.roas ?? 0).toFixed(2)}x`}
-            sub={`$${(kpis.revenue ?? 0).toLocaleString()} ingresos`}
-            tone="amber"
-          />
-          <Kpi
-            title="CTR PROMEDIO"
-            value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
-            sub={`${(kpis.impr ?? 0).toLocaleString()} impresiones`}
-            tone="gold"
-          />
+          <div className="metric-frame">
+            <div className="metric-surface p-5">
+              <Kpi
+                title="GASTO TOTAL"
+                value={`$${kpis.spend.toLocaleString()}`}
+                sub={<span className="text-emerald-600">{kpis.deltaSpend} vs anterior</span>}
+                tone="blue"
+              />
+            </div>
+          </div>
+          <div className="metric-frame">
+            <div className="metric-surface p-5">
+              <Kpi
+                title="CONVERSIONES"
+                value={kpis.conv?.toLocaleString?.() ?? 0}
+                sub={`$${(kpis.cpa ?? 0).toLocaleString()} por conv.`}
+                tone="violet"
+              />
+            </div>
+          </div>
+          <div className="metric-frame">
+            <div className="metric-surface p-5">
+              <Kpi
+                title="VENTAS"
+                value={kpis.sales?.toLocaleString?.() ?? 0}
+                sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
+                tone="gold"
+              />
+            </div>
+          </div>
+          <div className="metric-frame">
+            <div className="metric-surface p-5">
+              <Kpi
+                title="ROAS"
+                value={`${(kpis.roas ?? 0).toFixed(2)}x`}
+                sub={`$${(kpis.revenue ?? 0).toLocaleString()} ingresos`}
+                tone="amber"
+              />
+            </div>
+          </div>
+          <div className="metric-frame">
+            <div className="metric-surface p-5">
+              <Kpi
+                title="CTR PROMEDIO"
+                value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
+                sub={`${(kpis.impr ?? 0).toLocaleString()} impresiones`}
+                tone="gold"
+              />
+            </div>
+          </div>
         </div>
       </div>
 

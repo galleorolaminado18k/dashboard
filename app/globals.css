@@ -411,3 +411,63 @@ body {
   background-image: radial-gradient(1200px 600px at 50% -200px, #f5ecd8 10%, rgba(245,236,216,0) 60%);
   background-repeat: no-repeat;
 }
+
+/* === DASHBOARD GOLD LOOK (encapsulado) ===================== */
+:root{
+  --galle-gold-1:#f7f4ea;   /* crema */
+  --galle-gold-2:#e8d5b5;   /* dorado suave */
+  --galle-gold-3:#d8b880;   /* dorado */
+}
+
+/* Contenedor de página para evitar que publique herede estilos */
+.galle-dashboard { /* vacía a propósito, es un namespace */ }
+
+/* Marco dorado fino alrededor del card (no interfiere con rounded existentes) */
+.galle-dashboard .card-gold-frame{
+  position: relative;
+  border-radius: 28px;
+  padding: 1.5px; /* grosor del marco */
+  background: linear-gradient(90deg, var(--galle-gold-1), var(--galle-gold-3) 45%, var(--galle-gold-1));
+}
+
+/* Superficie interna del card: respeta tu bg actual (card/background) */
+.galle-dashboard .card-surface{
+  border-radius: 26px;
+  background: var(--background, #fff); /* no pisamos tus tokens */
+}
+
+/* Halo dorado en la parte inferior de cada card */
+.galle-dashboard .card-gold-frame.card-with-shadow::after{
+  content:"";
+  position:absolute;
+  left:10%;
+  right:10%;
+  bottom:-6px;
+  height:68px;
+  border-radius: 40px;
+  background:
+    radial-gradient(60% 90% at 50% 100%,
+      rgba(216,184,128,.45) 0%,
+      rgba(216,184,128,0) 60%);
+  filter: blur(14px);
+  pointer-events:none;
+}
+
+/* (Opcional) fondo suave del dashboard, sin "barra" arriba */
+.galle-dashboard .bg-dashboard-soft{
+  background:
+    radial-gradient(1200px 500px at 50% -200px, rgba(216,192,138,0.10), transparent 65%),
+    radial-gradient(900px 400px at 80% 200px, rgba(216,192,138,0.10), transparent 60%);
+}
+
+/* === PUBLICIDAD (encapsulado) ============================================= */
+.galle-ads .metric-frame{
+  border-radius: 22px;
+  padding: 1.25px; /* borde finito */
+  background: linear-gradient(135deg, #e9f0ff 0%, #f2e9ff 55%, #eef2ff 100%);
+}
+
+.galle-ads .metric-surface{
+  border-radius: 20px;
+  background: #fff; /* o var(--background) si usas token */
+}
