@@ -260,17 +260,18 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6 h-[320px]">
             <div className="text-sm text-neutral-500">Métodos de Pago (distribución)</div>
-            <div className="mt-3 h-[180px] flex justify-center">
-              <ResponsiveContainer width="200" height="180">
+            <div className="mt-3 h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={data.seriePagosPorMetodo}
                     dataKey="monto"
                     nameKey="metodo"
-                    innerRadius={40}
-                    outerRadius={65}
-                    paddingAngle={2}
-                    label={false}
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    labelLine
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {data.seriePagosPorMetodo.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
