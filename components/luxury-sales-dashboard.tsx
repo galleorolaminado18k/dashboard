@@ -326,11 +326,11 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
                   <div>
                     <p className="font-medium">{r.cliente}</p>
                     <p className="text-xs text-neutral-500 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {r.ciudad ?? "â€”"}
+                      <MapPin className="w-3 h-3" /> {r.ciudad ?? "—"}
                     </p>
                   </div>
                   <Badge variant="secondary" className="rounded-full bg-black text-white border-0">
-                    <Clock3 className="w-3 h-3 mr-1" /> {r.diasSinComprar} dÃ­as
+                    <Clock3 className="w-3 h-3 mr-1" /> {r.diasSinComprar} días
                   </Badge>
                 </li>
               ))}
@@ -339,7 +339,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         </GradientCard>
       </section>
 
-      {/* CUARTA BANDA: Ranking + Ãšltimas ventas */}
+      {/* CUARTA BANDA: Ranking + Últimas ventas */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6 pb-12">
         <GradientCard>
           <div className="p-6">
@@ -347,33 +347,31 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
               <BarChart3 className="w-4 h-4" /> Ranking de Ciudades
             </div>
             <div className="mt-3 overflow-hidden rounded-2xl border border-white/60">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="text-center px-4 py-3">#</th>
-                    <th className="text-left px-4 py-3">Ciudad</th>
-                    <th className="text-center px-4 py-3">Ventas</th>
-                    <th className="text-center px-4 py-3">Ticket</th>
-                    <th className="text-center px-4 py-3">%</th>
+                    <th className="text-center px-2 py-2 text-xs">#</th>
+                    <th className="text-left px-2 py-2 text-xs">Ciudad</th>
+                    <th className="text-right px-2 py-2 text-xs">Ventas</th>
+                    <th className="text-right px-2 py-2 text-xs">Ticket</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.rankingCiudades.map((c, i) => (
                     <tr key={i} className="odd:bg-white even:bg-neutral-50">
-                      <td className="px-4 py-3 text-center">{i + 1}</td>
-                      <td className="px-4 py-3 text-left">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-[#D8BD80]" />
-                          <span>{c.ciudad}</span>
+                      <td className="px-2 py-2 text-center text-xs font-semibold">{i + 1}</td>
+                      <td className="px-2 py-2 text-left">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-[#D8BD80]" />
+                          <span className="text-xs font-medium">{c.ciudad}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <Peso value={c.ventas} />
+                      <td className="px-2 py-2 text-right text-xs">
+                        ${(c.ventas / 1000000).toFixed(0)}M
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <Peso value={c.ticket} />
+                      <td className="px-2 py-2 text-right text-xs">
+                        ${(c.ticket / 1000).toFixed(0)}K
                       </td>
-                      <td className="px-4 py-3 text-center">{c.share}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -384,7 +382,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
 
         <GradientCard>
           <div className="p-6">
-            <div className="text-sm text-neutral-500">Ãšltimas Ventas</div>
+            <div className="text-sm text-neutral-500">Últimas Ventas</div>
             <ul className="mt-3 space-y-3">
               {data.ventasRecientes.map((v) => (
                 <li key={v.id} className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3">
@@ -419,7 +417,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
       </section>
 
       <footer className="pb-10 text-center text-xs text-neutral-400">
-        GALLE â€¢ Ultra Luxury Dashboard â€¢ Tailwind + shadcn/ui + Recharts
+        GALLE • Ultra Luxury Dashboard • Tailwind + shadcn/ui + Recharts
       </footer>
     </div>
   )
