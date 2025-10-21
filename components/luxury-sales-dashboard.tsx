@@ -106,16 +106,16 @@ const fallback: LuxurySalesDashboardProps = {
   ventasRecientes: [
     { id: "VT-008", cliente: "Diego Torres", producto: "Pulsera", total: 280000, estado: "Pagado" },
     { id: "VT-007", cliente: "Valentina Cruz", producto: "Anillo Compromiso", total: 850000, estado: "Pendiente" },
-    { id: "VT-006", cliente: "SofÃ­a RamÃ­rez", producto: "Cadena", total: 190000, estado: "Pagado" },
+    { id: "VT-006", cliente: "Sofía Ramírez", producto: "Cadena", total: 190000, estado: "Pagado" },
   ],
   riesgoFuga: [
-    { cliente: "Ana MartÃ­nez", diasSinComprar: 341, ciudad: "Cali" },
+    { cliente: "Ana Martínez", diasSinComprar: 341, ciudad: "Cali" },
     { cliente: "Patricia Silva", diasSinComprar: 314, ciudad: "Cartagena" },
-    { cliente: "Laura PÃ©rez", diasSinComprar: 284, ciudad: "Pereira" },
+    { cliente: "Laura Pérez", diasSinComprar: 284, ciudad: "Pereira" },
   ],
   rankingCiudades: [
-    { ciudad: "BogotÃ¡", ventas: 45_000_000, ticket: 288_461, share: 32.5 },
-    { ciudad: "MedellÃ­n", ventas: 32_000_000, ticket: 326_530, share: 23.1 },
+    { ciudad: "Bogotá", ventas: 45_000_000, ticket: 288_461, share: 32.5 },
+    { ciudad: "Medellín", ventas: 32_000_000, ticket: 326_530, share: 23.1 },
     { ciudad: "Cali", ventas: 18_500_000, ticket: 276_119, share: 13.4 },
   ],
 }
@@ -206,7 +206,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
               icon={<ReceiptText className="w-4 h-4" />}
             />
             <Kpi
-              label="Tasa de ConversiÃ³n"
+              label="Tasa de Conversión"
               value={`${Math.round(data.tasaConversion * 100)}%`}
               delta={"-2.1 pp"}
               icon={<Percent className="w-4 h-4" />}
@@ -226,7 +226,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UsersRound className="w-4 h-4" /> Nuevos Mayoristas JoyerÃ­a
+              <UserPlus className="w-4 h-4" /> Nuevos Mayoristas Joyería
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.joyeria.nuevos}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -235,7 +235,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UsersRound className="w-4 h-4" /> Recurrentes JoyerÃ­a
+              <UsersRound className="w-4 h-4" /> Recurrentes Joyería
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.joyeria.recurrentes}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -244,7 +244,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UserPlus className="w-4 h-4" /> Nuevos Mayoristas BalinerÃ­a
+              <UserPlus className="w-4 h-4" /> Nuevos Mayoristas Balinería
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.balineria.nuevos}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -253,7 +253,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6">
             <div className="text-sm text-neutral-500 flex items-center gap-2">
-              <UserPlus className="w-4 h-4" /> Recurrentes BalinerÃ­a
+              <UsersRound className="w-4 h-4" /> Recurrentes Balinería
             </div>
             <div className="mt-2 text-5xl font-semibold">{data.mayoristas.balineria.recurrentes}</div>
             <p className="text-xs text-neutral-500 mt-2">Este mes</p>
@@ -263,10 +263,10 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
 
       {/* TERCERA BANDA: GrÃ¡ficas principales */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* LÃ­nea ventas */}
+        {/* Línea ventas */}}
         <GradientCard>
           <div className="p-6 h-[320px]">
-            <div className="text-sm text-neutral-500">Ventas Diarias (7 dÃ­as)</div>
+            <div className="text-sm text-neutral-500">Ventas Diarias (7 días)</div>
             <div className="mt-3 h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data.serieVentasDiarias} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -281,10 +281,10 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
           </div>
         </GradientCard>
 
-        {/* Pie mÃ©todos */}
+        {/* Pie métodos */}
         <GradientCard>
           <div className="p-6 h-[320px]">
-            <div className="text-sm text-neutral-500">MÃ©todos de Pago (distribuciÃ³n)</div>
+            <div className="text-sm text-neutral-500">Métodos de Pago (distribución)</div>
             <div className="mt-3 h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -410,7 +410,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6 flex h-full items-center justify-between">
             <div>
-              <h3 className="text-xl font-semibold">Brilla mÃ¡s este mes âœ¨</h3>
+              <h3 className="text-xl font-semibold">Brilla más este mes ✨</h3>
               <p className="text-sm text-neutral-500 mt-1">Exporta el informe y comparte resultados con tu equipo.</p>
             </div>
             <Button className={`rounded-full bg-[${GOLD}] text-black hover:bg-[${GOLD}]/90`}>Exportar</Button>
