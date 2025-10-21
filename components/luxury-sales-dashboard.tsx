@@ -145,10 +145,8 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
       {/* HERO */}
       <section className="px-6 lg:px-10 pt-10">
         <div>
-          <h1 className="text-[32px] md:text-[40px] font-semibold tracking-tight leading-tight">
-            <span className={`text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[${GOLD}]`}>
-              DASHBOARD GALLE
-            </span>
+          <h1 className="text-[32px] md:text-[40px] font-semibold tracking-tight leading-tight text-[#2d3748]">
+            DASHBOARD <span className="text-[#a67c52]">GALLE</span>
           </h1>
           <p className="text-sm text-neutral-500 mt-1">RESUMEN DEL MES ACTUAL</p>
         </div>
