@@ -1,4 +1,4 @@
-﻿import type React from "react"
+import type React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,21 +27,6 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
-/**
- * â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
- * LUXURY SALES DASHBOARD âœ¨ (v2 â€” Ultra Luxury / brillante / estÃ©tico)
- *
- * Concepto visual:
- *  - Fondo blanco puro, tipografÃ­a negra, acentos dorado champagne.
- *  - Tarjetas con "glass-lux": blur + brillo sutil + borde con gradiente dorado.
- *  - JerarquÃ­a: Hero KPI (Ventas del Mes) XL, KPIs premium, mÃ³dulos CRM.
- *  - LÃ­nea de ventas con trazo dorado y puntos suaves.
- *  - Pie de mÃ©todos con vidrio pulido.
- *
- * Pasa tus datos reales por props; existen mocks por defecto.
- * â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”â€”
- */
-
 export type KPI = {
   label: string
   value: string | number
@@ -60,8 +45,8 @@ export type PaymentBreakdown = { metodo: string; monto: number }
 
 export interface LuxurySalesDashboardProps {
   ventasMesUSD: number
-  margenUtilidadPromedio: number // 0â€“1
-  tasaConversion: number // 0â€“1
+  margenUtilidadPromedio: number
+  tasaConversion: number
   ticketPromedioUSD: number
   pendienteMiPaqueteUSD: number
   mayoristas: MayoristasStats
@@ -73,10 +58,9 @@ export interface LuxurySalesDashboardProps {
 }
 
 // Paleta
-const GOLD = "#D8BD80" // champagne mÃ¡s brillante
+const GOLD = "#D8BD80"
 const GOLD_SOFT = "#E8D7A5"
 const INK = "#0B0B0C"
-const GLASS = "bg-white/80 backdrop-blur-xl"
 
 // Mocks
 const fallback: LuxurySalesDashboardProps = {
@@ -221,7 +205,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         </div>
       </section>
 
-      {/* SEGUNDA BANDA: Mayoristas + Pendientes Mipaquete */}
+      {/* SEGUNDA BANDA: Mayoristas */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
         <GradientCard>
           <div className="p-6">
@@ -261,9 +245,9 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         </GradientCard>
       </section>
 
-      {/* TERCERA BANDA: GrÃ¡ficas principales */}
+      {/* TERCERA BANDA: Gráficas principales */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Línea ventas */}}
+        {/* Línea ventas */}
         <GradientCard>
           <div className="p-6 h-[320px]">
             <div className="text-sm text-neutral-500">Ventas Diarias (7 días)</div>
@@ -388,9 +372,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
                 <li key={v.id} className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3">
                   <div>
                     <p className="font-medium">{v.cliente}</p>
-                    <p className="text-xs text-neutral-500">
-                      {v.producto} â€¢ {v.id}
-                    </p>
+                    <p className="text-xs text-neutral-500">{v.producto} • {v.id}</p>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold">
@@ -422,5 +404,3 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
     </div>
   )
 }
-
-
