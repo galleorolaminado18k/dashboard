@@ -500,3 +500,14 @@ h1, h2, h3, h4, h5, h6 {
 .galle-ads .relative::after {
   display: none !important;
 }
+
+/* Estilos para etiquetas de gráficas Recharts */
+.recharts-pie-label-text {
+  font-size: 8px !important;
+  font-weight: 400 !important;
+  fill: #6b7280 !important;
+}
+
+.recharts-label {
+  font-size: 8px !important;
+}
