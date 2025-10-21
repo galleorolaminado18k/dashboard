@@ -414,60 +414,75 @@ body {
 
 /* === DASHBOARD GOLD LOOK (encapsulado) ===================== */
 :root{
-  --galle-gold-1:#f7f4ea;   /* crema */
+  --galle-gold-1:#f8f5ec;   /* crema más suave */
   --galle-gold-2:#e8d5b5;   /* dorado suave */
-  --galle-gold-3:#d8b880;   /* dorado */
+  --galle-gold-3:#d4b870;   /* dorado más intenso */
+  --galle-gold-shadow: rgba(212, 184, 112, 0.35);
 }
 
 /* Contenedor de página para evitar que publique herede estilos */
 .galle-dashboard { /* vacía a propósito, es un namespace */ }
 
-/* Marco dorado fino alrededor del card (no interfiere con rounded existentes) */
+/* Marco dorado fino alrededor del card */
 .galle-dashboard .card-gold-frame{
   position: relative;
-  border-radius: 28px;
-  padding: 1.5px; /* grosor del marco */
-  background: linear-gradient(90deg, var(--galle-gold-1), var(--galle-gold-3) 45%, var(--galle-gold-1));
+  border-radius: 24px;
+  padding: 1px; /* marco más fino */
+  background: linear-gradient(135deg, var(--galle-gold-1) 0%, var(--galle-gold-3) 50%, var(--galle-gold-1) 100%);
+  box-shadow: 0 8px 32px rgba(212, 184, 112, 0.15);
 }
 
-/* Superficie interna del card: respeta tu bg actual (card/background) */
+/* Superficie interna del card */
 .galle-dashboard .card-surface{
-  border-radius: 26px;
-  background: var(--background, #fff); /* no pisamos tus tokens */
+  border-radius: 23px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Halo dorado en la parte inferior de cada card */
+/* Halo dorado difuminado en la parte inferior */
 .galle-dashboard .card-gold-frame.card-with-shadow::after{
   content:"";
   position:absolute;
-  left:10%;
-  right:10%;
-  bottom:-6px;
-  height:68px;
-  border-radius: 40px;
-  background:
-    radial-gradient(60% 90% at 50% 100%,
-      rgba(216,184,128,.45) 0%,
-      rgba(216,184,128,0) 60%);
-  filter: blur(14px);
+  left:8%;
+  right:8%;
+  bottom:-8px;
+  height:32px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, var(--galle-gold-shadow) 0%, transparent 70%);
+  filter: blur(12px);
   pointer-events:none;
+  z-index: -1;
 }
 
-/* (Opcional) fondo suave del dashboard, sin "barra" arriba */
+/* Fondo suave del dashboard */
 .galle-dashboard .bg-dashboard-soft{
   background:
-    radial-gradient(1200px 500px at 50% -200px, rgba(216,192,138,0.10), transparent 65%),
-    radial-gradient(900px 400px at 80% 200px, rgba(216,192,138,0.10), transparent 60%);
+    radial-gradient(1400px 600px at 50% -100px, rgba(248, 245, 236, 0.8), transparent 70%),
+    radial-gradient(800px 400px at 80% 100px, rgba(232, 213, 181, 0.4), transparent 60%),
+    linear-gradient(180deg, #fefdfb 0%, #faf8f3 100%);
 }
 
 /* === PUBLICIDAD (encapsulado) ============================================= */
 .galle-ads .metric-frame{
-  border-radius: 22px;
-  padding: 1.25px; /* borde finito */
-  background: linear-gradient(135deg, #e9f0ff 0%, #f2e9ff 55%, #eef2ff 100%);
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, #e6f2ff 0%, #f0e8ff 50%, #e9f0ff 100%);
+  box-shadow: 0 4px 20px rgba(99, 139, 255, 0.08);
 }
 
 .galle-ads .metric-surface{
-  border-radius: 20px;
-  background: #fff; /* o var(--background) si usas token */
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(230, 242, 255, 0.5);
+}
+
+/* Remover cualquier efecto dorado heredado */
+.galle-ads .metric-surface .relative {
+  background: transparent !important;
+}
+
+.galle-ads .metric-surface .relative::before,
+.galle-ads .metric-surface .relative::after {
+  display: none !important;
 }
