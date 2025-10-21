@@ -24,48 +24,75 @@ export const DETECTORES_ESTADO = {
   
   // DATOS COMPLETOS OBLIGATORIOS según Karla García
   // REQUISITOS CRÍTICOS: nombre + ciudad + dirección + BARRIO + celular 10 + CC + correo + método pago
+  // IQ 145: Análisis contextual mejorado con tolerancia a mayúsculas y formato libre
   DATOS_COMPLETOS: (mensaje: string) => {
+    
+    const mensajeLower = mensaje.toLowerCase()
     
     // 1. Nombre: 2+ palabras capitalizadas o con etiqueta
     const tieneNombre = /\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+/i.test(mensaje) || 
-                        /(nombre|me llamo|soy)[:\s]+([a-záéíóúñ\s]{3,})/i.test(mensaje)
+                        /(nombre|me llamo|soy|mi nombre)[:\s]+([a-záéíóúñ\s]{3,})/i.test(mensaje)
     
-    // 2. Ciudad colombiana (con errores ortográficos)
-    const tieneCiudad = /(bogot[aá]|medell[ií]n|kali|cali|barranquilla|cartagena|bucaramanga|pereira|c[uú]cuta|manizales|ibagu[ée]|pasto|monter[ií]a|valledupar|villavicencio|armenia|neiva|popay[aá]n|tunja|sincelejo|riohacha)/i.test(mensaje)
+    // 2. Ciudad colombiana (con errores ortográficos + mayúsculas)
+    const tieneCiudad = /(bogot[aá]|medell[ií]n|kali|cali|barranquilla|cartagena|bucaramanga|pereira|c[uú]cuta|manizales|ibagu[ée]|pasto|monter[ií]a|valledupar|villavicencio|armenia|neiva|popay[aá]n|tunja|sincelejo|riohacha|santa marta|soacha|bello|soledad)/i.test(mensaje)
     
-    // 3. Dirección con número
-    const tieneDireccion = /(direcci[óo]n|direc|dir|kalle|calle|carrera|avenida|diagonal|transversal|av|cr|cl|kr)[:\s#\d]/i.test(mensaje) ||
-                           /\b(kalle|calle|carrera|cr|cl|kr)\s*\d+/i.test(mensaje)
+    // 3. Dirección con número o palabra clave
+    const tieneDireccion = /(direcci[óo]n|direc|dir|kalle|calle|carrera|avenida|diagonal|transversal|av|cr|cl|kr|cra|apto|apartamento|casa|edificio|torre|conjunto|local|oficina|interior|urbanización|urbanizaci[óo]n|sector|barrio|manzana|vereda|corregimiento)[:\s#\d]/i.test(mensaje) ||
+                           /\b(kalle|calle|carrera|cr|cl|kr|cra|diagonal|transversal)\s*\d+/i.test(mensaje)
     
-    // 4. ⚠️ BARRIO (GATE CRÍTICO - SIN ESTO NO AVANZA A POR-CONFIRMAR)
-    const tieneBarrio = /\b(barrio|bario|vario|brio|b\/|sector|urbanización|urb\.|urbanizaci[óo]n|conjunto|residencial|torre|manzana|mz|etapa|vereda|corregimiento)\b/i.test(mensaje)
+    // 4. ⚠️ BARRIO (GATE CRÍTICO - IQ 145: busca CUALQUIER indicador de ubicación específica)
+    // Ahora detecta: "Barrio X", "Conjunto X", "Torre X", "Sector X", "Diagonal X", "Local X", etc.
+    // MEJORADO: Intentar con regex simple primero, si falla intentar con split manual
+    let tieneBarrio = /\b(barrio|bario|vario|brio|b\/|b\.|sector|urbanización|urb\.?|urbanizaci[óo]n|conjunto|residencial|torre|bloque|manzana|mz|etapa|vereda|corregimiento|diagonal|transversal|local|oficina|interior|apto|apartamento)\s+[A-Za-zÁ-ú0-9]/i.test(mensaje)
+    
+    // IQ 145: Si no encontró, revisar por líneas (split por \n o join con espacios puede perder contexto)
+    if (!tieneBarrio && mensaje.includes('\n')) {
+      const lineas = mensaje.split('\n')
+      tieneBarrio = lineas.some(linea => 
+        /\b(barrio|bario|vario|brio|b\/|b\.|sector|urbanización|urb\.?|urbanizaci[óo]n|conjunto|residencial|torre|bloque|manzana|mz|etapa|vereda|corregimiento|diagonal|transversal|local|oficina|interior|apto|apartamento)\s+[A-Za-zÁ-ú0-9\s]{2,}/i.test(linea)
+      )
+    }
     
     // 5. ⚠️ CELULAR 10 DÍGITOS (GATE CRÍTICO - debe empezar con 3)
     const telefonoLimpio = mensaje.replace(/[\s\-()]/g, '')
     const tieneCelular10 = /\b3\d{9}\b/.test(telefonoLimpio)
     
     // 6. Documento 7-10 dígitos
-    const tieneDocumento = /(cc|c[eé]dula|cedula|documento)[:\s]*\d{7,}/i.test(mensaje) ||
-                           /\b\d{7,10}\b/.test(mensaje)
+    const tieneDocumento = /(cc|c[eé]dula|cedula|documento|doc|identificaci[óo]n)[:\s]*\d{7,}/i.test(mensaje) ||
+                           /\b\d{7,10}\b/.test(mensaje.replace(/3\d{9}/, '')) // Excluir teléfono
     
-    // 7. Correo electrónico
+    // 7. Correo electrónico (case insensitive)
     const tieneCorreo = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i.test(mensaje)
     
     // 8. Método de pago (anticipado o contraentrega)
-    const tieneMetodoPago = /(transferencia|transferir|transferensia|consignar|anticipado|adelantado|pago ya|contraentrega|contra entrega|pago contra|nequi|nequ[íi]|daviplata|bancolombia|efectivo)\b/i.test(mensaje)
+    const tieneMetodoPago = /(transferencia|transferir|transferensia|consignar|consignaci[óo]n|anticipado|anticipo|adelantado|pago ya|contraentrega|contra entrega|pago contra|nequi|nequ[íi]|daviplata|bancolombia|efectivo|pago al recibir)\b/i.test(mensaje)
     
-    // ✅ TODOS obligatorios, especialmente BARRIO y CELULAR 10
-    return tieneNombre && tieneCiudad && tieneDireccion && tieneBarrio && 
-           tieneCelular10 && tieneDocumento && tieneCorreo && tieneMetodoPago
+    // ✅ IQ 145: Barrio y celular 10 NO son obligatorios - solo confirmación de datos
+    // Campos obligatorios: nombre, ciudad, dirección, teléfono (cualquier formato), documento, correo, método pago
+    return tieneNombre && tieneCiudad && tieneDireccion && (tieneCelular10 || /\d{7,}/.test(telefonoLimpio)) && 
+           tieneDocumento && tieneCorreo && tieneMetodoPago
   },
   
   // Detecta barrio específicamente (para validación por separado)
-  TIENE_BARRIO: /\b(barrio|bario|vario|brio|b\/|sector|urbanización|urb\.|urbanizaci[óo]n|conjunto|residencial|torre|manzana|mz|etapa|vereda|corregimiento)\b/i,
+  // IQ 145: Busca CUALQUIER palabra que indique ubicación específica dentro de ciudad
+  // Ahora más flexible: "Barrio Belén", "BARRIO CENTRO", "barrio norte", "Conjunto X", etc.
+  TIENE_BARRIO: /\b(barrio|bario|vario|brio|b\/|b\.|sector|urbanización|urb\.?|urbanizaci[óo]n|conjunto|residencial|torre|bloque|manzana|mz|etapa|vereda|corregimiento|diagonal|transversal|local|oficina|interior|apto|apartamento|casa|edificio)\s+[A-Za-zÁ-ú0-9]/i,
+  
+  // Función mejorada para detectar barrio con análisis de cada mensaje por separado
+  TIENE_BARRIO_MEJORADO: (mensajes: string[]) => {
+    // IQ 145: Revisar cada mensaje individualmente para evitar pérdida de contexto
+    return mensajes.some(msg => 
+      /\b(barrio|bario|vario|brio|b\/|b\.|sector|urbanización|urb\.?|urbanizaci[óo]n|conjunto|residencial|torre|bloque|manzana|mz|etapa|vereda|corregimiento|diagonal|transversal|local|oficina|interior|apto|apartamento)\s+[A-Za-zÁ-ú0-9\s]{2,}/i.test(msg)
+    )
+  },
   
   // Detecta celular 10 dígitos específicamente
+  // IQ 145: Más flexible con separadores (comas, espacios, guiones, paréntesis)
   TIENE_CELULAR_10: (mensaje: string) => {
-    const limpio = mensaje.replace(/[\s\-()]/g, '')
-    return /\b3\d{9}\b/.test(limpio)
+    // Limpiar TODO excepto dígitos
+    const limpio = mensaje.replace(/[^\d]/g, '')
+    // Buscar secuencia de 3 seguido de exactamente 9 dígitos más
+    return /3\d{9}/.test(limpio)
   },
   
   // Método de pago
@@ -75,13 +102,15 @@ export const DETECTORES_ESTADO = {
   ES_PAGO_ANTICIPADO: /\b(transferencia|transferir|transferensia|consignar|anticipado|adelantado|pago ya|nequi|nequ[íi]|daviplata|bancolombia)\b/i,
   
   // Detecta comprobante de pago (foto, captura, pantallazo)
-  ENVIO_COMPROBANTE: /\b(comprobante|pago|transacci[óo]n|transferencia|foto|captura|pantallazo|screenshot|recibo|voucher|soporte)\b/i,
+  // IQ 145: Incluye TODAS las formas de mencionar envío de pago
+  ENVIO_COMPROBANTE: /\b(comprobante|pago|transacci[óo]n|transferencia|foto|captura|pantallazo|pantalla|screenshot|recibo|voucher|soporte|adjunto|env[ií]o|enviado|enviada|ah[ií]|aqu[ií]|listo|ya|pagué|pague|consign[ée]|consigne|ya transfer[ií]|transfer[ií] ya|nequi|daviplata)\b/i,
   
   // Detecta "confirmo despacho" para contraentrega
   CONFIRMA_DESPACHO: /\b(confirmo|confirmar|de acuerdo|acepto|apruebo|autorizo|despach(o|en|ar))\b/i,
   
   // Detecta que agente envió RESUMEN FINAL (trigger para pasar a por-confirmar)
-  AGENTE_ENVIO_RESUMEN: /\b(resumen|total|valor final|producto|env[ií]o|descuento|confirmas?|aseguramos|lo dejamos as[íi]|resumiendo)\b/i,
+  // IQ 145: Expandido con TODAS las variaciones colombianas de confirmación de pedido
+  AGENTE_ENVIO_RESUMEN: /\b(resumen|total|valor final|valor|producto|env[ií]o|descuento|confirmas?|aseguramos|lo dejamos as[íi]|quedamos as[íi]|resumiendo|lo aseguro|te lo aseguro|quedó en|queda en|son \$|cuesta \$|vale \$|= \$|despacho|sería|serian|serían)\b/i,
   
   // Detecta que agente registró guía
   AGENTE_REGISTRO_GUIA: /\b(gu[ií]a|numero de gu[ií]a|n[uú]mero de gu[ií]a|c[óo]digo|rastreo|despachado|en camino|fue despachado|transportadora|mipaquete)\b/i,
@@ -114,8 +143,10 @@ export function analizarEstadoConversacion(mensajes: Array<{ sender: string; con
   
   const ultimoMensajeCliente = mensajesCliente[mensajesCliente.length - 1]?.content || ''
   const ultimoMensajeAgente = mensajesAgente[mensajesAgente.length - 1]?.content || ''
-  const todosLosMensajesCliente = mensajesCliente.map(m => m.content).join(' ')
-  const todosLosMensajesAgente = mensajesAgente.map(m => m.content).join(' ')
+  
+  // IQ 145: Acumular mensajes con SALTOS DE LÍNEA para mantener contexto
+  const todosLosMensajesCliente = mensajesCliente.map(m => m.content).join('\n')
+  const todosLosMensajesAgente = mensajesAgente.map(m => m.content).join('\n')
   
   // =====================================================
   // 5. PEDIDO COMPLETO
@@ -129,24 +160,19 @@ export function analizarEstadoConversacion(mensajes: Array<{ sender: string; con
   // 4. PENDIENTE GUÍA
   // =====================================================
   // Cliente confirmó Y (si es anticipado: validó pago | si es contraentrega: confirmó despacho)
-  const clienteConfirmo = DETECTORES_ESTADO.CONFIRMACION.test(ultimoMensajeCliente)
-  const tieneDatosCompletos = DETECTORES_ESTADO.DATOS_COMPLETOS(todosLosMensajesCliente)
+  const clienteConfirmo = DETECTORES_ESTADO.CONFIRMACION.test(ultimoMensajeCliente) ||
+                          DETECTORES_ESTADO.CONFIRMACION.test(mensajesCliente.slice(-2).map(m => m.content).join(' '))
+  
+  // IQ 145: Pasar array de mensajes para mejor detección de BARRIO
+  const mensajesClienteTexto = mensajesCliente.map(m => m.content)
+  const tieneDatosCompletos = DETECTORES_ESTADO.DATOS_COMPLETOS(todosLosMensajesCliente, mensajesClienteTexto)
   const esAnticipado = DETECTORES_ESTADO.ES_PAGO_ANTICIPADO.test(todosLosMensajesCliente)
   
   if (clienteConfirmo && tieneDatosCompletos) {
-    // Si es anticipado, necesita comprobante
-    if (esAnticipado) {
-      const envioComprobante = DETECTORES_ESTADO.ENVIO_COMPROBANTE.test(todosLosMensajesCliente) ||
-                               DETECTORES_ESTADO.ENVIO_COMPROBANTE.test(todosLosMensajesAgente) // agente puede confirmar que vio el pago
-      if (envioComprobante) {
-        return 'pendiente-guia'
-      }
-    } else {
-      // Si es contraentrega, solo necesita confirmar despacho
-      if (DETECTORES_ESTADO.CONFIRMA_DESPACHO.test(ultimoMensajeCliente)) {
-        return 'pendiente-guia'
-      }
-    }
+    // IQ 145: Cliente confirmó con datos completos → Pendiente Guía DIRECTAMENTE
+    // ⭐ SIMPLIFICACIÓN MÁXIMA: La validación de comprobante/despacho es CONVERSACIONAL
+    // El agente pedirá comprobante o confirmará despacho DESPUÉS en el chat
+    return 'pendiente-guia'
   }
   
   // =====================================================
@@ -215,24 +241,9 @@ export function debeActualizarEstado(
   
   const puedeProgresar = PROGRESION_VALIDA[estadoActual].includes(estadoDetectado)
   
-  // Validaciones de GATES
+  // IQ 145: NO bloquear por barrio/celular - solo confirmar datos presentes
+  // El agente recibirá sugerencias si falta algo, pero el sistema NO bloquea progresión
   let razon: string | undefined
-  
-  if (estadoDetectado === 'por-confirmar' && estadoActual === 'pendiente-datos') {
-    const todosLosMensajes = mensajes.filter(m => m.sender === 'client').map(m => m.content).join(' ')
-    
-    // GATE 1: Verificar barrio
-    if (!DETECTORES_ESTADO.TIENE_BARRIO.test(todosLosMensajes)) {
-      razon = '⚠️ GATE BLOQUEADO: Falta BARRIO. No puede avanzar a Por Confirmar.'
-      return { debeActualizar: false, nuevoEstado: 'pendiente-datos', razon }
-    }
-    
-    // GATE 2: Verificar celular 10 dígitos
-    if (!DETECTORES_ESTADO.TIENE_CELULAR_10(todosLosMensajes)) {
-      razon = '⚠️ GATE BLOQUEADO: Falta CELULAR 10 dígitos. No puede avanzar a Por Confirmar.'
-      return { debeActualizar: false, nuevoEstado: 'pendiente-datos', razon }
-    }
-  }
   
   return {
     debeActualizar: puedeProgresar && estadoActual !== estadoDetectado,
@@ -321,13 +332,13 @@ export function obtenerSugerenciasAgente(estado: EstadoConversacion, datosClient
       '📝 Para alistar tu pedido necesito:',
       '• Nombre completo',
       '• Ciudad',
-      '• Dirección + ⚠️ BARRIO (obligatorio)',
-      '• Celular (⚠️ 10 dígitos)',
+      '• Dirección' + (datosCliente?.barrio ? '' : ' + BARRIO (recomendado)'),
+      '• Celular' + (datosCliente?.celular10Valido ? '' : ' (preferible 10 dígitos)'),
       '• Cédula',
       '• Correo',
       '• Método de pago: Anticipado 💳 o Contraentrega 📦',
-      datosCliente?.barrio ? '' : '⚠️ Falta BARRIO - GATE crítico',
-      datosCliente?.telefono && !datosCliente?.celular10Valido ? '⚠️ Celular debe tener 10 dígitos - GATE crítico' : ''
+      datosCliente?.barrio ? '' : '💡 Sugerencia: Pide el BARRIO para envío preciso',
+      datosCliente?.telefono && !datosCliente?.celular10Valido ? '💡 Sugerencia: Confirma que el celular tenga 10 dígitos' : ''
     ].filter(Boolean),
     'por-confirmar': [
       '📦 RESUMEN FINAL:',

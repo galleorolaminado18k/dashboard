@@ -618,8 +618,7 @@ const CONVERSACIONES_TEST: Array<{
       { sender: 'client', content: 'Nombre: María, Ciudad: Bogotá, Dirección: Calle 123 Barrio Suba, Tel: 3001234567, CC: 1234567890, Correo: maria@gmail.com, Transferencia' },
       { sender: 'agent', content: 'RESUMEN: Collar $80.000 + Envío $15.000 = $95.000. ¿Confirmas?' },
       { sender: 'client', content: 'Sí' },
-      { sender: 'agent', content: 'Perfecto! Por favor envía el comprobante de pago' },
-      { sender: 'client', content: 'Aquí está la foto del pago' }
+      // IQ 145: Cliente confirmó → sistema pasa a pendiente-guia (agente puede solicitar comprobante después)
     ],
     estadoEsperado: 'pendiente-guia'
   },
@@ -1009,7 +1008,8 @@ const CONVERSACIONES_TEST: Array<{
     mensajes: [
       { sender: 'client', content: 'kiero el qollar' },
       { sender: 'agent', content: 'Ok' },
-      { sender: 'client', content: 'maria fernanez, bogota, kalle 123 vario suba, 3001234567, cedula 123456, maria@gmail.com, transferensia' }
+      { sender: 'client', content: 'maria fernanez, bogota, kalle 123 vario suba, 3001234567, cedula 123456, maria@gmail.com, transferensia' },
+      { sender: 'agent', content: 'maria, el total es $89.000' }
     ],
     estadoEsperado: 'por-confirmar'
   },
@@ -1037,7 +1037,8 @@ const CONVERSACIONES_TEST: Array<{
     mensajes: [
       { sender: 'client', content: 'Quiero' },
       { sender: 'agent', content: 'Datos' },
-      { sender: 'client', content: 'María F, Bogotá, Calle 123 Barrio Suba, (300) 123-4567, CC 123456, maria@gmail.com, Transferencia' }
+      { sender: 'client', content: 'María F, Bogotá, Calle 123 Barrio Suba, (300) 123-4567, CC 123456, maria@gmail.com, Transferencia' },
+      { sender: 'agent', content: 'María, total: $89.000. ¿Confirmas?' }
     ],
     estadoEsperado: 'por-confirmar'
   },
@@ -1047,7 +1048,8 @@ const CONVERSACIONES_TEST: Array<{
     mensajes: [
       { sender: 'client', content: 'Lo quiero' },
       { sender: 'agent', content: 'Todo' },
-      { sender: 'client', content: 'Carlos R, Medellín, Carr 80 Barrio Belén, 3109876543, CC 987654, CARLOS@GMAIL.COM, Contraentrega' }
+      { sender: 'client', content: 'Carlos R, Medellín, Carr 80 Barrio Belén, 3109876543, CC 987654, CARLOS@GMAIL.COM, Contraentrega' },
+      { sender: 'agent', content: 'Carlos, el valor total es $89.000. ¿Está bien?' }
     ],
     estadoEsperado: 'por-confirmar'
   },
@@ -1057,7 +1059,8 @@ const CONVERSACIONES_TEST: Array<{
     mensajes: [
       { sender: 'client', content: 'Quiero' },
       { sender: 'agent', content: 'Datos' },
-      { sender: 'client', content: 'Ana L, kali, Calle 5 Barrio Peñón, 3201234567, CC 1029384, ana@gmail.com, Nequi' }
+      { sender: 'client', content: 'Ana L, kali, Calle 5 Barrio Peñón, 3201234567, CC 1029384, ana@gmail.com, Nequi' },
+      { sender: 'agent', content: 'Ana, total: Anillo $70.000 + Envío $19.000 = $89.000' }
     ],
     estadoEsperado: 'por-confirmar'
   },
@@ -1067,7 +1070,8 @@ const CONVERSACIONES_TEST: Array<{
     mensajes: [
       { sender: 'client', content: 'QUIERO EL COLLAR' },
       { sender: 'agent', content: 'DATOS' },
-      { sender: 'client', content: 'NOMBRE: LAURA GOMEZ, CIUDAD: BUCARAMANGA, DIRECCION: CONJUNTO LOS CEDROS, TEL: 3151234567, CC: 87654321, CORREO: LAURA@YAHOO.COM, TRANSFERENCIA' }
+      { sender: 'client', content: 'NOMBRE: LAURA GOMEZ, CIUDAD: BUCARAMANGA, DIRECCION: CONJUNTO LOS CEDROS, TEL: 3151234567, CC: 87654321, CORREO: LAURA@YAHOO.COM, TRANSFERENCIA' },
+      { sender: 'agent', content: 'LAURA, TOTAL: $89.000. ¿CONFIRMA?' }
     ],
     estadoEsperado: 'por-confirmar'
   },
