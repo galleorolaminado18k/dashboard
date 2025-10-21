@@ -142,22 +142,14 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
   return (
     <div className="galle-dashboard bg-dashboard-soft min-h-screen bg-white text-[#0B0B0C]">
       {/* HERO */}
-      <section className="px-6 lg:px-10 pt-10 pb-4">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-[28px] sm:text-[32px] md:text-[40px] lg:text-[44px] font-semibold tracking-tight leading-tight whitespace-nowrap overflow-visible">
-              <span className={`text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[${GOLD}]`}>
-                DASHBOARD GALLE
-              </span>
-            </h1>
-            <p className="text-sm text-neutral-500 mt-2">RESUMEN DEL MES ACTUAL</p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button variant="outline" className="rounded-full border-neutral-200 bg-transparent text-xs sm:text-sm px-3 sm:px-4">
-              Imprimir
-            </Button>
-            <Button className={`rounded-full bg-[${GOLD}] text-black hover:bg-[${GOLD}]/90 text-xs sm:text-sm px-3 sm:px-4`}>Compartir</Button>
-          </div>
+      <section className="px-6 lg:px-10 pt-10 pb-6">
+        <div className="text-center">
+          <h1 className="text-[36px] sm:text-[42px] md:text-[48px] lg:text-[56px] xl:text-[64px] font-bold tracking-wide leading-none">
+            <span className={`text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#333] to-[${GOLD}]`}>
+              DASHBOARD GALLE
+            </span>
+          </h1>
+          <p className="text-base text-neutral-600 mt-3 font-medium">RESUMEN DEL MES ACTUAL</p>
         </div>
 
         {/* KPI HERO (VENTAS) */}
