@@ -13,11 +13,11 @@ export type EstadoConversacion =
 // Detectores de intención basados en el prompt de Karla
 export const DETECTORES_ESTADO = {
   
-  // Palabras que indican confirmación de pedido
-  CONFIRMACION: /\b(s[ií]|dale|perfecto|listo|confirm(o|a|ado)?|de una|h[áa]gale|vamos|ok(ay)?|va|claro|✅|👍)\b/i,
+  // Palabras que indican confirmación de pedido (lenguaje natural colombiano)
+  CONFIRMACION: /\b(s[ií]|si|dale|perfecto|listo|confirm(o|a|ado)?|de una|h[áa]gale|vamos|ok(ay)?|va|claro|exacto|correcto|así es|eso|sale|bien|bueno|✅|👍|👌|✔️|seguimos|adelante|venga)\b/i,
   
-  // Palabras que indican interés en producto
-  INTERES_PRODUCTO: /\b(quiero|me interesa|cuánto|precio|catálogo|ver|balinería|joyería|aretes|collar|pulsera|cadena)\b/i,
+  // Palabras que indican interés en producto (más variaciones)
+  INTERES_PRODUCTO: /\b(quiero|me interesa|me gusta|cuánto|cu[áa]nto|precio|cuesta|valor|catálogo|catalogo|ver|mostrar|balinería|baliner[íi]a|joyería|joyer[íi]a|aretes|arete|collar|pulsera|cadena|anillo|conjunto|disponible|hay|envían|envian|despachan|mandan|entregan|llega|demora|cu[áa]nto tarda)\b/i,
   
   // Detecta si tiene datos completos (nombre + ciudad + dirección + teléfono + documento + correo)
   DATOS_COMPLETOS: (mensaje: string) => {
@@ -31,17 +31,17 @@ export const DETECTORES_ESTADO = {
     return tieneNombre && tieneCiudad && tieneDireccion && tieneTelefono && tieneDocumento && tieneCorreo
   },
   
-  // Detecta si proporcionó el barrio (CRÍTICO según el prompt)
-  TIENE_BARRIO: /\b(barrio|brio|b\/|sector|urbanización|urb\.|conjunto|residencial|vereda|corregimiento)\b/i,
+  // Detecta si proporcionó el barrio (CRÍTICO según el prompt - más variaciones)
+  TIENE_BARRIO: /\b(barrio|brio|b\/|sector|urbanización|urb\.|urbanizaci[óo]n|conjunto|residencial|torre|edificio|casa|calle|carrera|kr|cl|diagonal|transversal|vereda|etapa|manzana|apartamento|apto|piso|bloque|interior|local|ofic|corregimiento)\b/i,
   
-  // Detecta método de pago elegido
-  METODO_PAGO: /(transferencia|anticipado|contraentrega)/i,
+  // Detecta método de pago elegido (más variaciones)
+  METODO_PAGO: /(transferencia|transferir|consignar|consignación|consignacion|anticipado|adelantado|pago ya|contraentrega|contra entrega|pago contra|efectivo|nequi|daviplata|bancolombia)\b/i,
   
-  // Detecta que quiere hablar con un asesor
-  SOLICITA_ASESOR: /\b(asesor|persona|hablar con alguien|atención)\b/i,
+  // Detecta que quiere hablar con un asesor (más variaciones)
+  SOLICITA_ASESOR: /\b(asesor|asesora|persona|hablar con alguien|atención|atenci[óo]n|quien atiende|alguien|ayuda|necesito ayuda|me pueden ayudar|representante|vendedor|vendedora)\b/i,
   
-  // Detecta temas de garantía
-  SOLICITA_GARANTIA: /\b(garantía|cambio|reclamo|problema|pelado|dañ(o|ado)|defecto)\b/i,
+  // Detecta temas de garantía/problemas (más variaciones)
+  SOLICITA_GARANTIA: /\b(garantía|garant[íi]a|cambio|devoluci[óo]n|reclamo|queja|problema|pelado|dañ(o|ado)|roto|defecto|malo|mala calidad|no sirve|no funciona|no me gusta|no es lo que|esperaba otro)\b/i,
 }
 
 // Analizador de estado automático
@@ -134,39 +134,39 @@ export function extraerDatosCliente(mensajes: Array<{ sender: string; content: s
     .map(m => m.content)
     .join('\n')
   
-  // Extraer nombre
-  const nombreMatch = todosLosMensajes.match(/(?:nombre[:\s]+|me llamo[:\s]+|soy[:\s]+)([a-záéíóúñ\s]{3,})/i)
+  // Extraer nombre (más patrones)
+  const nombreMatch = todosLosMensajes.match(/(?:nombre[:\s]+|me llamo[:\s]+|soy[:\s]+|mi nombre es[:\s]+)([a-záéíóúñ\s]{3,})/i)
   const nombre = nombreMatch ? nombreMatch[1].trim() : null
   
-  // Extraer ciudad
-  const ciudadMatch = todosLosMensajes.match(/(?:ciudad[:\s]+|de[:\s]+|en[:\s]+)([a-záéíóúñ\s]{3,})/i)
+  // Extraer ciudad (más ciudades colombianas)
+  const ciudadMatch = todosLosMensajes.match(/(?:ciudad[:\s]+|de[:\s]+|en[:\s]+|desde[:\s]+|vivo en[:\s]+)(bogotá|bogota|medellín|medellin|cali|barranquilla|cartagena|bucaramanga|pereira|cúcuta|cucuta|manizales|ibagué|ibague|pasto|montería|monteria|valledupar|villavicencio|armenia|soacha|santa marta|bello|soledad|buenaventura|[a-záéíóúñ\s]{3,})/i)
   const ciudad = ciudadMatch ? ciudadMatch[1].trim() : null
   
-  // Extraer teléfono
-  const telefonoMatch = todosLosMensajes.match(/\b(3\d{9})\b/)
+  // Extraer teléfono (más formatos colombianos)
+  const telefonoMatch = todosLosMensajes.replace(/[\s\-()]/g, '').match(/\b(3\d{9})\b/)
   const telefono = telefonoMatch ? telefonoMatch[1] : null
   
   // Extraer correo
   const correoMatch = todosLosMensajes.match(/\b([a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})\b/i)
   const correo = correoMatch ? correoMatch[1] : null
   
-  // Extraer dirección
-  const direccionMatch = todosLosMensajes.match(/(?:dirección|direccion)[:\s]+([^\n]{10,})/i)
+  // Extraer dirección (más formatos)
+  const direccionMatch = todosLosMensajes.match(/(?:dirección|direccion|direcci[óo]n|dir|donde vivo|mi direcci[óo]n)[:\s]+([^\n]{10,})/i)
   const direccion = direccionMatch ? direccionMatch[1].trim() : null
   
-  // Extraer documento
-  const documentoMatch = todosLosMensajes.match(/(?:cc|cédula|cedula|documento)[:\s]+(\d{7,})/i)
+  // Extraer documento (más formatos)
+  const documentoMatch = todosLosMensajes.match(/(?:cc|cédula|cedula|c[ée]dula|documento|identificaci[óo]n)[:\s]+(\d{7,})/i)
   const documento = documentoMatch ? documentoMatch[1] : null
   
-  // Extraer barrio
-  const barrioMatch = todosLosMensajes.match(/(?:barrio|brio|b\/)[:\s]+([a-záéíóúñ\s]{3,})/i)
+  // Extraer barrio (más patrones)
+  const barrioMatch = todosLosMensajes.match(/(?:barrio|brio|b\/|sector|conjunto|residencial|urbanizaci[óo]n|urb\.?)[:\s]+([a-záéíóúñ0-9\s]{3,})/i)
   const barrio = barrioMatch ? barrioMatch[1].trim() : null
   
-  // Detectar método de pago
+  // Detectar método de pago (más variaciones)
   let metodoPago: 'anticipado' | 'contraentrega' | null = null
-  if (/\b(transferencia|anticipado)\b/i.test(todosLosMensajes)) {
+  if (/\b(transferencia|transferir|consignar|consignación|anticipado|adelantado|pago ya|nequi|daviplata)\b/i.test(todosLosMensajes)) {
     metodoPago = 'anticipado'
-  } else if (/\bcontraentrega\b/i.test(todosLosMensajes)) {
+  } else if (/\b(contraentrega|contra entrega|pago contra|efectivo al recibir)\b/i.test(todosLosMensajes)) {
     metodoPago = 'contraentrega'
   }
   
