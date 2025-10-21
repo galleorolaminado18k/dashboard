@@ -1,7 +1,6 @@
-'use client'
+"use client"
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Purchase } from '@/lib/types'
 import { ChevronDown, ChevronUp, ShoppingBag, Package, Truck } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -15,7 +14,6 @@ export default function PurchaseHistory({ clientId, className = '' }: PurchaseHi
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [loading, setLoading] = useState(true)
   const [isExpanded, setIsExpanded] = useState(true) // Expandido por defecto
-  const supabase = createClientComponentClient()
 
   useEffect(() => {
     if (clientId) loadPurchases()
@@ -23,13 +21,18 @@ export default function PurchaseHistory({ clientId, className = '' }: PurchaseHi
 
   async function loadPurchases() {
     try {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
+      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/purchases?client_id=eq.${encodeURIComponent(
+        clientId,
+      )}&order=created_at.desc`
+      const res = await fetch(url, {
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""}`,
+        },
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error(`Failed fetching purchases: ${res.status}`)
+      const data = await res.json()
       setPurchases(data || [])
     } catch (error) {
       console.error('Error loading purchases:', error)
