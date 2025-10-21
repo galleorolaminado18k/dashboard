@@ -464,25 +464,21 @@ body {
 }
 
 /* === PUBLICIDAD (encapsulado) ============================================= */
+/* Los KPIs de publicidad mantienen su estilo original sin modificaciones */
 .galle-ads .metric-frame{
-  border-radius: 16px;
-  padding: 1px;
-  background: linear-gradient(135deg, #e6f2ff 0%, #f0e8ff 50%, #e9f0ff 100%);
-  box-shadow: 0 4px 20px rgba(99, 139, 255, 0.08);
+  /* Contenedor transparente - no añade estilos */
 }
 
 .galle-ads .metric-surface{
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(230, 242, 255, 0.5);
+  /* Superficie transparente - no añade estilos */
 }
 
-/* Remover cualquier efecto dorado heredado */
-.galle-ads .metric-surface .relative {
-  background: transparent !important;
+/* Asegurar que no herede efectos dorados del dashboard */
+.galle-ads * {
+  box-shadow: none !important;
 }
 
-.galle-ads .metric-surface .relative::before,
-.galle-ads .metric-surface .relative::after {
+.galle-ads .relative::before,
+.galle-ads .relative::after {
   display: none !important;
 }

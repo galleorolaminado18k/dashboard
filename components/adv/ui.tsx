@@ -37,7 +37,7 @@ export const Kpi = ({
           : "bg-[radial-gradient(1200px_250px_at_-10%_-40%,rgba(255,175,0,.10),transparent)]"
 
   return (
-    <div className="relative">
+    <div className="relative rounded-2xl border border-neutral-200 bg-white shadow-[0_16px_50px_rgba(0,0,0,.06)] p-5">
       <span className={clsx("absolute inset-0 rounded-2xl", ring)} />
       <div className="relative flex items-start justify-between">
         <div className="text-sm text-neutral-500">{title}</div>
