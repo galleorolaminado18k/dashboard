@@ -405,11 +405,29 @@ body {
 }
 
 /* Soft background without top bar */
-html, body { height: 100%; }
+html, body { 
+  height: 100%; 
+  font-feature-settings: "cv01", "cv02", "cv03", "cv04";
+}
+
 body {
   @apply bg-neutral-50 text-neutral-900 dark:bg-[#0b0b0c] dark:text-neutral-100;
   background-image: radial-gradient(1200px 600px at 50% -200px, #f5ecd8 10%, rgba(245,236,216,0) 60%);
   background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Mejorar legibilidad de texto */
+h1, h2, h3, h4, h5, h6 {
+  font-feature-settings: "ss01", "ss02";
+  letter-spacing: -0.025em;
+}
+
+.text-3xl, .text-4xl, .text-5xl, .text-6xl {
+  font-feature-settings: "ss01", "tnum";
+  letter-spacing: -0.05em;
 }
 
 /* === DASHBOARD GOLD LOOK (encapsulado) ===================== */

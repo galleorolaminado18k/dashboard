@@ -30,7 +30,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>\n      <head>\n        <meta charSet="utf-8" />\n      </head>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <meta charSet="utf-8" />
+      </head>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-screen`}>
         <Providers>
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
