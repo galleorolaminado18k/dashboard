@@ -143,14 +143,14 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
     <div className="galle-dashboard bg-dashboard-soft min-h-screen bg-white text-[#0B0B0C]">
       {/* VERSIÓN ACTUALIZADA - SIN BOTONES - TÍTULO COMPLETO */}
       {/* HERO */}
-      <section className="px-6 lg:px-10 pt-12 pb-8">
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-[40px] sm:text-[48px] md:text-[56px] lg:text-[64px] xl:text-[72px] font-bold tracking-wider leading-none mb-4">
-            <span className={`text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#444] to-[${GOLD}] font-black`}>
+      <section className="px-6 lg:px-10 pt-10">
+        <div>
+          <h1 className="text-[32px] md:text-[40px] font-semibold tracking-tight leading-tight">
+            <span className={`text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[${GOLD}]`}>
               DASHBOARD GALLE
             </span>
           </h1>
-          <p className="text-lg text-neutral-600 font-semibold tracking-wide">RESUMEN DEL MES ACTUAL</p>
+          <p className="text-sm text-neutral-500 mt-1">RESUMEN DEL MES ACTUAL</p>
         </div>
 
         {/* KPI HERO (VENTAS) */}
