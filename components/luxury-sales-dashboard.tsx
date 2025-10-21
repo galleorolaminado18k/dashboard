@@ -260,19 +260,17 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
         <GradientCard>
           <div className="p-6 h-[320px]">
             <div className="text-sm text-neutral-500">Métodos de Pago (distribución)</div>
-            <div className="mt-3 h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="mt-3 h-[180px] flex justify-center">
+              <ResponsiveContainer width="200" height="180">
                 <PieChart>
                   <Pie
                     data={data.seriePagosPorMetodo}
                     dataKey="monto"
                     nameKey="metodo"
-                    innerRadius={45}
-                    outerRadius={70}
+                    innerRadius={40}
+                    outerRadius={65}
                     paddingAngle={2}
-                    labelLine={false}
-                    label={({ name, percent }) => `${name.substring(0, 12)}: ${(percent * 100).toFixed(0)}%`}
-                    style={{ fontSize: '11px' }}
+                    label={false}
                   >
                     {data.seriePagosPorMetodo.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -282,11 +280,14 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-2 space-y-1">
+            <div className="mt-4 space-y-2">
               {data.seriePagosPorMetodo.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
-                  <span className="text-neutral-600">{item.metodo}: {item.monto}%</span>
+                <div key={i} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                    <span className="text-neutral-700 font-medium">{item.metodo}</span>
+                  </div>
+                  <span className="text-neutral-600 font-semibold">{item.monto}%</span>
                 </div>
               ))}
             </div>
