@@ -17,6 +17,24 @@ BEGIN
   END IF;
 END$$;
 
+-- If the enum type exists but does not include 'devolucion', add it safely
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'conversation_status') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON e.enumtypid = t.oid
+      WHERE t.typname = 'conversation_status' AND e.enumlabel = 'devolucion'
+    ) THEN
+      -- Add the new enum value; this is safe to run multiple times guarded by the IF
+      EXECUTE 'ALTER TYPE conversation_status ADD VALUE ''devolucion''';
+      RAISE NOTICE 'Added enum value ''devolucion'' to conversation_status';
+    ELSE
+      RAISE NOTICE 'Enum conversation_status already contains ''devolucion''';
+    END IF;
+  END IF;
+END$$;
+
 -- 0b. If conversations.status exists and is not the enum, attempt safe conversion
 DO $$
 DECLARE
