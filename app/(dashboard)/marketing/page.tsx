@@ -1,7 +1,22 @@
-﻿"use client"
+﻿import PublicidadFixed from "@/app/publicidad/_client/PublicidadFixed"
+import { getRealCampaigns, getRealSummary } from '@/lib/adv-server'
 
-import PublicidadFixed from "@/app/publicidad/_client/PublicidadFixed"
+export default async function MarketingPage() {
+  // Server-side fetch so public /marketing page can render live campaigns
+  // even when deployment protection prevents unauthenticated client API calls.
+  let initialKpis = null
+  let initialCampRes = null
+  try {
+    const summary = await getRealSummary()
+    const campaigns = await getRealCampaigns()
+    initialKpis = summary
+    initialCampRes = {
+      campaigns: campaigns.map((c: any) => ({ id: c.id, name: c.name, status: c.status })),
+      rows: campaigns.map((c: any) => ({ id: c.id, name: c.name, status: c.status, spend: c.spend_total ?? 0 })),
+    }
+  } catch (err) {
+    console.error('Failed to fetch real ads on server for /marketing:', err)
+  }
 
-export default function MarketingPage() {
-  return <PublicidadFixed />
+  return <PublicidadFixed initialKpis={initialKpis} initialCampRes={initialCampRes} />
 }
