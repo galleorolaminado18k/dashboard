@@ -29,14 +29,15 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// Estados del CRM
-const ESTADOS = [
-  { id: "todas", label: "Todas", color: "bg-zinc-100 text-zinc-700", count: 12 },
-  { id: "por-contestar", label: "Por Contestar", color: "bg-blue-100 text-blue-700", count: 3 },
-  { id: "pendiente-datos", label: "Pendiente Datos", color: "bg-yellow-100 text-yellow-700", count: 2 },
-  { id: "por-confirmar", label: "Por Confirmar", color: "bg-purple-100 text-purple-700", count: 4 },
-  { id: "pendiente-guia", label: "Pendiente Guía", color: "bg-orange-100 text-orange-700", count: 2 },
-  { id: "pedido-completo", label: "Pedido Completo", color: "bg-green-100 text-green-700", count: 1 },
+// Estados del CRM (config sin counts, los conteos se calculan dinámicamente)
+const ESTADOS_CONFIG = [
+  { id: "todas", label: "Todas", color: "bg-zinc-100 text-zinc-700" },
+  { id: "por-contestar", label: "Por Contestar", color: "bg-blue-100 text-blue-700" },
+  { id: "pendiente-datos", label: "Pendiente Datos", color: "bg-yellow-100 text-yellow-700" },
+  { id: "por-confirmar", label: "Por Confirmar", color: "bg-purple-100 text-purple-700" },
+  { id: "pendiente-guia", label: "Pendiente Guía", color: "bg-orange-100 text-orange-700" },
+  { id: "pedido-completo", label: "Pedido Completo", color: "bg-green-100 text-green-700" },
+  { id: "devolucion", label: "Devolución", color: "bg-red-100 text-red-700" },
 ]
 
 // Canales de comunicación
@@ -286,6 +287,18 @@ export default function CRMPage() {
     })
   }, [selectedEstado, searchQuery])
 
+  // Compute counts per estado from conversations (so 'devolucion' shows correctly)
+  const estados = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const s of ESTADOS_CONFIG) counts[s.id] = 0
+    counts['todas'] = MOCK_CONVERSATIONS.length
+    for (const c of MOCK_CONVERSATIONS) {
+      if (counts[c.status] === undefined) counts[c.status] = 0
+      counts[c.status] = (counts[c.status] || 0) + 1
+    }
+    return ESTADOS_CONFIG.map((s) => ({ ...s, count: counts[s.id] || 0 }))
+  }, [])
+
   const currentConversation = useMemo(
     () => MOCK_CONVERSATIONS.find((c) => c.id === selectedConversation),
     [selectedConversation],
@@ -448,7 +461,7 @@ export default function CRMPage() {
           <div className="border-b border-zinc-200 p-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Estados</p>
             <div className="space-y-1">
-              {ESTADOS.map((estado) => (
+              {estados.map((estado) => (
                 <button
                   key={estado.id}
                   onClick={() => setSelectedEstado(estado.id)}
@@ -471,7 +484,7 @@ export default function CRMPage() {
             <div className="p-2 space-y-1">
               {filteredConversations.map((conversation) => {
                 const canal = CANALES.find((c) => c.id === conversation.canal)
-                const estado = ESTADOS.find((e) => e.id === conversation.status)
+                const estado = estados.find((e) => e.id === conversation.status)
                 const minutesSinceMessage = getMinutesSinceConversation(conversation)
                 const isUrgent = minutesSinceMessage > 5 && conversation.status === "por-contestar"
 
@@ -808,7 +821,7 @@ export default function CRMPage() {
                 {/* Estado Actual */}
                 <div className="mb-6 rounded-lg border border-zinc-200 p-4">
                   <h4 className="mb-3 text-sm font-semibold text-zinc-700">Estado Actual</h4>
-                  {ESTADOS.filter((e) => e.id === currentConversation.status).map((estado) => (
+                  {estados.filter((e) => e.id === currentConversation.status).map((estado) => (
                     <Badge key={estado.id} className={cn("w-full justify-center py-2 text-sm", estado.color)}>
                       {estado.label}
                     </Badge>
@@ -932,7 +945,7 @@ export default function CRMPage() {
                 <div className="mt-6">
                   <h4 className="mb-3 text-sm font-semibold text-zinc-700">Cambiar Estado</h4>
                   <div className="space-y-2">
-                    {ESTADOS.filter((e) => e.id !== "todas" && e.id !== currentConversation.status).map((estado) => (
+                    {estados.filter((e) => e.id !== "todas" && e.id !== currentConversation.status).map((estado) => (
                       <Button
                         key={estado.id}
                         variant="outline"
