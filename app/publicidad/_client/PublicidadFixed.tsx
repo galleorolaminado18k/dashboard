@@ -13,7 +13,7 @@ type Campaign = {
   status: "active" | "paused"
 }
 
-export default function Advertising() {
+export default function Advertising({ initialKpis, initialCampRes }: { initialKpis?: any; initialCampRes?: any }) {
   const [range, setRange] = React.useState("Últimos 30 días")
   const [tab, setTab] = React.useState<"camps" | "sets" | "ads">("camps")
   const [q, setQ] = React.useState("")
@@ -22,8 +22,9 @@ export default function Advertising() {
 
   const { data: kpiRes } = useSWR(`/api/adv/summary?range=${encodeURIComponent(range)}`, fetcher, {
     refreshInterval: 5000,
+    fallbackData: initialKpis ? { data: initialKpis } : undefined,
   })
-  const kpis = kpiRes?.data || {
+  const kpis = kpiRes?.data || initialKpis || {
     spend: 0,
     conv: 0,
     sales: 0,
@@ -32,12 +33,12 @@ export default function Advertising() {
     deltaSpend: "+0%",
   }
 
-  const { data: campRes } = useSWR(
-    `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`,
-    fetcher,
-    { refreshInterval: 5000 },
-  )
-  const campaigns: Campaign[] = campRes?.campaigns || []
+  const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
+  const { data: campRes } = useSWR(campQuery, fetcher, {
+    refreshInterval: 5000,
+    fallbackData: initialCampRes ? initialCampRes : undefined,
+  })
+  const campaigns: Campaign[] = campRes?.campaigns || (initialCampRes?.campaigns ?? [])
 
   const rows = (campRes?.rows || []).map((r: any) => ({
     id: r.id,
