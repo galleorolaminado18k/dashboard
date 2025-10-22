@@ -1,8 +1,22 @@
 // lib/fetchers.ts
 import type { MetaCampaign, CRMConversation, Order } from "./types"
 
+async function safeFetch<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { credentials: "same-origin" })
+    if (!res.ok) return null
+    return (await res.json()) as T
+  } catch (err) {
+    console.warn("fetchers: safeFetch failed", url, err)
+    return null
+  }
+}
+
 export async function fetchMetaCampaigns(): Promise<MetaCampaign[]> {
-  // TODO: Conecta a tu API de Meta / backend
+  const json = await safeFetch<{ campaigns: MetaCampaign[] }>('/api/adv/campaigns')
+  if (json && Array.isArray(json.campaigns)) return json.campaigns
+
+  // Fallback to the previous small mock to avoid changing visible behavior
   return [
     {
       id: "120233445687010113",
@@ -30,7 +44,9 @@ export async function fetchMetaCampaigns(): Promise<MetaCampaign[]> {
 }
 
 export async function fetchCRMConversations(): Promise<CRMConversation[]> {
-  // TODO: Conecta a tu CRM real (filtrar por mes en curso)
+  const json = await safeFetch<{ data: CRMConversation[] }>(`/api/crm/conversations`)
+  if (json && Array.isArray((json as any).data)) return (json as any).data
+
   return [
     {
       id: "c-1",
@@ -50,7 +66,9 @@ export async function fetchCRMConversations(): Promise<CRMConversation[]> {
 }
 
 export async function fetchOrders(): Promise<Order[]> {
-  // TODO: Conecta a tu módulo de Ventas real (filtrar por mes en curso)
+  const json = await safeFetch<{ data: Order[] }>(`/api/sales/orders`)
+  if (json && Array.isArray((json as any).data)) return (json as any).data
+
   return [
     {
       id: "o-1",

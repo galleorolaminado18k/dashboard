@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server"
+import advServer from "@/lib/adv-server"
 
 export async function GET() {
+  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
+  if (useReal) {
+    try {
+      const data = await advServer.getRealSummary()
+      return NextResponse.json({ data })
+    } catch (err: any) {
+      console.error("adv summary: failed to fetch real summary:", err)
+    }
+  }
+
   return NextResponse.json({
     data: {
       spend: 561308,
