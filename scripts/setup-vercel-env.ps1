@@ -19,8 +19,9 @@ IMPORTANT: Never paste secrets into chat. Run this script locally on your machin
 param(
   [string]$VercelToken = $env:VERCEL_TOKEN,
   [string]$ProjectId = $env:VERCEL_PROJECT_ID,
-  [string]$MetaAccessToken,
-  [string]$MetaAdAccountId,
+  [string]$MetaAccessToken = $env:META_ACCESS_TOKEN,
+  [string]$MetaAdAccountId = $env:META_AD_ACCOUNT_ID,
+  [string]$MetaAdAccountIds = $env:META_AD_ACCOUNT_IDS, # comma-separated list or env var
   [switch]$UseRealAds
 )
 
@@ -34,7 +35,19 @@ function Ensure-Param([string]$val, [string]$name) {
 Ensure-Param $VercelToken 'VERCEL token (VercelToken)'
 Ensure-Param $ProjectId 'VERCEL project id (ProjectId)'
 Ensure-Param $MetaAccessToken 'META access token (MetaAccessToken)'
-Ensure-Param $MetaAdAccountId 'META ad account id (MetaAdAccountId)'
+
+# Normalize ad account ids: allow either a single -MetaAdAccountId or a comma-separated -MetaAdAccountIds
+$adIds = @()
+if (-not [string]::IsNullOrEmpty($MetaAdAccountIds)) {
+  $adIds = $MetaAdAccountIds -split ',' | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrEmpty($_) }
+} elseif (-not [string]::IsNullOrEmpty($MetaAdAccountId)) {
+  $adIds = @($MetaAdAccountId)
+}
+
+if ($adIds.Count -eq 0) {
+  Write-Error "Meta ad account id is required: provide -MetaAdAccountId or -MetaAdAccountIds (comma-separated)"
+  exit 1
+}
 
 $headers = @{ Authorization = "Bearer $VercelToken"; "Content-Type" = "application/json" }
 
@@ -45,15 +58,18 @@ function Add-EnvVar($key, $value) {
     $body = @{ key = $key; value = $value; target = @($t); type = "encrypted" } | ConvertTo-Json
     $uri = "https://api.vercel.com/v9/projects/$ProjectId/env"
     try {
-      $resp = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body -ErrorAction Stop
-      Write-Host "Added $key for target $t"
+          $resp = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body -ErrorAction Stop
+          Write-Host "Added $($key) for target $($t)"
     } catch {
-      # If the variable exists, Vercel returns 409; handle gracefully
-      $err = $_.Exception.Response.StatusCode.Value__
-      if ($err -eq 409) {
-        Write-Host "Variable $key already exists for target $t, skipping"
+      # Try to detect HTTP 409 (already exists). If not available, print the full error.
+      $status = $null
+      if ($_.Exception -and $_.Exception.Response -and $_.Exception.Response.StatusCode) {
+        try { $status = $_.Exception.Response.StatusCode.Value__ } catch { $status = $null }
+      }
+      if ($status -eq 409) {
+        Write-Host "Variable $($key) already exists for target $($t), skipping"
       } else {
-        Write-Error "Failed adding $key for target $t: $_"
+        Write-Error "Failed adding $($key) for target $($t): $($_)"
       }
     }
   }
@@ -62,7 +78,12 @@ function Add-EnvVar($key, $value) {
 Write-Host "Setting values in Vercel project $ProjectId (targets: $($targets -join ','))"
 
 Add-EnvVar -key 'META_ACCESS_TOKEN' -value $MetaAccessToken
-Add-EnvVar -key 'META_AD_ACCOUNT_ID' -value $MetaAdAccountId
+
+# Add one or more ad account ids. The first id is stored as META_AD_ACCOUNT_ID, additional ids as META_AD_ACCOUNT_ID_2, _3, ...
+for ($i = 0; $i -lt $adIds.Count; $i++) {
+  $key = if ($i -eq 0) { 'META_AD_ACCOUNT_ID' } else { "META_AD_ACCOUNT_ID_$($i+1)" }
+  Add-EnvVar -key $key -value $adIds[$i]
+}
 
 if ($UseRealAds) {
   Add-EnvVar -key 'USE_REAL_ADS' -value 'true'
