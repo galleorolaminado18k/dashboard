@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
+import advServer from "@/lib/adv-server"
 
-// Mock de adsets por campaña
+// Mock de adsets por campaña (fallback)
 const adsetsByCampaign: Record<string, any[]> = {
   camp_1: [
     { id: "as_1", name: "Anillos 18k", impressions: 45000, spend: 850000, conversions: 23 },
@@ -15,6 +16,18 @@ const adsetsByCampaign: Record<string, any[]> = {
 }
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const adsets = adsetsByCampaign[params.id] || []
-  return NextResponse.json({ adsets })
+  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
+  if (!useReal) {
+    const adsets = adsetsByCampaign[params.id] || []
+    return NextResponse.json({ adsets })
+  }
+
+  try {
+    const adsets = await advServer.getRealAdsets(params.id)
+    return NextResponse.json({ adsets })
+  } catch (err: any) {
+    console.error("adv adsets error:", err)
+    const adsets = adsetsByCampaign[params.id] || []
+    return NextResponse.json({ adsets })
+  }
 }

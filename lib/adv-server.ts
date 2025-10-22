@@ -51,4 +51,60 @@ export async function getRealSummary(): Promise<any> {
   return { spend, conv: 0, sales: 0, roas: 0, ctr: 0, deltaSpend: "+0%", revenue: 0, cpa: 0, convRate: 0, impr: 0 }
 }
 
+async function fetchMetaAdsetsRaw(campaignId: string, token: string) {
+  const url = `${META_GRAPH_URL}/${campaignId}/adsets?fields=id,name,impressions,spend&limit=50&access_token=${encodeURIComponent(
+    token,
+  )}`
+  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    throw new Error(`Meta adsets API error: ${res.status} ${text}`)
+  }
+  return res.json()
+}
+
+export async function getRealAdsets(campaignId: string) {
+  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
+  if (!useReal) throw new Error("USE_REAL_ADS disabled")
+  const token = process.env.META_ACCESS_TOKEN || process.env.NEXT_PUBLIC_META_ACCESS_TOKEN
+  if (!token) throw new Error("Missing Meta credentials in env")
+
+  const data = await fetchMetaAdsetsRaw(campaignId, token)
+  const rows = (data?.data || []).map((a: any) => ({ id: a.id, name: a.name, impressions: a.impressions || 0, spend: a.spend || 0, conversions: 0 }))
+  return rows
+}
+
+async function fetchMetaInsightsRaw(campaignId: string, token: string) {
+  // Use insights edge; fields can be expanded as needed
+  const url = `${META_GRAPH_URL}/${campaignId}/insights?fields=spend,impressions,reach,ctr,conversion_rate,actions&access_token=${encodeURIComponent(
+    token,
+  )}`
+  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    throw new Error(`Meta insights API error: ${res.status} ${text}`)
+  }
+  return res.json()
+}
+
+export async function getRealInsights(campaignId: string) {
+  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
+  if (!useReal) throw new Error("USE_REAL_ADS disabled")
+  const token = process.env.META_ACCESS_TOKEN || process.env.NEXT_PUBLIC_META_ACCESS_TOKEN
+  if (!token) throw new Error("Missing Meta credentials in env")
+
+  const data = await fetchMetaInsightsRaw(campaignId, token)
+  const first = (data?.data || [])[0] || null
+  if (!first) return null
+  return {
+    roas: 0,
+    spend: Number(first.spend || 0),
+    revenue: 0,
+    cpa: 0,
+    ctr: Number(first.ctr || 0),
+    positivePct: 0,
+    negativePct: 0,
+  }
+}
+
 export default { getRealCampaigns, getRealSummary }

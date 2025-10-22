@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
+import advServer from "@/lib/adv-server"
 
-// Mock de insights por campaña
+// Mock de insights por campaña (fallback)
 const insightsByCampaign: Record<string, any> = {
   camp_1: {
     roas: 3.2,
@@ -32,6 +33,18 @@ const insightsByCampaign: Record<string, any> = {
 }
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const insights = insightsByCampaign[params.id] || null
-  return NextResponse.json({ insights })
+  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
+  if (!useReal) {
+    const insights = insightsByCampaign[params.id] || null
+    return NextResponse.json({ insights })
+  }
+
+  try {
+    const insights = await advServer.getRealInsights(params.id)
+    return NextResponse.json({ insights })
+  } catch (err: any) {
+    console.error("adv insights error:", err)
+    const insights = insightsByCampaign[params.id] || null
+    return NextResponse.json({ insights })
+  }
 }
