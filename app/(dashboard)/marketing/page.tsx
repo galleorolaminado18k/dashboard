@@ -1,4 +1,8 @@
-﻿import PublicidadFixed from "@/app/publicidad/_client/PublicidadFixed"
+﻿export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'default-no-store'
+
+import PublicidadFixed from "@/app/publicidad/_client/PublicidadFixed"
 import { getRealCampaigns, getRealSummary } from '@/lib/adv-server'
 
 export default async function MarketingPage() {

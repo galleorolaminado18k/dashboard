@@ -3,11 +3,11 @@
 // =====================================================
 // Funciones para interactuar con las tablas del CRM en Supabase
 
-import { createClient } from '@/lib/supabase/client'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import type { ConversationStatus } from '@/lib/types'
 
 // Tipos TypeScript para el CRM
 export type ClientType = 'Nuevo' | 'Recurrente'
-export type ConversationStatus = 'por-contestar' | 'pendiente-datos' | 'por-confirmar' | 'pendiente-guia' | 'pedido-completo'
 export type Canal = 'whatsapp' | 'instagram' | 'messenger' | 'web' | 'telefono'
 export type MessageSender = 'client' | 'agent'
 
@@ -58,7 +58,7 @@ export interface Message {
  * Obtener todos los clientes
  */
 export async function fetchClients(): Promise<Client[]> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('clients')
     .select('*')
@@ -76,7 +76,7 @@ export async function fetchClients(): Promise<Client[]> {
  * Obtener un cliente por ID
  */
 export async function fetchClientById(id: string): Promise<Client | null> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('clients')
     .select('*')
@@ -95,7 +95,7 @@ export async function fetchClientById(id: string): Promise<Client | null> {
  * Crear un nuevo cliente
  */
 export async function createClient(client: Omit<Client, 'id' | 'created_at' | 'updated_at'>): Promise<Client | null> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('clients')
     .insert([client])
@@ -114,7 +114,7 @@ export async function createClient(client: Omit<Client, 'id' | 'created_at' | 'u
  * Actualizar un cliente
  */
 export async function updateClient(id: string, updates: Partial<Client>): Promise<Client | null> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('clients')
     .update(updates)
@@ -134,7 +134,7 @@ export async function updateClient(id: string, updates: Partial<Client>): Promis
  * Eliminar un cliente
  */
 export async function deleteClient(id: string): Promise<boolean> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { error } = await supabase
     .from('clients')
     .delete()
@@ -156,7 +156,7 @@ export async function deleteClient(id: string): Promise<boolean> {
  * Obtener todas las conversaciones con información del cliente
  */
 export async function fetchConversations(status?: ConversationStatus): Promise<Conversation[]> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   let query = supabase
     .from('conversations')
     .select(`
@@ -184,7 +184,7 @@ export async function fetchConversations(status?: ConversationStatus): Promise<C
  * Obtener una conversación por ID
  */
 export async function fetchConversationById(id: string): Promise<Conversation | null> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('conversations')
     .select(`
@@ -206,7 +206,7 @@ export async function fetchConversationById(id: string): Promise<Conversation | 
  * Crear una nueva conversación
  */
 export async function createConversation(conversation: Omit<Conversation, 'id' | 'created_at' | 'updated_at' | 'client'>): Promise<Conversation | null> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('conversations')
     .insert([conversation])
@@ -228,7 +228,7 @@ export async function createConversation(conversation: Omit<Conversation, 'id' |
  * Actualizar una conversación
  */
 export async function updateConversation(id: string, updates: Partial<Conversation>): Promise<Conversation | null> {
-  const supabase = createClient()
+  const supabase = createSupabaseClient()
   const { data, error } = await supabase
     .from('conversations')
     .update(updates)

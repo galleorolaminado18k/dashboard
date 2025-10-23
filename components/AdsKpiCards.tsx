@@ -1,5 +1,7 @@
 "use client"
 
+import { fmtMoney, fmtNum, fmtDate } from '@/lib/format'
+
 export default function AdsKpiCards({
   gastoTotal,
   conversaciones,
@@ -27,16 +29,14 @@ export default function AdsKpiCards({
     <div>
       <div className="mb-2 flex items-center gap-2 text-xs text-emerald-700">
         <span className="inline-flex h-5 items-center rounded-full bg-emerald-50 px-2">En vivo desde Meta Ads</span>
-        <span className="ml-auto text-neutral-400">
-          Última actualización: {new Date(lastUpdated).toLocaleTimeString()}
-        </span>
+        <span className="ml-auto text-neutral-400">Última actualización: {fmtDate(lastUpdated)}</span>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Card title="GASTO TOTAL" value={`$${gastoTotal.toLocaleString()}`} />
-        <Card title="CONVERSACIONES" value={`${conversaciones.toLocaleString()}`} />
-        <Card title="VENTAS" value={`${ventas.toLocaleString()}`} foot="tasa conversión en Tabla" />
-        <Card title="ROAS" value={`${roas.toFixed(2)}x`} />
-        <Card title="CVR PROMEDIO" value={`${(cvr * 100).toFixed(2)}%`} />
+        <Card title="GASTO TOTAL" value={fmtMoney(gastoTotal)} />
+        <Card title="CONVERSACIONES" value={fmtNum(conversaciones)} />
+        <Card title="VENTAS" value={fmtNum(ventas)} foot="tasa conversión en Tabla" />
+        <Card title="ROAS" value={`${(roas ?? 0).toFixed(2)}x`} />
+        <Card title="CVR PROMEDIO" value={`${((cvr ?? 0) * 100).toFixed(2)}%`} />
       </div>
     </div>
   )

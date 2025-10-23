@@ -263,7 +263,7 @@ export default function LuxurySalesDashboard(props: Partial<LuxurySalesDashboard
 
       {/* TERCERA BANDA: GrÃ¡ficas principales */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Línea ventas */}}
+  {/* Línea ventas */}
         <GradientCard>
           <div className="p-6 h-[320px]">
             <div className="text-sm text-neutral-500">Ventas Diarias (7 días)</div>

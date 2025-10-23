@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useMemo } from "react"
+import { fmtMoney, fmtNum } from '@/lib/format'
 import { Pie } from "react-chartjs-2"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js"
 ChartJS.register(ArcElement, Tooltip, Legend)
@@ -76,15 +77,15 @@ Reglas:
         <Pie data={data} />
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-neutral-600">
           <div>Gasto Total</div>
-          <div className="text-right">${agg.spend.toLocaleString()}</div>
+          <div className="text-right">{fmtMoney(agg.spend)}</div>
           <div>Ingresos (sin envío)</div>
-          <div className="text-right">${agg.revenue.toLocaleString()}</div>
+          <div className="text-right">{fmtMoney(agg.revenue)}</div>
           <div>ROAS</div>
-          <div className="text-right">{agg.roas.toFixed(2)}x</div>
+          <div className="text-right">{(agg.roas ?? 0).toFixed(2)}x</div>
           <div>CVR</div>
-          <div className="text-right">{(agg.cvr * 100).toFixed(2)}%</div>
+          <div className="text-right">{(((agg.cvr ?? 0) * 100).toFixed(2))}%</div>
           <div>Negativo Prom.</div>
-          <div className="text-right">{agg.negAvg.toFixed(1)}%</div>
+          <div className="text-right">{(agg.negAvg ?? 0).toFixed(1)}%</div>
         </div>
       </div>
 

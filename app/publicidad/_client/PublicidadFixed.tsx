@@ -4,6 +4,7 @@ import * as React from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/adv-fetch"
 import { GoldRing, Kpi, LiveBadge } from "@/components/adv/ui"
+import { fmtMoney, fmtNum } from '@/lib/format'
 import { Toolbar } from "@/components/adv/Toolbar"
 import { AdsTable } from "@/components/adv/Table"
 
@@ -117,32 +118,32 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Kpi
             title="GASTO TOTAL"
-            value={`$${kpis.spend.toLocaleString()}`}
+            value={fmtMoney(kpis.spend)}
             sub={<span className="text-emerald-600">{kpis.deltaSpend} vs anterior</span>}
             tone="blue"
           />
           <Kpi
             title="CONVERSIONES"
-            value={kpis.conv?.toLocaleString?.() ?? 0}
-            sub={`$${(kpis.cpa ?? 0).toLocaleString()} por conv.`}
+            value={fmtNum(kpis.conv)}
+            sub={`${fmtMoney(kpis.cpa)} por conv.`}
             tone="violet"
           />
           <Kpi
             title="VENTAS"
-            value={kpis.sales?.toLocaleString?.() ?? 0}
+            value={fmtNum(kpis.sales)}
             sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
             tone="gold"
           />
           <Kpi
             title="ROAS"
             value={`${(kpis.roas ?? 0).toFixed(2)}x`}
-            sub={`$${(kpis.revenue ?? 0).toLocaleString()} ingresos`}
+            sub={`${fmtMoney(kpis.revenue)} ingresos`}
             tone="amber"
           />
           <Kpi
             title="CTR PROMEDIO"
             value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
-            sub={`${(kpis.impr ?? 0).toLocaleString()} impresiones`}
+            sub={`${fmtNum(kpis.impr)} impresiones`}
             tone="gold"
           />
         </div>
