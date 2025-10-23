@@ -1,101 +1,146 @@
 /**
- * Server-side helper to fetch advertising data from external provider (Meta)
- * Uses server-only env variables: USE_REAL_ADS, META_ACCESS_TOKEN, META_AD_ACCOUNT_ID
- * This file runs only on the server and falls back to throwing when not configured.
+ * Marketing API (Meta) – server helpers
+ * Requisitos:
+ *  - USE_REAL_ADS=true (o NEXT_PUBLIC_USE_REAL_ADS=true)
+ *  - META_SYSTEM_USER_TOKEN
+ *  - META_DEFAULT_AD_ACCOUNT (act_XXXX) y/o META_AD_ACCOUNT_IDS
+ *  - META_GRAPH_VERSION (p.ej. v24.0)
  */
 
 type Campaign = {
   id: string
   name: string
-  status: string
-  daily_budget?: number
+  status: "active" | "paused"
   spend_total?: number
 }
 
-const META_GRAPH_URL = "https://graph.facebook.com/v16.0"
+const GV = process.env.META_GRAPH_VERSION || "v24.0"
+const GRAPH = `https://graph.facebook.com/${GV}`
+const TOKEN = process.env.META_SYSTEM_USER_TOKEN || process.env.META_ACCESS_TOKEN || ""
 
-async function fetchMetaCampaignsRaw(accountId: string, token: string) {
-  const url = `${META_GRAPH_URL}/${accountId}/campaigns?fields=id,name,status,effective_status,daily_budget&limit=50&access_token=${encodeURIComponent(
-    token,
-  )}`
-  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
-  if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`Meta API error: ${res.status} ${text}`)
-  }
-  return res.json()
+/** Selecciona una ad account válida */
+function getAct(): string {
+  const def = process.env.META_DEFAULT_AD_ACCOUNT
+  if (def && /^act_\d+$/.test(def)) return def
+  const list = (process.env.META_AD_ACCOUNT_IDS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => /^act_\d+$/.test(s))
+  if (list.length) return list[0]
+  throw new Error("No META_DEFAULT_AD_ACCOUNT / META_AD_ACCOUNT_IDS configurado")
 }
 
+async function http(path: string, params: Record<string, any> = {}) {
+  if (!TOKEN) throw new Error("Falta META_SYSTEM_USER_TOKEN")
+  const usp = new URLSearchParams({ access_token: TOKEN })
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null) usp.append(k, String(v))
+  }
+  const url = `${GRAPH}/${path}?${usp.toString()}`
+  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(`Graph error ${res.status}: ${text}`)
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text as any
+  }
+}
+
+/** ---------------  PUBLIC API  --------------- **/
+
+/** Campañas reales (activas/pausadas) + gasto (insights level=campaign) */
 export async function getRealCampaigns(): Promise<Campaign[]> {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
-  const token = process.env.META_ACCESS_TOKEN || process.env.NEXT_PUBLIC_META_ACCESS_TOKEN
-  const accountId = process.env.META_AD_ACCOUNT_ID || process.env.NEXT_PUBLIC_META_AD_ACCOUNT_ID
-  if (!token || !accountId) throw new Error("Missing Meta credentials in env")
+  const act = getAct()
 
-  const data = await fetchMetaCampaignsRaw(accountId, token)
-  const rows = (data?.data || []).map((c: any) => ({
-    id: c.id,
-    name: c.name,
-    status: c.effective_status || c.status || "unknown",
-    daily_budget: c.daily_budget ? Number(c.daily_budget) : undefined,
-    spend_total: c.spend_total ? Number(c.spend_total) : undefined,
-  }))
-  return rows
-}
+  // 1) Listado de campañas
+  const fields = [
+    "id",
+    "name",
+    "effective_status",
+    "status",
+    "updated_time",
+    "start_time",
+    "stop_time",
+  ].join(",")
+  const campaignsRes = await http(`${act}/campaigns`, {
+    fields,
+    effective_status: "['ACTIVE','PAUSED']",
+    limit: "200",
+  })
+  const rows: any[] = campaignsRes?.data || []
 
-export async function getRealSummary(): Promise<any> {
-  // Minimal summary: try to fetch campaigns and derive spend/conv placeholders.
-  const campaigns = await getRealCampaigns()
-  const spend = campaigns.reduce((s, c) => s + (c.spend_total || 0), 0)
-  return { spend, conv: 0, sales: 0, roas: 0, ctr: 0, deltaSpend: "+0%", revenue: 0, cpa: 0, convRate: 0, impr: 0 }
-}
-
-async function fetchMetaAdsetsRaw(campaignId: string, token: string) {
-  const url = `${META_GRAPH_URL}/${campaignId}/adsets?fields=id,name,impressions,spend&limit=50&access_token=${encodeURIComponent(
-    token,
-  )}`
-  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
-  if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`Meta adsets API error: ${res.status} ${text}`)
+  // 2) Gasto por campaña (últimos 30 días)
+  const insightsRes = await http(`${act}/insights`, {
+    level: "campaign",
+    fields: "campaign_id,spend,ctr,actions",
+    date_preset: "last_30d",
+    limit: "5000",
+  })
+  const byIdSpend = new Map<string, number>()
+  for (const r of insightsRes?.data || []) {
+    const s = Number(r.spend || 0)
+    const id = r.campaign_id as string
+    byIdSpend.set(id, (byIdSpend.get(id) || 0) + s)
   }
-  return res.json()
+
+  // 3) Normaliza shape
+  const campaigns: Campaign[] = rows.map((c) => {
+    const status = c.effective_status === "ACTIVE" || c.status === "ACTIVE" ? "active" : "paused"
+    return {
+      id: String(c.id),
+      name: String(c.name || ""),
+      status,
+      spend_total: byIdSpend.get(String(c.id)) || 0,
+    }
+  })
+
+  return campaigns
 }
 
+/** Ad sets reales de una campaña */
 export async function getRealAdsets(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
-  const token = process.env.META_ACCESS_TOKEN || process.env.NEXT_PUBLIC_META_ACCESS_TOKEN
-  if (!token) throw new Error("Missing Meta credentials in env")
-
-  const data = await fetchMetaAdsetsRaw(campaignId, token)
-  const rows = (data?.data || []).map((a: any) => ({ id: a.id, name: a.name, impressions: a.impressions || 0, spend: a.spend || 0, conversions: 0 }))
-  return rows
+  const fields = [
+    "id",
+    "name",
+    "effective_status",
+    "status",
+    "daily_budget",
+    "lifetime_budget",
+    "start_time",
+    "end_time",
+    "updated_time",
+  ].join(",")
+  const res = await http(`${campaignId}/adsets`, {
+    fields,
+    limit: "200",
+  })
+  const adsets = (res?.data || []).map((a: any) => ({
+    id: String(a.id),
+    name: String(a.name || ""),
+    status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
+    daily_budget: Number(a.daily_budget || 0),
+    lifetime_budget: Number(a.lifetime_budget || 0),
+  }))
+  return adsets
 }
 
-async function fetchMetaInsightsRaw(campaignId: string, token: string) {
-  // Use insights edge; fields can be expanded as needed
-  const url = `${META_GRAPH_URL}/${campaignId}/insights?fields=spend,impressions,reach,ctr,conversion_rate,actions&access_token=${encodeURIComponent(
-    token,
-  )}`
-  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
-  if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`Meta insights API error: ${res.status} ${text}`)
-  }
-  return res.json()
-}
-
+/** Insights resumidos de una campaña (gasto, ctr, roas aprox si envías revenue) */
 export async function getRealInsights(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
-  const token = process.env.META_ACCESS_TOKEN || process.env.NEXT_PUBLIC_META_ACCESS_TOKEN
-  if (!token) throw new Error("Missing Meta credentials in env")
-
-  const data = await fetchMetaInsightsRaw(campaignId, token)
-  const first = (data?.data || [])[0] || null
-  if (!first) return null
+  const res = await http(`${campaignId}/insights`, {
+    fields: "spend,ctr,actions",
+    date_preset: "last_30d",
+    limit: "1",
+  })
+  const first = (res?.data || [])[0] || {}
   return {
     roas: 0,
     spend: Number(first.spend || 0),
@@ -107,4 +152,20 @@ export async function getRealInsights(campaignId: string) {
   }
 }
 
-export default { getRealCampaigns, getRealSummary }
+/** KPI de cabecera (gasto y CTR en cuenta) */
+export async function getRealSummary() {
+  const act = getAct()
+  const res = await http(`${act}/insights`, {
+    level: "account",
+    fields: "spend,ctr",
+    date_preset: "last_30d",
+    limit: "1",
+  })
+  const first = (res?.data || [])[0] || {}
+  return {
+    totalSpend: Number(first.spend || 0),
+    totalCtr: Number(first.ctr || 0),
+  }
+}
+
+export default { getRealCampaigns, getRealAdsets, getRealInsights, getRealSummary }
