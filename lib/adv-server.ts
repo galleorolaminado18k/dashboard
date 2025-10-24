@@ -107,6 +107,8 @@ export async function getRealAdsets(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
 
+  console.log(`[getRealAdsets] Fetching adsets for campaign: ${campaignId}`)
+
   // 1) Obtener listado de adsets
   const fields = [
     "id",
@@ -119,14 +121,22 @@ export async function getRealAdsets(campaignId: string) {
     "end_time",
     "updated_time",
   ].join(",")
+
   const res = await http(`${campaignId}/adsets`, {
     fields,
     limit: "200",
   })
 
   const adsets = res?.data || []
+  console.log(`[getRealAdsets] Found ${adsets.length} adsets in campaign ${campaignId}`)
+
+  if (adsets.length === 0) {
+    console.log(`[getRealAdsets] No adsets found, returning empty array`)
+    return []
+  }
 
   // 2) Obtener insights de los adsets (gasto, impresiones, CTR)
+  console.log(`[getRealAdsets] Fetching insights for ${adsets.length} adsets...`)
   const insightsRes = await http(`${campaignId}/insights`, {
     level: "adset",
     fields: "adset_id,adset_name,spend,impressions,ctr",
@@ -134,15 +144,18 @@ export async function getRealAdsets(campaignId: string) {
     limit: "5000",
   })
 
+  const insights = insightsRes?.data || []
+  console.log(`[getRealAdsets] Found ${insights.length} insights`)
+
   const insightsByAdsetId = new Map<string, any>()
-  for (const insight of (insightsRes?.data || [])) {
+  for (const insight of insights) {
     insightsByAdsetId.set(String(insight.adset_id), insight)
   }
 
   // 3) Combinar datos de adsets con sus insights
   const result = adsets.map((a: any) => {
     const insight = insightsByAdsetId.get(String(a.id)) || {}
-    return {
+    const adsetData = {
       id: String(a.id),
       name: String(a.name || ""),
       status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
@@ -152,8 +165,11 @@ export async function getRealAdsets(campaignId: string) {
       impressions: Number(insight.impressions || 0),
       ctr: Number(insight.ctr || 0),
     }
+    console.log(`[getRealAdsets]   - ${adsetData.name}: spend=$${adsetData.spend}, impressions=${adsetData.impressions}`)
+    return adsetData
   })
 
+  console.log(`[getRealAdsets] Returning ${result.length} adsets with insights`)
   return result
 }
 
