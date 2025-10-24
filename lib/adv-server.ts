@@ -152,7 +152,7 @@ export async function getRealInsights(campaignId: string) {
   }
 }
 
-/** KPI de cabecera (gasto y CTR en cuenta) - Mes actual (día 1 hasta hoy) */
+/** KPI de cabecera - Suma SOLO campañas activas en el mes actual (día 1 hasta hoy) */
 export async function getRealSummary() {
   const act = getAct()
 
@@ -167,21 +167,47 @@ export async function getRealSummary() {
 
   console.log(`[getRealSummary] Obteniendo gasto del mes actual: ${since} hasta ${until}`)
 
+  // Obtener insights a nivel de campaña con el rango del mes actual
+  // Esto nos da el gasto de CADA campaña que estuvo activa en este período
   const res = await http(`${act}/insights`, {
-    level: "account",
-    fields: "spend,ctr,impressions",
+    level: "campaign",
+    fields: "campaign_id,campaign_name,spend,impressions,ctr,actions",
     time_range: JSON.stringify({ since, until }),
-    limit: "1",
+    limit: "5000", // Suficiente para obtener todas las campañas
   })
-  const first = (res?.data || [])[0] || {}
 
-  const totalSpend = Number(first.spend || 0)
-  console.log(`[getRealSummary] Gasto total del mes: $${totalSpend}`)
+  const campaignInsights = res?.data || []
+
+  // Sumar el gasto de todas las campañas que estuvieron activas en el mes
+  let totalSpend = 0
+  let totalImpressions = 0
+  let totalCtr = 0
+  let campaignCount = 0
+
+  for (const insight of campaignInsights) {
+    const spend = Number(insight.spend || 0)
+    const impressions = Number(insight.impressions || 0)
+    const ctr = Number(insight.ctr || 0)
+
+    totalSpend += spend
+    totalImpressions += impressions
+    totalCtr += ctr
+    campaignCount++
+
+    console.log(`  - Campaña ${insight.campaign_name || insight.campaign_id}: $${spend.toFixed(2)}`)
+  }
+
+  // CTR promedio
+  const avgCtr = campaignCount > 0 ? totalCtr / campaignCount : 0
+
+  console.log(`[getRealSummary] Total de ${campaignCount} campañas activas`)
+  console.log(`[getRealSummary] Gasto total del mes: $${totalSpend.toFixed(2)}`)
 
   return {
     totalSpend,
-    totalCtr: Number(first.ctr || 0),
-    totalImpressions: Number(first.impressions || 0),
+    totalCtr: avgCtr,
+    totalImpressions,
+    campaignCount,
   }
 }
 
