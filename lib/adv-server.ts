@@ -103,74 +103,82 @@ export async function getRealCampaigns(): Promise<Campaign[]> {
 }
 
 /** Ad sets reales de una campaña con insights (gasto, impresiones, CTR) */
+/** Ad sets reales de una campaña con insights (gasto, impresiones, CTR) */
 export async function getRealAdsets(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
 
   console.log(`[getRealAdsets] Fetching adsets for campaign: ${campaignId}`)
 
-  // 1) Obtener listado de adsets
-  const fields = [
-    "id",
-    "name",
-    "effective_status",
-    "status",
-    "daily_budget",
-    "lifetime_budget",
-    "start_time",
-    "end_time",
-    "updated_time",
-  ].join(",")
+  try {
+    // 1) Obtener listado de adsets - simplificado sin filtros
+    const fields = "id,name,effective_status,status,daily_budget,lifetime_budget"
 
-  const res = await http(`${campaignId}/adsets`, {
-    fields,
-    limit: "200",
-  })
+    const res = await http(`${campaignId}/adsets`, {
+      fields,
+      limit: "500", // Aumentar límite para asegurar que obtenemos todos
+    })
 
-  const adsets = res?.data || []
-  console.log(`[getRealAdsets] Found ${adsets.length} adsets in campaign ${campaignId}`)
+    const adsets = res?.data || []
+    console.log(`[getRealAdsets] Raw response from Meta:`, JSON.stringify(res, null, 2))
+    console.log(`[getRealAdsets] Found ${adsets.length} adsets in campaign ${campaignId}`)
 
-  if (adsets.length === 0) {
-    console.log(`[getRealAdsets] No adsets found, returning empty array`)
-    return []
-  }
-
-  // 2) Obtener insights de los adsets (gasto, impresiones, CTR)
-  console.log(`[getRealAdsets] Fetching insights for ${adsets.length} adsets...`)
-  const insightsRes = await http(`${campaignId}/insights`, {
-    level: "adset",
-    fields: "adset_id,adset_name,spend,impressions,ctr",
-    date_preset: "last_30d",
-    limit: "5000",
-  })
-
-  const insights = insightsRes?.data || []
-  console.log(`[getRealAdsets] Found ${insights.length} insights`)
-
-  const insightsByAdsetId = new Map<string, any>()
-  for (const insight of insights) {
-    insightsByAdsetId.set(String(insight.adset_id), insight)
-  }
-
-  // 3) Combinar datos de adsets con sus insights
-  const result = adsets.map((a: any) => {
-    const insight = insightsByAdsetId.get(String(a.id)) || {}
-    const adsetData = {
-      id: String(a.id),
-      name: String(a.name || ""),
-      status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
-      daily_budget: Number(a.daily_budget || 0),
-      lifetime_budget: Number(a.lifetime_budget || 0),
-      spend: Number(insight.spend || 0),
-      impressions: Number(insight.impressions || 0),
-      ctr: Number(insight.ctr || 0),
+    if (adsets.length === 0) {
+      console.log(`[getRealAdsets] WARNING: No adsets found for campaign ${campaignId}`)
+      console.log(`[getRealAdsets] This might indicate:`)
+      console.log(`  1. The campaign has no adsets`)
+      console.log(`  2. Permission issues with the API token`)
+      console.log(`  3. The campaign ID is incorrect`)
+      return []
     }
-    console.log(`[getRealAdsets]   - ${adsetData.name}: spend=$${adsetData.spend}, impressions=${adsetData.impressions}`)
-    return adsetData
-  })
 
-  console.log(`[getRealAdsets] Returning ${result.length} adsets with insights`)
-  return result
+    // 2) Obtener insights de los adsets (gasto, impresiones, CTR)
+    console.log(`[getRealAdsets] Fetching insights for ${adsets.length} adsets...`)
+
+    let insights: any[] = []
+    try {
+      const insightsRes = await http(`${campaignId}/insights`, {
+        level: "adset",
+        fields: "adset_id,adset_name,spend,impressions,ctr",
+        date_preset: "last_30d",
+        limit: "5000",
+      })
+      insights = insightsRes?.data || []
+      console.log(`[getRealAdsets] Found ${insights.length} insights`)
+    } catch (insightsError: any) {
+      console.error(`[getRealAdsets] Error fetching insights (will continue without them):`, insightsError.message)
+      // Continuar sin insights si fallan
+    }
+
+    const insightsByAdsetId = new Map<string, any>()
+    for (const insight of insights) {
+      insightsByAdsetId.set(String(insight.adset_id), insight)
+    }
+
+    // 3) Combinar datos de adsets con sus insights
+    const result = adsets.map((a: any) => {
+      const insight = insightsByAdsetId.get(String(a.id)) || {}
+      const adsetData = {
+        id: String(a.id),
+        name: String(a.name || "Sin nombre"),
+        status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
+        daily_budget: Number(a.daily_budget || 0),
+        lifetime_budget: Number(a.lifetime_budget || 0),
+        spend: Number(insight.spend || 0),
+        impressions: Number(insight.impressions || 0),
+        ctr: Number(insight.ctr || 0),
+      }
+      console.log(`[getRealAdsets]   ✓ ${adsetData.name} (${adsetData.status}): spend=$${adsetData.spend}, impressions=${adsetData.impressions}`)
+      return adsetData
+    })
+
+    console.log(`[getRealAdsets] Successfully returning ${result.length} adsets`)
+    return result
+  } catch (error: any) {
+    console.error(`[getRealAdsets] CRITICAL ERROR:`, error.message)
+    console.error(`[getRealAdsets] Stack:`, error.stack)
+    throw error
+  }
 }
 
 /** Insights resumidos de una campaña (gasto, ctr, roas aprox si envías revenue) */
