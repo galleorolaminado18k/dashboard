@@ -14,7 +14,7 @@ type Campaign = {
   status: "active" | "paused"
 }
 
-export default function Advertising({ initialKpis, initialCampRes, initialMonthly, hideHeaderKPIs }: { initialKpis?: any; initialCampRes?: any; initialMonthly?: any; hideHeaderKPIs?: boolean }) {
+export default function Advertising({ initialKpis, initialCampRes, initialMonthly, hideHeaderKPIs, forcedSpend }: { initialKpis?: any; initialCampRes?: any; initialMonthly?: any; hideHeaderKPIs?: boolean; forcedSpend?: number }) {
   const [range, setRange] = React.useState("Últimos 30 días")
   const [tab, setTab] = React.useState<"camps" | "sets" | "ads">("camps")
   const [q, setQ] = React.useState("")
@@ -35,9 +35,11 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   }
 
   // Use the server-provided monthly spend as the single source of truth.
-  // Do not re-fetch on the client to avoid flicker; the Server Component
-  // already fetched the value with date_preset=this_month.
-  const monthly = initialMonthly ?? { thisMonth: 0, lastMonth: 0 }
+  // If the server passed a forced numeric spend, prefer it (avoids client overwrite).
+  // Do not re-fetch on the client to avoid flicker; the Server Component already fetched the value.
+  const monthly = typeof forcedSpend === 'number' && Number.isFinite(forcedSpend)
+    ? { thisMonth: forcedSpend, lastMonth: initialMonthly?.lastMonth ?? 0 }
+    : (initialMonthly ?? { thisMonth: 0, lastMonth: 0 })
 
   const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
   const { data: campRes } = useSWR(campQuery, fetcher, {
