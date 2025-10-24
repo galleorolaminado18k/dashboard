@@ -72,6 +72,27 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
     )
   }
 
+  // Obtener la primera campaña seleccionada para mostrar sus adsets/ads
+  const selectedCampaignId = selectedCampaigns.length > 0 ? selectedCampaigns[0] : null
+
+  // Fetch adsets cuando hay una campaña seleccionada y el tab es "sets"
+  const shouldFetchAdsets = tab === "sets" && selectedCampaignId
+  const adsetsQuery = shouldFetchAdsets ? `/api/adv/adsets?campaignId=${selectedCampaignId}` : null
+  const { data: adsetsRes } = useSWR(adsetsQuery, fetcher, {
+    refreshInterval: 5000,
+  })
+
+  const adsets = adsetsRes?.rows || []
+
+  // Fetch ads cuando hay una campaña seleccionada y el tab es "ads"
+  const shouldFetchAds = tab === "ads" && selectedCampaignId
+  const adsQuery = shouldFetchAds ? `/api/adv/ads?campaignId=${selectedCampaignId}` : null
+  const { data: adsRes } = useSWR(adsQuery, fetcher, {
+    refreshInterval: 5000,
+  })
+
+  const ads = adsRes?.rows || []
+
   return (
     <div className="galle-ads min-h-screen bg-white">
       <div className="sticky top-0 z-10 bg-white/85 backdrop-blur border-b">
@@ -194,14 +215,114 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
           <AdsTable rows={rows} selectedCampaigns={selectedCampaigns} onToggleSelection={handleToggleSelection} />
         )}
         {tab === "sets" && (
-          <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-neutral-500">
-            Vista "Conjuntos de anuncios" (conéctala a /api/adv/adsets …)
-          </div>
+          <>
+            {!selectedCampaignId ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500 mb-2">Selecciona una campaña para ver sus conjuntos de anuncios</p>
+                <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña en la pestaña "Campañas"</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                  <h3 className="font-semibold text-sm">
+                    Conjuntos de anuncios de: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}
+                  </h3>
+                </div>
+                {adsets.length === 0 ? (
+                  <div className="p-8 text-center text-neutral-500">
+                    No hay conjuntos de anuncios disponibles para esta campaña
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-neutral-50 border-b border-neutral-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Presupuesto</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-200">
+                        {adsets.map((adset: any) => (
+                          <tr key={adset.id} className="hover:bg-neutral-50">
+                            <td className="px-4 py-3 text-sm">{adset.name}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                adset.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
+                              }`}>
+                                {adset.delivery || (adset.status === 'active' ? 'Activa' : 'Pausada')}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtMoney(adset.budget)}</td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(adset.spend)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtNum(adset.impressions)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{((adset.ctr || 0) * 100).toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
         {tab === "ads" && (
-          <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-neutral-500">
-            Vista "Anuncios" (conéctala a /api/adv/ads …)
-          </div>
+          <>
+            {!selectedCampaignId ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500 mb-2">Selecciona una campaña para ver sus anuncios</p>
+                <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña en la pestaña "Campañas"</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                  <h3 className="font-semibold text-sm">
+                    Anuncios de: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}
+                  </h3>
+                </div>
+                {ads.length === 0 ? (
+                  <div className="p-8 text-center text-neutral-500">
+                    No hay anuncios disponibles para esta campaña
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-neutral-50 border-b border-neutral-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-200">
+                        {ads.map((ad: any) => (
+                          <tr key={ad.id} className="hover:bg-neutral-50">
+                            <td className="px-4 py-3 text-sm">{ad.name}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                ad.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
+                              }`}>
+                                {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(ad.spend)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.impressions)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{((ad.ctr || 0) * 100).toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

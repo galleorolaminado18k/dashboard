@@ -102,10 +102,12 @@ export async function getRealCampaigns(): Promise<Campaign[]> {
   return campaigns
 }
 
-/** Ad sets reales de una campaña */
+/** Ad sets reales de una campaña con insights (gasto, impresiones, CTR) */
 export async function getRealAdsets(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
+
+  // 1) Obtener listado de adsets
   const fields = [
     "id",
     "name",
@@ -121,14 +123,38 @@ export async function getRealAdsets(campaignId: string) {
     fields,
     limit: "200",
   })
-  const adsets = (res?.data || []).map((a: any) => ({
-    id: String(a.id),
-    name: String(a.name || ""),
-    status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
-    daily_budget: Number(a.daily_budget || 0),
-    lifetime_budget: Number(a.lifetime_budget || 0),
-  }))
-  return adsets
+
+  const adsets = res?.data || []
+
+  // 2) Obtener insights de los adsets (gasto, impresiones, CTR)
+  const insightsRes = await http(`${campaignId}/insights`, {
+    level: "adset",
+    fields: "adset_id,adset_name,spend,impressions,ctr",
+    date_preset: "last_30d",
+    limit: "5000",
+  })
+
+  const insightsByAdsetId = new Map<string, any>()
+  for (const insight of (insightsRes?.data || [])) {
+    insightsByAdsetId.set(String(insight.adset_id), insight)
+  }
+
+  // 3) Combinar datos de adsets con sus insights
+  const result = adsets.map((a: any) => {
+    const insight = insightsByAdsetId.get(String(a.id)) || {}
+    return {
+      id: String(a.id),
+      name: String(a.name || ""),
+      status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
+      daily_budget: Number(a.daily_budget || 0),
+      lifetime_budget: Number(a.lifetime_budget || 0),
+      spend: Number(insight.spend || 0),
+      impressions: Number(insight.impressions || 0),
+      ctr: Number(insight.ctr || 0),
+    }
+  })
+
+  return result
 }
 
 /** Insights resumidos de una campaña (gasto, ctr, roas aprox si envías revenue) */
