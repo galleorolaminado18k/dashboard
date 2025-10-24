@@ -4,28 +4,7 @@ export const fetchCache = 'default-no-store'
 
 import PublicidadFixed from "@/app/publicidad/_client/PublicidadFixed"
 import { getRealCampaigns, getRealSummary } from '@/lib/adv-server'
-
-import { headers } from 'next/headers'
-import { fmtMoney } from '@/lib/format'
-
-function getBaseUrl(): string {
-  const h = headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? ''
-  const proto = h.get('x-forwarded-proto') ?? 'https'
-  return `${proto}://${host}`
-}
-
-async function getMonthlySpend() {
-  try {
-    const base = getBaseUrl()
-    const res = await fetch(`${base}/api/adv/monthly-spend`, { cache: 'no-store' })
-    const j = await res.json().catch(() => ({ data: { thisMonth: 0, lastMonth: 0 } }))
-    return j?.data ?? { thisMonth: 0, lastMonth: 0 }
-  } catch (e) {
-    console.error('Failed to fetch monthly spend (absolute URL) for /marketing:', e)
-    return { thisMonth: 0, lastMonth: 0 }
-  }
-}
+import { getMonthlySpend } from './_server/monthly-spend'
 
 export default async function MarketingPage() {
   // Server-side fetch so public /marketing page can render live campaigns
@@ -37,7 +16,7 @@ export default async function MarketingPage() {
     const summary = await getRealSummary()
     const campaigns = await getRealCampaigns()
 
-    // Fetch monthly spend using absolute URL on the server to avoid hydration/host issues
+    // Fetch monthly spend using the server helper (respects Vercel envs and headers)
     initialMonthly = await getMonthlySpend()
 
     initialKpis = summary
