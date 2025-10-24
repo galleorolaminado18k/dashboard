@@ -1,7 +1,9 @@
 "use client"
 
-import { Info } from 'lucide-react'
+import { Info, BarChart3 } from 'lucide-react'
 import { fmtMoney, fmtNum } from '@/lib/format'
+import { useState } from 'react'
+import { CampaignAnalyticsModal } from './CampaignAnalyticsModal'
 
 export function AdsTable({
   rows,
@@ -26,6 +28,8 @@ export function AdsTable({
   selectedCampaigns: string[]
   onToggleSelection: (id: string) => void
 }) {
+  const [selectedCampaignForAnalytics, setSelectedCampaignForAnalytics] = useState<typeof rows[0] | null>(null)
+
   const columnTooltips: Record<string, string> = {
     Estado: "Indica si la campaña está activa (verde) o pausada (gris)",
     Campaña: "Nombre de la campaña publicitaria",
@@ -111,6 +115,11 @@ export function AdsTable({
                 <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
+            <th className="text-center px-2 py-3">
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-xs font-medium text-neutral-600">Gráficos</span>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-neutral-100">
@@ -151,10 +160,27 @@ export function AdsTable({
                 {r.roas.toFixed(2)}x
               </td>
               <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(r.cvr * 100).toFixed(2)}%</td>
+              <td className="px-2 py-3 text-center">
+                <button
+                  onClick={() => setSelectedCampaignForAnalytics(r)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#D8BD80] to-[#C5A968] hover:from-[#C5A968] hover:to-[#B39858] text-white text-xs font-medium rounded-lg transition-all hover:shadow-md"
+                  title="Ver gráficos y análisis"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  Gráficos
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {selectedCampaignForAnalytics && (
+        <CampaignAnalyticsModal
+          campaign={selectedCampaignForAnalytics}
+          onClose={() => setSelectedCampaignForAnalytics(null)}
+        />
+      )}
     </div>
   )
 }
