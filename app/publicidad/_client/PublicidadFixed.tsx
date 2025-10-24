@@ -78,7 +78,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   // Fetch adsets cuando hay una campaña seleccionada y el tab es "sets"
   const shouldFetchAdsets = tab === "sets" && selectedCampaignId
   const adsetsQuery = shouldFetchAdsets ? `/api/adv/adsets?campaignId=${selectedCampaignId}` : null
-  const { data: adsetsRes } = useSWR(adsetsQuery, fetcher, {
+  const { data: adsetsRes, error: adsetsError } = useSWR(adsetsQuery, fetcher, {
     refreshInterval: 5000,
   })
 
@@ -87,11 +87,25 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   // Fetch ads cuando hay una campaña seleccionada y el tab es "ads"
   const shouldFetchAds = tab === "ads" && selectedCampaignId
   const adsQuery = shouldFetchAds ? `/api/adv/ads?campaignId=${selectedCampaignId}` : null
-  const { data: adsRes } = useSWR(adsQuery, fetcher, {
+  const { data: adsRes, error: adsError } = useSWR(adsQuery, fetcher, {
     refreshInterval: 5000,
   })
 
   const ads = adsRes?.rows || []
+
+  // Log para depuración
+  React.useEffect(() => {
+    if (selectedCampaignId && tab === "sets") {
+      console.log("[PublicidadFixed] Fetching adsets for campaign:", selectedCampaignId)
+      console.log("[PublicidadFixed] Adsets data:", adsetsRes)
+      console.log("[PublicidadFixed] Adsets error:", adsetsError)
+    }
+    if (selectedCampaignId && tab === "ads") {
+      console.log("[PublicidadFixed] Fetching ads for campaign:", selectedCampaignId)
+      console.log("[PublicidadFixed] Ads data:", adsRes)
+      console.log("[PublicidadFixed] Ads error:", adsError)
+    }
+  }, [selectedCampaignId, tab, adsetsRes, adsetsError, adsRes, adsError])
 
   return (
     <div className="galle-ads min-h-screen bg-white">
@@ -221,6 +235,18 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                 <p className="text-neutral-500 mb-2">Selecciona una campaña para ver sus conjuntos de anuncios</p>
                 <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña en la pestaña "Campañas"</p>
               </div>
+            ) : adsetsError ? (
+              <div className="rounded-2xl border border-red-200 p-8 bg-red-50 text-center">
+                <p className="text-red-600 mb-2">Error al cargar conjuntos de anuncios</p>
+                <p className="text-sm text-red-500">{adsetsError?.message || String(adsetsError)}</p>
+                <pre className="mt-4 text-xs text-left bg-white p-4 rounded overflow-auto max-h-40">
+                  {JSON.stringify(adsetsError, null, 2)}
+                </pre>
+              </div>
+            ) : !adsetsRes ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500">Cargando conjuntos de anuncios...</p>
+              </div>
             ) : (
               <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
                 <div className="p-4 border-b border-neutral-200 bg-neutral-50">
@@ -276,6 +302,18 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
               <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
                 <p className="text-neutral-500 mb-2">Selecciona una campaña para ver sus anuncios</p>
                 <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña en la pestaña "Campañas"</p>
+              </div>
+            ) : adsError ? (
+              <div className="rounded-2xl border border-red-200 p-8 bg-red-50 text-center">
+                <p className="text-red-600 mb-2">Error al cargar anuncios</p>
+                <p className="text-sm text-red-500">{adsError?.message || String(adsError)}</p>
+                <pre className="mt-4 text-xs text-left bg-white p-4 rounded overflow-auto max-h-40">
+                  {JSON.stringify(adsError, null, 2)}
+                </pre>
+              </div>
+            ) : !adsRes ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500">Cargando anuncios...</p>
               </div>
             ) : (
               <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
