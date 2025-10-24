@@ -71,6 +71,8 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
     setSelectedCampaigns((prev) =>
       prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId],
     )
+    // Limpiar selección de adsets cuando cambias de campaña
+    setSelectedAdsets([])
   }
 
   const handleToggleAdsetSelection = (adsetId: string) => {
@@ -82,11 +84,14 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   // Obtener la primera campaña seleccionada para mostrar sus adsets/ads
   const selectedCampaignId = selectedCampaigns.length > 0 ? selectedCampaigns[0] : null
 
-  // Fetch adsets cuando hay una campaña seleccionada y el tab es "sets"
-  const shouldFetchAdsets = tab === "sets" && selectedCampaignId
+  // SIEMPRE fetch adsets cuando hay una campaña seleccionada (no solo cuando tab === "sets")
+  // Esto asegura que los adsets estén disponibles inmediatamente al seleccionar una campaña
+  const shouldFetchAdsets = !!selectedCampaignId
   const adsetsQuery = shouldFetchAdsets ? `/api/adv/adsets?campaignId=${selectedCampaignId}` : null
   const { data: adsetsRes, error: adsetsError } = useSWR(adsetsQuery, fetcher, {
     refreshInterval: 5000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
   })
 
   const adsets = adsetsRes?.rows || []
@@ -110,10 +115,12 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
 
   // Log para depuración
   React.useEffect(() => {
-    if (selectedCampaignId && tab === "sets") {
-      console.log("[PublicidadFixed] Fetching adsets for campaign:", selectedCampaignId)
+    if (selectedCampaignId) {
+      console.log("[PublicidadFixed] Campaña seleccionada:", selectedCampaignId)
+      console.log("[PublicidadFixed] Cargando adsets automáticamente...")
       console.log("[PublicidadFixed] Adsets data:", adsetsRes)
       console.log("[PublicidadFixed] Adsets error:", adsetsError)
+      console.log("[PublicidadFixed] Total adsets encontrados:", adsets.length)
     }
     if ((selectedAdsetId || selectedCampaignId) && tab === "ads") {
       console.log("[PublicidadFixed] Fetching ads for:", selectedAdsetId ? `adset ${selectedAdsetId}` : `campaign ${selectedCampaignId}`)
@@ -122,7 +129,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
       console.log("[PublicidadFixed] Total ads spend:", ads.reduce((sum: number, ad: any) => sum + (ad.spend || 0), 0))
       console.log("[PublicidadFixed] Ads error:", adsError)
     }
-  }, [selectedCampaignId, selectedAdsetId, tab, adsetsRes, adsetsError, adsRes, adsError, ads])
+  }, [selectedCampaignId, selectedAdsetId, tab, adsetsRes, adsetsError, adsRes, adsError, ads, adsets])
 
   return (
     <div className="galle-ads min-h-screen bg-white">
@@ -262,7 +269,13 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
               </div>
             ) : !adsetsRes ? (
               <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
-                <p className="text-neutral-500">Cargando conjuntos de anuncios...</p>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D8BD80]"></div>
+                  <p className="text-neutral-500 font-medium">Cargando conjuntos de anuncios...</p>
+                  <p className="text-sm text-neutral-400">
+                    Campaña: {rows.find(r => r.id === selectedCampaignId)?.name}
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
