@@ -189,35 +189,35 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
 
       {!hideHeaderKPIs && (
         <div className="mx-auto max-w-7xl px-6 py-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <Kpi
               title="GASTO TOTAL"
               value={fmtMoney(monthly.thisMonth)}
-              sub={<span className="text-emerald-600">{monthly.lastMonth ? `${fmtMoney(monthly.lastMonth)} mes anterior` : 'vs anterior'}</span>}
+              sub={<span className="text-emerald-600 text-xs">{monthly.lastMonth ? `${fmtMoney(monthly.lastMonth)} mes ant.` : 'vs anterior'}</span>}
               tone="blue"
             />
             <Kpi
               title="CONVERSIONES"
               value={fmtNum(kpis.conv)}
-              sub={`${fmtMoney(kpis.cpa)} por conv.`}
+              sub={<span className="text-xs">{fmtMoney(kpis.cpa)} por conv.</span>}
               tone="violet"
             />
             <Kpi
               title="VENTAS"
               value={fmtNum(kpis.sales)}
-              sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
+              sub={<span className="text-emerald-600 text-xs">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conv.</span>}
               tone="gold"
             />
             <Kpi
               title="ROAS"
               value={`${(kpis.roas ?? 0).toFixed(2)}x`}
-              sub={`${fmtMoney(kpis.revenue)} ingresos`}
+              sub={<span className="text-xs">{fmtMoney(kpis.revenue)} ingresos</span>}
               tone="amber"
             />
             <Kpi
-              title="CTR PROMEDIO"
-              value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
-              sub={`${fmtNum(kpis.impr)} impresiones`}
+              title="CVR"
+              value={`${((kpis.cvr ?? 0) * 100).toFixed(2)}%`}
+              sub={<span className="text-xs">{fmtNum(kpis.impr)} impresiones</span>}
               tone="gold"
             />
           </div>
