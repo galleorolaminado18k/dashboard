@@ -103,81 +103,121 @@ export async function getRealCampaigns(): Promise<Campaign[]> {
 }
 
 /** Ad sets reales de una campaña con insights (gasto, impresiones, CTR) */
-/** Ad sets reales de una campaña con insights (gasto, impresiones, CTR) */
 export async function getRealAdsets(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
 
-  console.log(`[getRealAdsets] Fetching adsets for campaign: ${campaignId}`)
+  console.log(`\n========================================`)
+  console.log(`[getRealAdsets] INICIANDO para campaña: ${campaignId}`)
+  console.log(`========================================`)
 
   try {
-    // 1) Obtener listado de adsets - simplificado sin filtros
-    const fields = "id,name,effective_status,status,daily_budget,lifetime_budget"
+    // 1) Obtener TODOS los adsets (sin filtros de estado para asegurar que obtenemos todo)
+    const fields = "id,name,effective_status,status,daily_budget,lifetime_budget,targeting,created_time,updated_time"
+
+    console.log(`[getRealAdsets] Step 1: Fetching adsets con fields: ${fields}`)
 
     const res = await http(`${campaignId}/adsets`, {
       fields,
-      limit: "500", // Aumentar límite para asegurar que obtenemos todos
+      limit: "1000", // Límite alto para asegurar que obtenemos todos
     })
 
     const adsets = res?.data || []
-    console.log(`[getRealAdsets] Raw response from Meta:`, JSON.stringify(res, null, 2))
-    console.log(`[getRealAdsets] Found ${adsets.length} adsets in campaign ${campaignId}`)
+
+    console.log(`[getRealAdsets] ✓ Respuesta recibida de Meta API`)
+    console.log(`[getRealAdsets] ✓ Total de adsets encontrados: ${adsets.length}`)
 
     if (adsets.length === 0) {
-      console.log(`[getRealAdsets] WARNING: No adsets found for campaign ${campaignId}`)
-      console.log(`[getRealAdsets] This might indicate:`)
-      console.log(`  1. The campaign has no adsets`)
-      console.log(`  2. Permission issues with the API token`)
-      console.log(`  3. The campaign ID is incorrect`)
+      console.log(`[getRealAdsets] ⚠️  WARNING: CERO adsets encontrados`)
+      console.log(`[getRealAdsets] Respuesta completa de Meta:`, JSON.stringify(res, null, 2))
+      console.log(`[getRealAdsets] Posibles causas:`)
+      console.log(`  1. La campaña realmente no tiene adsets creados`)
+      console.log(`  2. Problema de permisos con el token de acceso`)
+      console.log(`  3. El ID de campaña es incorrecto: ${campaignId}`)
+      // Retornar array vacío en lugar de lanzar error
       return []
     }
 
+    // Log detallado de cada adset encontrado
+    console.log(`[getRealAdsets] Listado de adsets encontrados:`)
+    adsets.forEach((a: any, idx: number) => {
+      console.log(`  ${idx + 1}. ID: ${a.id} | Nombre: "${a.name}" | Estado: ${a.effective_status || a.status}`)
+    })
+
     // 2) Obtener insights de los adsets (gasto, impresiones, CTR)
-    console.log(`[getRealAdsets] Fetching insights for ${adsets.length} adsets...`)
+    console.log(`\n[getRealAdsets] Step 2: Fetching insights para ${adsets.length} adsets...`)
 
     let insights: any[] = []
     try {
+      // Intentar obtener insights de los últimos 90 días para mayor probabilidad de datos
       const insightsRes = await http(`${campaignId}/insights`, {
         level: "adset",
-        fields: "adset_id,adset_name,spend,impressions,ctr",
-        date_preset: "last_30d",
+        fields: "adset_id,adset_name,spend,impressions,ctr,clicks",
+        date_preset: "last_90d", // Cambiar a 90 días para capturar más datos
         limit: "5000",
       })
       insights = insightsRes?.data || []
-      console.log(`[getRealAdsets] Found ${insights.length} insights`)
+      console.log(`[getRealAdsets] ✓ Insights obtenidos: ${insights.length} registros`)
+
+      if (insights.length > 0) {
+        console.log(`[getRealAdsets] Ejemplo de insight:`, JSON.stringify(insights[0], null, 2))
+      }
     } catch (insightsError: any) {
-      console.error(`[getRealAdsets] Error fetching insights (will continue without them):`, insightsError.message)
-      // Continuar sin insights si fallan
+      console.error(`[getRealAdsets] ⚠️  Error obteniendo insights (continuando sin ellos):`, insightsError.message)
+      // Continuar sin insights - los adsets se mostrarán con gasto = 0
     }
 
+    // 3) Mapear insights por adset_id para búsqueda rápida
     const insightsByAdsetId = new Map<string, any>()
     for (const insight of insights) {
       insightsByAdsetId.set(String(insight.adset_id), insight)
     }
 
-    // 3) Combinar datos de adsets con sus insights
-    const result = adsets.map((a: any) => {
+    // 4) Combinar datos de adsets con sus insights
+    console.log(`\n[getRealAdsets] Step 3: Combinando datos de adsets con insights...`)
+
+    const result = adsets.map((a: any, idx: number) => {
       const insight = insightsByAdsetId.get(String(a.id)) || {}
+
+      // Calcular presupuesto (priorizar daily_budget, sino lifetime_budget)
+      const budget = a.daily_budget
+        ? Number(a.daily_budget) / 100 // Meta devuelve en centavos
+        : a.lifetime_budget
+          ? Number(a.lifetime_budget) / 100
+          : 0
+
       const adsetData = {
         id: String(a.id),
-        name: String(a.name || "Sin nombre"),
-        status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
-        daily_budget: Number(a.daily_budget || 0),
-        lifetime_budget: Number(a.lifetime_budget || 0),
+        name: String(a.name || `Adset ${idx + 1}`),
+        status: (a.effective_status === "ACTIVE" || a.status === "ACTIVE") ? "active" : "paused",
+        delivery: (a.effective_status === "ACTIVE" || a.status === "ACTIVE") ? "Activa" : "Pausada",
+        budget: budget,
         spend: Number(insight.spend || 0),
         impressions: Number(insight.impressions || 0),
+        clicks: Number(insight.clicks || 0),
         ctr: Number(insight.ctr || 0),
+        created_time: a.created_time || null,
+        updated_time: a.updated_time || null,
       }
-      console.log(`[getRealAdsets]   ✓ ${adsetData.name} (${adsetData.status}): spend=$${adsetData.spend}, impressions=${adsetData.impressions}`)
+
+      console.log(`  ${idx + 1}. "${adsetData.name}" → Estado: ${adsetData.status}, Gastado: $${adsetData.spend}, Impresiones: ${adsetData.impressions}`)
+
       return adsetData
     })
 
-    console.log(`[getRealAdsets] Successfully returning ${result.length} adsets`)
+    console.log(`\n[getRealAdsets] ✅ ÉXITO: Retornando ${result.length} adsets`)
+    console.log(`========================================\n`)
+
     return result
+
   } catch (error: any) {
-    console.error(`[getRealAdsets] CRITICAL ERROR:`, error.message)
+    console.error(`\n[getRealAdsets] ❌ ERROR CRÍTICO:`)
+    console.error(`[getRealAdsets] Mensaje:`, error.message)
     console.error(`[getRealAdsets] Stack:`, error.stack)
-    throw error
+    console.error(`========================================\n`)
+
+    // No lanzar el error, retornar array vacío para que la UI pueda manejarlo
+    return []
   }
 }
 

@@ -26,16 +26,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Mapear los adsets al formato esperado por la UI
-    const rows = adsets.map((adset: any) => ({
-      id: adset.id,
-      name: adset.name,
-      status: adset.status,
-      delivery: adset.status === "active" ? "Activa" : "Pausada",
-      budget: adset.daily_budget || adset.lifetime_budget || 0,
-      spend: adset.spend || 0,
-      impressions: adset.impressions || 0,
-      ctr: adset.ctr || 0,
-    }))
+    const rows = adsets.map((adset: any) => {
+      const row = {
+        id: adset.id,
+        name: adset.name,
+        status: adset.status,
+        delivery: adset.delivery || (adset.status === "active" ? "Activa" : "Pausada"),
+        budget: Number(adset.budget || 0),
+        spend: Number(adset.spend || 0),
+        impressions: Number(adset.impressions || 0),
+        clicks: Number(adset.clicks || 0),
+        ctr: Number(adset.ctr || 0),
+      }
+      console.log(`[API adsets]   → ${row.name}: budget=$${row.budget}, spend=$${row.spend}, impressions=${row.impressions}`)
+      return row
+    })
 
     console.log("[API adsets] Returning", rows.length, "adsets")
     // Siempre retornar éxito, incluso si no hay adsets
