@@ -152,19 +152,36 @@ export async function getRealInsights(campaignId: string) {
   }
 }
 
-/** KPI de cabecera (gasto y CTR en cuenta) */
+/** KPI de cabecera (gasto y CTR en cuenta) - Mes actual (día 1 hasta hoy) */
 export async function getRealSummary() {
   const act = getAct()
+
+  // Calcular el rango del mes actual: desde el día 1 hasta hoy
+  const now = new Date()
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  // Formatear fechas en formato YYYY-MM-DD para la API de Meta
+  const since = firstDayOfMonth.toISOString().split('T')[0]
+  const until = today.toISOString().split('T')[0]
+
+  console.log(`[getRealSummary] Obteniendo gasto del mes actual: ${since} hasta ${until}`)
+
   const res = await http(`${act}/insights`, {
     level: "account",
-    fields: "spend,ctr",
-    date_preset: "last_30d",
+    fields: "spend,ctr,impressions",
+    time_range: JSON.stringify({ since, until }),
     limit: "1",
   })
   const first = (res?.data || [])[0] || {}
+
+  const totalSpend = Number(first.spend || 0)
+  console.log(`[getRealSummary] Gasto total del mes: $${totalSpend}`)
+
   return {
-    totalSpend: Number(first.spend || 0),
+    totalSpend,
     totalCtr: Number(first.ctr || 0),
+    totalImpressions: Number(first.impressions || 0),
   }
 }
 
