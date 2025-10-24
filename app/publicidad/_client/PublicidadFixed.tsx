@@ -118,9 +118,11 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
     if ((selectedAdsetId || selectedCampaignId) && tab === "ads") {
       console.log("[PublicidadFixed] Fetching ads for:", selectedAdsetId ? `adset ${selectedAdsetId}` : `campaign ${selectedCampaignId}`)
       console.log("[PublicidadFixed] Ads data:", adsRes)
+      console.log("[PublicidadFixed] Ads rows:", ads)
+      console.log("[PublicidadFixed] Total ads spend:", ads.reduce((sum: number, ad: any) => sum + (ad.spend || 0), 0))
       console.log("[PublicidadFixed] Ads error:", adsError)
     }
-  }, [selectedCampaignId, selectedAdsetId, tab, adsetsRes, adsetsError, adsRes, adsError])
+  }, [selectedCampaignId, selectedAdsetId, tab, adsetsRes, adsetsError, adsRes, adsError, ads])
 
   return (
     <div className="galle-ads min-h-screen bg-white">

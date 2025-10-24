@@ -30,20 +30,25 @@ export async function GET(request: NextRequest) {
     console.log("[API ads] Fetching ads for entity:", entityId)
     const ads = await getRealAds(entityId)
     console.log("[API ads] Ads fetched successfully, count:", ads.length)
+    console.log("[API ads] Raw ads data:", JSON.stringify(ads, null, 2))
 
     // Mapear los anuncios al formato esperado por la UI
-    const rows = ads.map((ad: any) => ({
-      id: ad.id,
-      name: ad.name,
-      status: ad.status,
-      delivery: ad.status === "active" ? "Activo" : "Pausado",
-      spend: ad.spend || 0,
-      impressions: ad.impressions || 0,
-      ctr: ad.ctr || 0,
-      clicks: ad.clicks || 0,
-    }))
+    const rows = ads.map((ad: any) => {
+      const row = {
+        id: ad.id,
+        name: ad.name,
+        status: ad.status,
+        delivery: ad.status === "active" ? "Activo" : "Pausado",
+        spend: Number(ad.spend || 0),
+        impressions: Number(ad.impressions || 0),
+        ctr: Number(ad.ctr || 0),
+        clicks: Number(ad.clicks || 0),
+      }
+      console.log(`[API ads]   → ${row.name}: spend=$${row.spend}, impressions=${row.impressions}, clicks=${row.clicks}`)
+      return row
+    })
 
-    console.log("[API ads] Returning", rows.length, "ads")
+    console.log("[API ads] Returning", rows.length, "ads with total spend:", rows.reduce((sum, r) => sum + r.spend, 0))
     return NextResponse.json({ ads, rows })
   } catch (error: any) {
     console.error("[API ads] Error:", error.message, error.stack)
