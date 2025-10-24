@@ -14,7 +14,7 @@ type Campaign = {
   status: "active" | "paused"
 }
 
-export default function Advertising({ initialKpis, initialCampRes }: { initialKpis?: any; initialCampRes?: any }) {
+export default function Advertising({ initialKpis, initialCampRes, initialMonthly }: { initialKpis?: any; initialCampRes?: any; initialMonthly?: any }) {
   const [range, setRange] = React.useState("Últimos 30 días")
   const [tab, setTab] = React.useState<"camps" | "sets" | "ads">("camps")
   const [q, setQ] = React.useState("")
@@ -33,6 +33,11 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
     ctr: 0,
     deltaSpend: "+0%",
   }
+
+  // Use the server-provided monthly spend as the single source of truth.
+  // Do not re-fetch on the client to avoid flicker; the Server Component
+  // already fetched the value with date_preset=this_month.
+  const monthly = initialMonthly ?? { thisMonth: 0, lastMonth: 0 }
 
   const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
   const { data: campRes } = useSWR(campQuery, fetcher, {
@@ -118,8 +123,8 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Kpi
             title="GASTO TOTAL"
-            value={fmtMoney(kpis.spend)}
-            sub={<span className="text-emerald-600">{kpis.deltaSpend} vs anterior</span>}
+            value={fmtMoney(monthly.thisMonth)}
+            sub={<span className="text-emerald-600">{monthly.lastMonth ? `${fmtMoney(monthly.lastMonth)} mes anterior` : 'vs anterior'}</span>}
             tone="blue"
           />
           <Kpi
