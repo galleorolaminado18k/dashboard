@@ -1,7 +1,7 @@
 import 'server-only'
 import { headers } from 'next/headers'
 
-function getBaseUrl() {
+async function getBaseUrl() {
   // 1) En Vercel preview/prod:
   const vercel = process.env.NEXT_PUBLIC_VERCEL_URL
   if (vercel) return `https://${vercel}`
@@ -10,7 +10,7 @@ function getBaseUrl() {
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
 
   // 3) Dev local:
-  const h = headers()
+  const h = await headers()
   const host = h.get('host') ?? 'localhost:3000'
   const proto = host.includes('localhost') ? 'http' : 'https'
   return `${proto}://${host}`
