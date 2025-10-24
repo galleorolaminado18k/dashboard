@@ -14,7 +14,7 @@ type Campaign = {
   status: "active" | "paused"
 }
 
-export default function Advertising({ initialKpis, initialCampRes, initialMonthly }: { initialKpis?: any; initialCampRes?: any; initialMonthly?: any }) {
+export default function Advertising({ initialKpis, initialCampRes, initialMonthly, hideHeaderKPIs }: { initialKpis?: any; initialCampRes?: any; initialMonthly?: any; hideHeaderKPIs?: boolean }) {
   const [range, setRange] = React.useState("Últimos 30 días")
   const [tab, setTab] = React.useState<"camps" | "sets" | "ads">("camps")
   const [q, setQ] = React.useState("")
@@ -119,40 +119,42 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Kpi
-            title="GASTO TOTAL"
-            value={fmtMoney(monthly.thisMonth)}
-            sub={<span className="text-emerald-600">{monthly.lastMonth ? `${fmtMoney(monthly.lastMonth)} mes anterior` : 'vs anterior'}</span>}
-            tone="blue"
-          />
-          <Kpi
-            title="CONVERSIONES"
-            value={fmtNum(kpis.conv)}
-            sub={`${fmtMoney(kpis.cpa)} por conv.`}
-            tone="violet"
-          />
-          <Kpi
-            title="VENTAS"
-            value={fmtNum(kpis.sales)}
-            sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
-            tone="gold"
-          />
-          <Kpi
-            title="ROAS"
-            value={`${(kpis.roas ?? 0).toFixed(2)}x`}
-            sub={`${fmtMoney(kpis.revenue)} ingresos`}
-            tone="amber"
-          />
-          <Kpi
-            title="CTR PROMEDIO"
-            value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
-            sub={`${fmtNum(kpis.impr)} impresiones`}
-            tone="gold"
-          />
+      {!hideHeaderKPIs && (
+        <div className="mx-auto max-w-7xl px-6 py-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Kpi
+              title="GASTO TOTAL"
+              value={fmtMoney(monthly.thisMonth)}
+              sub={<span className="text-emerald-600">{monthly.lastMonth ? `${fmtMoney(monthly.lastMonth)} mes anterior` : 'vs anterior'}</span>}
+              tone="blue"
+            />
+            <Kpi
+              title="CONVERSIONES"
+              value={fmtNum(kpis.conv)}
+              sub={`${fmtMoney(kpis.cpa)} por conv.`}
+              tone="violet"
+            />
+            <Kpi
+              title="VENTAS"
+              value={fmtNum(kpis.sales)}
+              sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
+              tone="gold"
+            />
+            <Kpi
+              title="ROAS"
+              value={`${(kpis.roas ?? 0).toFixed(2)}x`}
+              sub={`${fmtMoney(kpis.revenue)} ingresos`}
+              tone="amber"
+            />
+            <Kpi
+              title="CTR PROMEDIO"
+              value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
+              sub={`${fmtNum(kpis.impr)} impresiones`}
+              tone="gold"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-wrap items-center gap-2">
