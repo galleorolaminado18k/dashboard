@@ -178,6 +178,57 @@ export async function getRealInsights(campaignId: string) {
   }
 }
 
+/** Anuncios reales de una campaña o adset con insights (gasto, impresiones, CTR, clicks) */
+export async function getRealAds(entityId: string) {
+  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
+  if (!useReal) throw new Error("USE_REAL_ADS disabled")
+
+  // 1) Obtener listado de anuncios
+  const fields = [
+    "id",
+    "name",
+    "effective_status",
+    "status",
+    "creative",
+    "updated_time",
+  ].join(",")
+  const res = await http(`${entityId}/ads`, {
+    fields,
+    limit: "200",
+  })
+
+  const ads = res?.data || []
+
+  // 2) Obtener insights de los anuncios (gasto, impresiones, CTR, clicks)
+  const insightsRes = await http(`${entityId}/insights`, {
+    level: "ad",
+    fields: "ad_id,ad_name,spend,impressions,ctr,clicks",
+    date_preset: "last_30d",
+    limit: "5000",
+  })
+
+  const insightsByAdId = new Map<string, any>()
+  for (const insight of (insightsRes?.data || [])) {
+    insightsByAdId.set(String(insight.ad_id), insight)
+  }
+
+  // 3) Combinar datos de anuncios con sus insights
+  const result = ads.map((a: any) => {
+    const insight = insightsByAdId.get(String(a.id)) || {}
+    return {
+      id: String(a.id),
+      name: String(a.name || ""),
+      status: a.effective_status === "ACTIVE" || a.status === "ACTIVE" ? "active" : "paused",
+      spend: Number(insight.spend || 0),
+      impressions: Number(insight.impressions || 0),
+      ctr: Number(insight.ctr || 0),
+      clicks: Number(insight.clicks || 0),
+    }
+  })
+
+  return result
+}
+
 /** Obtiene TODAS las cuentas publicitarias configuradas */
 function getAllAdAccounts(): string[] {
   const def = process.env.META_DEFAULT_AD_ACCOUNT
@@ -280,4 +331,4 @@ export async function getRealSummary() {
   }
 }
 
-export default { getRealCampaigns, getRealAdsets, getRealInsights, getRealSummary }
+export default { getRealCampaigns, getRealAdsets, getRealInsights, getRealSummary, getRealAds }

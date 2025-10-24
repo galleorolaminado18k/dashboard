@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getRealAds } from "@/lib/adv-server"
 
-// Por ahora retornamos datos de ejemplo, pero puedes conectarlo a la API de Meta
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const campaignId = searchParams.get("campaignId")
@@ -14,10 +14,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Aquí conectarías con la API de Meta para obtener anuncios
-    // Por ahora retornamos estructura de ejemplo
-    const ads = []
-    const rows = []
+    // Obtener anuncios reales de la API de Meta
+    const entityId = adsetId || campaignId
+    if (!entityId) {
+      return NextResponse.json(
+        { error: "ID de campaña o adset no válido" },
+        { status: 400 }
+      )
+    }
+
+    const ads = await getRealAds(entityId)
+
+    // Mapear los anuncios al formato esperado por la UI
+    const rows = ads.map((ad: any) => ({
+      id: ad.id,
+      name: ad.name,
+      status: ad.status,
+      delivery: ad.status === "active" ? "Activo" : "Pausado",
+      spend: ad.spend || 0,
+      impressions: ad.impressions || 0,
+      ctr: ad.ctr || 0,
+      clicks: ad.clicks || 0,
+    }))
 
     return NextResponse.json({ ads, rows })
   } catch (error: any) {
@@ -28,4 +46,6 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+
 
