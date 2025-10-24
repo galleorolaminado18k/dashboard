@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
     const adsets = await getRealAdsets(campaignId)
     console.log("[API adsets] Adsets fetched successfully, count:", adsets.length)
 
+    if (adsets.length === 0) {
+      console.log("[API adsets] No adsets found for campaign:", campaignId)
+      console.log("[API adsets] Note: This campaign might have ads directly without adsets")
+    }
+
     // Mapear los adsets al formato esperado por la UI
     const rows = adsets.map((adset: any) => ({
       id: adset.id,
@@ -33,7 +38,12 @@ export async function GET(request: NextRequest) {
     }))
 
     console.log("[API adsets] Returning", rows.length, "adsets")
-    return NextResponse.json({ adsets, rows })
+    // Siempre retornar éxito, incluso si no hay adsets
+    return NextResponse.json({
+      adsets,
+      rows,
+      message: adsets.length === 0 ? "Esta campaña no tiene conjuntos de anuncios configurados. Los anuncios pueden estar directamente en la campaña." : undefined
+    })
   } catch (error: any) {
     console.error("[API adsets] Error:", error.message, error.stack)
     return NextResponse.json(

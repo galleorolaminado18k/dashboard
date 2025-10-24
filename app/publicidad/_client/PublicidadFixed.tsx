@@ -255,8 +255,14 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                   </h3>
                 </div>
                 {adsets.length === 0 ? (
-                  <div className="p-8 text-center text-neutral-500">
-                    No hay conjuntos de anuncios disponibles para esta campaña
+                  <div className="p-8 text-center">
+                    <p className="text-neutral-600 mb-2">Esta campaña no tiene conjuntos de anuncios configurados</p>
+                    <p className="text-sm text-neutral-500">
+                      Los anuncios de esta campaña están directamente asociados a la campaña sin conjuntos de anuncios intermedios.
+                    </p>
+                    <p className="text-sm text-neutral-500 mt-2">
+                      Puedes ver los anuncios en la pestaña "Anuncios" →
+                    </p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
