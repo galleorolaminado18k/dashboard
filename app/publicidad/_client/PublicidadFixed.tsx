@@ -285,14 +285,37 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                   </h3>
                 </div>
                 {adsets.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <p className="text-neutral-600 mb-2">Esta campaña no tiene conjuntos de anuncios configurados</p>
-                    <p className="text-sm text-neutral-500">
-                      Los anuncios de esta campaña están directamente asociados a la campaña sin conjuntos de anuncios intermedios.
-                    </p>
-                    <p className="text-sm text-neutral-500 mt-2">
-                      Puedes ver los anuncios en la pestaña "Anuncios" →
-                    </p>
+                  <div className="p-12 text-center">
+                    <div className="max-w-md mx-auto">
+                      <div className="mb-4">
+                        <svg className="w-16 h-16 mx-auto text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-neutral-700 mb-2">
+                        Sin Conjuntos de Anuncios
+                      </h3>
+                      <p className="text-neutral-600 mb-3">
+                        Esta campaña no tiene conjuntos de anuncios configurados.
+                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-blue-800">
+                          <strong>💡 Nota:</strong> Los anuncios de esta campaña están directamente asociados a la campaña, sin necesidad de conjuntos de anuncios intermedios. Esto es una configuración válida en Meta Ads.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setTab("ads")}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#D8BD80] text-white rounded-xl font-medium hover:bg-[#c9ae71] transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                        Ver Anuncios de esta Campaña
+                      </button>
+                      <p className="text-xs text-neutral-500 mt-3">
+                        Haz clic para ir directamente a la pestaña "Anuncios"
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
