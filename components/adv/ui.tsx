@@ -37,14 +37,14 @@ export const Kpi = ({
           : "bg-[radial-gradient(1200px_250px_at_-10%_-40%,rgba(255,175,0,.10),transparent)]"
 
   return (
-    <div className="relative rounded-2xl border border-neutral-200 bg-white shadow-[0_16px_50px_rgba(0,0,0,.06)] p-4">
-      <span className={clsx("absolute inset-0 rounded-2xl", ring)} />
+    <div className="relative rounded-xl border border-neutral-200 bg-white shadow-[0_12px_40px_rgba(0,0,0,.05)] p-3">
+      <span className={clsx("absolute inset-0 rounded-xl", ring)} />
       <div className="relative flex items-start justify-between">
-        <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">{title}</div>
+        <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider leading-tight">{title}</div>
         {right}
       </div>
-      <div className="relative mt-2 text-2xl font-bold tracking-tight tabular-nums">{value}</div>
-      {sub && <div className="relative mt-1.5 text-xs text-neutral-500">{sub}</div>}
+      <div className="relative mt-1.5 text-xl font-bold tracking-tight tabular-nums leading-none">{value}</div>
+      {sub && <div className="relative mt-1 text-[10px] text-neutral-500 leading-tight">{sub}</div>}
     </div>
   )
 }
