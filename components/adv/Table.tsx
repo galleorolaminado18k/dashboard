@@ -41,170 +41,116 @@ export function AdsTable({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,.04)]">
-      <table className="w-full text-[10px]">
-        <thead className="bg-neutral-50 text-neutral-600">
+    <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white shadow-sm">
+      <table className="w-full text-xs">
+        <thead className="bg-neutral-50/50 border-b border-neutral-200">
           <tr>
-            <th className="text-left px-1.5 py-1.5">
-              <div className="flex items-center gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Estado</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute left-0 top-5 hidden group-hover:block z-50 w-48 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.Estado}
-                  </div>
-                </div>
+            <th className="text-left px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Estado</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-left px-1.5 py-1.5">
-              <div className="flex items-center gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Campaña</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute left-0 top-5 hidden group-hover:block z-50 w-48 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.Campaña}
-                  </div>
-                </div>
+            <th className="text-left px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Campaña</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-left px-1.5 py-1.5">
-              <div className="flex items-center gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Entrega</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute left-0 top-5 hidden group-hover:block z-50 w-48 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.Entrega}
-                  </div>
-                </div>
+            <th className="text-left px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Entrega</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Presup.</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips["Presup."]}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Presup.</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Gastado</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.Gastado}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Gastado</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Conv.</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips["Conv."]}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Conv.</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">$/Conv.</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips["$ / Conv."]}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">$ / Conv.</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Ventas</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.Ventas}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Ventas</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">Ingresos</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.Ingresos}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">Ingresos</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">ROAS</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.ROAS}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">ROAS</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="text-right px-1.5 py-1.5">
-              <div className="flex items-center justify-end gap-0.5">
-                <span className="text-[9px] font-semibold uppercase">CVR</span>
-                <div className="group relative">
-                  <Info className="w-2.5 h-2.5 text-neutral-400 cursor-help" />
-                  <div className="absolute right-0 top-5 hidden group-hover:block z-50 w-40 p-1.5 bg-neutral-900 text-white text-[10px] rounded-md shadow-lg">
-                    {columnTooltips.CVR}
-                  </div>
-                </div>
+            <th className="text-right px-4 py-3">
+              <div className="flex items-center justify-end gap-1.5">
+                <span className="text-xs font-medium text-neutral-600">CVR</span>
+                <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
               </div>
             </th>
-            <th className="px-1" />
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-neutral-100">
           {rows.map((r) => (
-            <tr key={r.id} className="border-t hover:bg-neutral-50">
-              <td className="px-1.5 py-1.5">
-                <div className="flex items-center gap-1">
+            <tr key={r.id} className="hover:bg-neutral-50/50 transition-colors">
+              <td className="px-4 py-4">
+                <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={selectedCampaigns.includes(r.id)}
                     onChange={() => onToggleSelection(r.id)}
-                    className="w-3 h-3 rounded border-neutral-300 text-[#D8BD80] focus:ring-[#D8BD80]"
+                    className="w-4 h-4 rounded border-neutral-300 text-[#D8BD80] focus:ring-[#D8BD80] focus:ring-offset-0"
                   />
                   <span
-                    className={`inline-flex h-3 w-6 rounded-full border ${r.status === "active" ? "bg-green-500/90 border-green-500" : "bg-neutral-200 border-neutral-300"}`}
+                    className={`inline-flex h-5 w-9 rounded-full ${r.status === "active" ? "bg-green-500" : "bg-neutral-300"}`}
                   />
                 </div>
               </td>
-              <td className="px-1.5 py-1.5">
-                <div className="font-medium text-[10px] leading-tight">{r.name}</div>
-                <div className="text-[9px] text-neutral-500 leading-tight">
-                  ID: {r.id} · {r.accountType}
+              <td className="px-4 py-4">
+                <div className="font-medium text-sm text-neutral-900 leading-tight">{r.name}</div>
+                <div className="text-xs text-neutral-500 mt-1 leading-tight">
+                  ID: {r.id}
+                </div>
+                <div className="text-xs text-neutral-400 leading-tight">
+                  • Cuenta: {r.accountType}
                 </div>
               </td>
-              <td className="px-1.5 py-1.5">
+              <td className="px-4 py-4">
                 <Pill color={r.delivery === "Activa" ? "green" : "amber"}>{r.delivery}</Pill>
               </td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px]">{r.budget ? fmtMoney(r.budget) : "$0"}</td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px] font-medium">{fmtMoney(r.spend)}</td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px]">{fmtNum(r.conv)}</td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px]">{r.cpa ? fmtMoney(r.cpa) : "—"}</td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px]">{fmtNum(r.sales)}</td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px]">{fmtMoney(r.revenue)}</td>
-              <td className={`px-1.5 py-1.5 text-right tabular-nums text-[10px] ${r.roas >= 1 ? "text-emerald-600" : "text-rose-600"}`}>
+              <td className="px-4 py-4 text-right tabular-nums text-sm text-neutral-900">{r.budget ? fmtMoney(r.budget) : "$0"}</td>
+              <td className="px-4 py-4 text-right tabular-nums text-sm font-medium text-neutral-900">{fmtMoney(r.spend)}</td>
+              <td className="px-4 py-4 text-right tabular-nums text-sm text-neutral-900">{fmtNum(r.conv)}</td>
+              <td className="px-4 py-4 text-right tabular-nums text-sm text-neutral-900">{r.cpa ? fmtMoney(r.cpa) : "—"}</td>
+              <td className="px-4 py-4 text-right tabular-nums text-sm text-neutral-900">{fmtNum(r.sales)}</td>
+              <td className="px-4 py-4 text-right tabular-nums text-sm text-neutral-900">{fmtMoney(r.revenue)}</td>
+              <td className={`px-4 py-4 text-right tabular-nums text-sm font-medium ${r.roas >= 1 ? "text-teal-600" : "text-rose-600"}`}>
                 {r.roas.toFixed(2)}x
               </td>
-              <td className="px-1.5 py-1.5 text-right tabular-nums text-[10px]">{(r.cvr * 100).toFixed(2)}%</td>
-              <td className="px-1" />
+              <td className="px-4 py-4 text-right tabular-nums text-sm text-neutral-900">{(r.cvr * 100).toFixed(2)}%</td>
             </tr>
           ))}
         </tbody>
@@ -219,7 +165,7 @@ function Pill({ children, color }: { children: React.ReactNode; color: "green" |
     amber: "bg-amber-50 text-amber-700 border-amber-200",
   }
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border ${colors[color]}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${colors[color]}`}>
       {children}
     </span>
   )
