@@ -9,9 +9,9 @@ import { headers } from 'next/headers'
 export default async function MarketingPage() {
   // Server-side fetch so public /marketing page can render live campaigns
   // even when deployment protection prevents unauthenticated client API calls.
-  let initialKpis = null
-  let initialCampRes = null
-  let initialMonthly = null
+  let initialKpis: any = null
+  let initialCampRes: any = null
+  let initialMonthly: { thisMonth?: number; lastMonth?: number } | null = null
   try {
     const summary = await getRealSummary()
     const campaigns = await getRealCampaigns()
