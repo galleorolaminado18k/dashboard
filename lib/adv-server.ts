@@ -18,6 +18,29 @@ const GV = process.env.META_GRAPH_VERSION || "v24.0"
 const GRAPH = `https://graph.facebook.com/${GV}`
 const TOKEN = process.env.META_SYSTEM_USER_TOKEN || process.env.META_ACCESS_TOKEN || ""
 
+// Sistema de caché en memoria para evitar peticiones excesivas a Meta API
+const cache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_TTL = 60000 // 60 segundos de caché
+
+function getCached<T>(key: string): T | null {
+  const cached = cache.get(key)
+  if (!cached) return null
+
+  const now = Date.now()
+  if (now - cached.timestamp > CACHE_TTL) {
+    cache.delete(key)
+    return null
+  }
+
+  console.log(`[CACHE] ✓ Hit para key: ${key}`)
+  return cached.data as T
+}
+
+function setCache(key: string, data: any): void {
+  cache.set(key, { data, timestamp: Date.now() })
+  console.log(`[CACHE] ✓ Guardado key: ${key}`)
+}
+
 /** Selecciona una ad account válida */
 function getAct(): string {
   const def = process.env.META_DEFAULT_AD_ACCOUNT
@@ -128,6 +151,14 @@ export async function getRealAdsets(campaignId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
 
+  // Verificar caché primero
+  const cacheKey = `adsets_${campaignId}`
+  const cached = getCached<any[]>(cacheKey)
+  if (cached) {
+    console.log(`[getRealAdsets] Retornando ${cached.length} adsets desde CACHÉ para campaña: ${campaignId}`)
+    return cached
+  }
+
   console.log(`\n========================================`)
   console.log(`[getRealAdsets] INICIANDO para campaña: ${campaignId}`)
   console.log(`========================================`)
@@ -229,6 +260,9 @@ export async function getRealAdsets(campaignId: string) {
     console.log(`\n[getRealAdsets] ✅ ÉXITO: Retornando ${result.length} adsets`)
     console.log(`========================================\n`)
 
+    // Guardar en caché antes de retornar
+    setCache(cacheKey, result)
+
     return result
 
   } catch (error: any) {
@@ -279,6 +313,16 @@ export async function getRealAds(entityId: string) {
   const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
   if (!useReal) throw new Error("USE_REAL_ADS disabled")
 
+  // Verificar caché primero
+  const cacheKey = `ads_${entityId}`
+  const cached = getCached<any[]>(cacheKey)
+  if (cached) {
+    console.log(`[getRealAds] Retornando ${cached.length} anuncios desde CACHÉ para entidad: ${entityId}`)
+    return cached
+  }
+
+  console.log(`[getRealAds] Obteniendo anuncios para entidad: ${entityId}`)
+
   // 1) Obtener listado de anuncios
   const fields = [
     "id",
@@ -321,6 +365,11 @@ export async function getRealAds(entityId: string) {
       clicks: Number(insight.clicks || 0),
     }
   })
+
+  console.log(`[getRealAds] ✅ Retornando ${result.length} anuncios`)
+
+  // Guardar en caché
+  setCache(cacheKey, result)
 
   return result
 }
