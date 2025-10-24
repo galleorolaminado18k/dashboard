@@ -1,10 +1,10 @@
 import { headers } from 'next/headers'
 
 export async function fetchMonthlySpend(): Promise<number> {
-  const h = headers()
+  const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? ''
   const proto = h.get('x-forwarded-proto') ?? 'https'
-  const base = `${proto}://${host}`
+  const base = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || '')
 
   try {
     const r = await fetch(`${base}/api/adv/monthly-spend`, { cache: 'no-store', next: { revalidate: 0 } })
