@@ -2,12 +2,13 @@ import 'server-only'
 import { headers } from 'next/headers'
 
 async function getBaseUrl() {
-  // 1) En Vercel preview/prod:
-  const vercel = process.env.NEXT_PUBLIC_VERCEL_URL
-  if (vercel) return `https://${vercel}`
+  // 1) Prefer explicit base URL (recommended for preview/prod)
+  const explicit = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL
+  if (explicit) return explicit.startsWith('http') ? explicit : `https://${explicit}`
 
-  // 2) Si definiste tu dominio público fijo:
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
+  // 2) Vercel provides VERCEL_URL (no protocol) or NEXT_PUBLIC_VERCEL_URL
+  const vercel = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_VERCEL_URL
+  if (vercel) return vercel.startsWith('http') ? vercel : `https://${vercel}`
 
   // 3) Dev local:
   const h = await headers()
