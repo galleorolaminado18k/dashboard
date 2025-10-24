@@ -20,6 +20,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   const [q, setQ] = React.useState("")
   const [selectedFilter, setSelectedFilter] = React.useState("Todas")
   const [selectedCampaigns, setSelectedCampaigns] = React.useState<string[]>([])
+  const [selectedAdsets, setSelectedAdsets] = React.useState<string[]>([])
 
   const { data: kpiRes } = useSWR(`/api/adv/summary?range=${encodeURIComponent(range)}`, fetcher, {
     refreshInterval: 5000,
@@ -72,6 +73,12 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
     )
   }
 
+  const handleToggleAdsetSelection = (adsetId: string) => {
+    setSelectedAdsets((prev) =>
+      prev.includes(adsetId) ? prev.filter((id) => id !== adsetId) : [...prev, adsetId],
+    )
+  }
+
   // Obtener la primera campaña seleccionada para mostrar sus adsets/ads
   const selectedCampaignId = selectedCampaigns.length > 0 ? selectedCampaigns[0] : null
 
@@ -84,9 +91,17 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
 
   const adsets = adsetsRes?.rows || []
 
-  // Fetch ads cuando hay una campaña seleccionada y el tab es "ads"
-  const shouldFetchAds = tab === "ads" && selectedCampaignId
-  const adsQuery = shouldFetchAds ? `/api/adv/ads?campaignId=${selectedCampaignId}` : null
+  // Obtener el primer adset seleccionado
+  const selectedAdsetId = selectedAdsets.length > 0 ? selectedAdsets[0] : null
+
+  // Fetch ads cuando hay un adset seleccionado O cuando hay una campaña seleccionada
+  // Prioridad: si hay adset seleccionado, usar adsetId, sino usar campaignId
+  const shouldFetchAds = tab === "ads" && (selectedAdsetId || selectedCampaignId)
+  const adsQuery = shouldFetchAds
+    ? selectedAdsetId
+      ? `/api/adv/ads?adsetId=${selectedAdsetId}`
+      : `/api/adv/ads?campaignId=${selectedCampaignId}`
+    : null
   const { data: adsRes, error: adsError } = useSWR(adsQuery, fetcher, {
     refreshInterval: 5000,
   })
@@ -100,12 +115,12 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
       console.log("[PublicidadFixed] Adsets data:", adsetsRes)
       console.log("[PublicidadFixed] Adsets error:", adsetsError)
     }
-    if (selectedCampaignId && tab === "ads") {
-      console.log("[PublicidadFixed] Fetching ads for campaign:", selectedCampaignId)
+    if ((selectedAdsetId || selectedCampaignId) && tab === "ads") {
+      console.log("[PublicidadFixed] Fetching ads for:", selectedAdsetId ? `adset ${selectedAdsetId}` : `campaign ${selectedCampaignId}`)
       console.log("[PublicidadFixed] Ads data:", adsRes)
       console.log("[PublicidadFixed] Ads error:", adsError)
     }
-  }, [selectedCampaignId, tab, adsetsRes, adsetsError, adsRes, adsError])
+  }, [selectedCampaignId, selectedAdsetId, tab, adsetsRes, adsetsError, adsRes, adsError])
 
   return (
     <div className="galle-ads min-h-screen bg-white">
@@ -269,6 +284,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                     <table className="w-full">
                       <thead className="bg-neutral-50 border-b border-neutral-200">
                         <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase w-12"></th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Presupuesto</th>
@@ -280,6 +296,14 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                       <tbody className="divide-y divide-neutral-200">
                         {adsets.map((adset: any) => (
                           <tr key={adset.id} className="hover:bg-neutral-50">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedAdsets.includes(adset.id)}
+                                onChange={() => handleToggleAdsetSelection(adset.id)}
+                                className="w-4 h-4 rounded border-neutral-300 text-[#D8BD80] focus:ring-[#D8BD80]"
+                              />
+                            </td>
                             <td className="px-4 py-3 text-sm">{adset.name}</td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
@@ -304,10 +328,10 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
         )}
         {tab === "ads" && (
           <>
-            {!selectedCampaignId ? (
+            {!selectedCampaignId && !selectedAdsetId ? (
               <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
-                <p className="text-neutral-500 mb-2">Selecciona una campaña para ver sus anuncios</p>
-                <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña en la pestaña "Campañas"</p>
+                <p className="text-neutral-500 mb-2">Selecciona una campaña o conjunto de anuncios para ver sus anuncios</p>
+                <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña o en el checkbox de un conjunto de anuncios</p>
               </div>
             ) : adsError ? (
               <div className="rounded-2xl border border-red-200 p-8 bg-red-50 text-center">
@@ -325,12 +349,24 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
               <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
                 <div className="p-4 border-b border-neutral-200 bg-neutral-50">
                   <h3 className="font-semibold text-sm">
-                    Anuncios de: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}
+                    {selectedAdsetId ? (
+                      <>
+                        Anuncios del conjunto: {adsets.find((a: any) => a.id === selectedAdsetId)?.name || selectedAdsetId}
+                        <span className="text-xs text-neutral-500 ml-2">
+                          (Campaña: {rows.find(r => r.id === selectedCampaignId)?.name})
+                        </span>
+                      </>
+                    ) : (
+                      <>Anuncios de la campaña: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}</>
+                    )}
                   </h3>
                 </div>
                 {ads.length === 0 ? (
                   <div className="p-8 text-center text-neutral-500">
-                    No hay anuncios disponibles para esta campaña
+                    {selectedAdsetId
+                      ? "No hay anuncios disponibles para este conjunto de anuncios"
+                      : "No hay anuncios disponibles para esta campaña"
+                    }
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -341,6 +377,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                           <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Clics</th>
                           <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
                         </tr>
                       </thead>
@@ -357,6 +394,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                             </td>
                             <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(ad.spend)}</td>
                             <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.impressions)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.clicks)}</td>
                             <td className="px-4 py-3 text-right text-sm">{((ad.ctr || 0) * 100).toFixed(2)}%</td>
                           </tr>
                         ))}
