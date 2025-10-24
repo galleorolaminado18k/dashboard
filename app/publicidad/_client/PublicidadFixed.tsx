@@ -23,8 +23,9 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   const [selectedAdsets, setSelectedAdsets] = React.useState<string[]>([])
 
   const { data: kpiRes } = useSWR(`/api/adv/summary?range=${encodeURIComponent(range)}`, fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 30000, // 30 segundos para evitar límite de API
     fallbackData: initialKpis ? { data: initialKpis } : undefined,
+    dedupingInterval: 30000,
   })
   const kpis = kpiRes?.data || initialKpis || {
     spend: 0,
@@ -44,8 +45,9 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
 
   const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
   const { data: campRes } = useSWR(campQuery, fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 30000, // 30 segundos para evitar límite de API
     fallbackData: initialCampRes ? initialCampRes : undefined,
+    dedupingInterval: 30000,
   })
   const campaigns: Campaign[] = campRes?.campaigns || (initialCampRes?.campaigns ?? [])
 
@@ -89,9 +91,11 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   const shouldFetchAdsets = !!selectedCampaignId
   const adsetsQuery = shouldFetchAdsets ? `/api/adv/adsets?campaignId=${selectedCampaignId}` : null
   const { data: adsetsRes, error: adsetsError } = useSWR(adsetsQuery, fetcher, {
-    refreshInterval: 5000,
-    revalidateOnFocus: true,
-    revalidateOnReconnect: true,
+    refreshInterval: 60000, // 60 segundos en lugar de 5 para evitar límite de API
+    revalidateOnFocus: false, // No revalidar al enfocar para evitar peticiones excesivas
+    revalidateOnReconnect: false, // No revalidar al reconectar
+    dedupingInterval: 60000, // Evitar peticiones duplicadas en 60 segundos
+    shouldRetryOnError: false, // No reintentar automáticamente en errores
   })
 
   const adsets = adsetsRes?.rows || []
@@ -108,7 +112,10 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
       : `/api/adv/ads?campaignId=${selectedCampaignId}`
     : null
   const { data: adsRes, error: adsError } = useSWR(adsQuery, fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 60000, // 60 segundos para evitar límite de API
+    dedupingInterval: 60000,
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
   })
 
   const ads = adsRes?.rows || []
