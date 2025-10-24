@@ -30,22 +30,43 @@ function getAct(): string {
   throw new Error("No META_DEFAULT_AD_ACCOUNT / META_AD_ACCOUNT_IDS configurado")
 }
 
-async function http(path: string, params: Record<string, any> = {}) {
+async function http(path: string, params: Record<string, any> = {}, retries = 0): Promise<any> {
   if (!TOKEN) throw new Error("Falta META_SYSTEM_USER_TOKEN")
   const usp = new URLSearchParams({ access_token: TOKEN })
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null) usp.append(k, String(v))
   }
   const url = `${GRAPH}/${path}?${usp.toString()}`
-  const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
-  const text = await res.text()
-  if (!res.ok) {
-    throw new Error(`Graph error ${res.status}: ${text}`)
-  }
+
   try {
-    return JSON.parse(text)
-  } catch {
-    return text as any
+    const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } })
+    const text = await res.text()
+
+    if (!res.ok) {
+      const errorData = JSON.parse(text)
+
+      // Si es error de límite de peticiones y aún tenemos retries, esperamos y reintentamos
+      if (errorData.error?.message?.includes("request limit") && retries < 3) {
+        console.log(`[http] Límite alcanzado, reintentando en ${(retries + 1) * 2} segundos... (intento ${retries + 1}/3)`)
+        await new Promise(resolve => setTimeout(resolve, (retries + 1) * 2000))
+        return http(path, params, retries + 1)
+      }
+
+      throw new Error(`Graph error ${res.status}: ${text}`)
+    }
+
+    try {
+      return JSON.parse(text)
+    } catch {
+      return text as any
+    }
+  } catch (error: any) {
+    if (retries < 3 && error.message?.includes("request limit")) {
+      console.log(`[http] Error de límite, reintentando en ${(retries + 1) * 2} segundos...`)
+      await new Promise(resolve => setTimeout(resolve, (retries + 1) * 2000))
+      return http(path, params, retries + 1)
+    }
+    throw error
   }
 }
 
@@ -214,6 +235,17 @@ export async function getRealAdsets(campaignId: string) {
     console.error(`\n[getRealAdsets] ❌ ERROR CRÍTICO:`)
     console.error(`[getRealAdsets] Mensaje:`, error.message)
     console.error(`[getRealAdsets] Stack:`, error.stack)
+
+    // Verificar si es un error de límite de peticiones
+    if (error.message?.includes("request limit") || error.message?.includes("rate limit")) {
+      console.error(`\n[getRealAdsets] ⚠️  PROBLEMA DE LÍMITE DE API DETECTADO`)
+      console.error(`[getRealAdsets] El token de Meta ha alcanzado el límite de peticiones.`)
+      console.error(`[getRealAdsets] SOLUCIONES:`)
+      console.error(`  1. Verificar que se está usando un System User Token (no User Access Token)`)
+      console.error(`  2. Esperar unos minutos para que se resetee el límite`)
+      console.error(`  3. Revisar el uso de la API en Meta Business Manager`)
+    }
+
     console.error(`========================================\n`)
 
     // No lanzar el error, retornar array vacío para que la UI pueda manejarlo
