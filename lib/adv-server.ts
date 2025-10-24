@@ -152,9 +152,32 @@ export async function getRealInsights(campaignId: string) {
   }
 }
 
-/** KPI de cabecera - Suma SOLO campañas activas en el mes actual (día 1 hasta hoy) */
+/** Obtiene TODAS las cuentas publicitarias configuradas */
+function getAllAdAccounts(): string[] {
+  const def = process.env.META_DEFAULT_AD_ACCOUNT
+  const list = (process.env.META_AD_ACCOUNT_IDS || "")
+    .split(",")
+    .map((s: string) => s.trim())
+    .filter((s: string) => /^act_\d+$/.test(s))
+
+  const accounts: string[] = []
+  if (def && /^act_\d+$/.test(def)) accounts.push(def)
+
+  for (const acc of list) {
+    if (!accounts.includes(acc)) accounts.push(acc)
+  }
+
+  if (accounts.length === 0) {
+    throw new Error("No META_DEFAULT_AD_ACCOUNT / META_AD_ACCOUNT_IDS configurado")
+  }
+
+  return accounts
+}
+
+/** KPI de cabecera - Suma TODAS las cuentas publicitarias, SOLO campañas activas del mes actual (día 1 hasta hoy) */
 export async function getRealSummary() {
-  const act = getAct()
+  // Obtener TODAS las cuentas publicitarias configuradas
+  const allAccounts = getAllAdAccounts()
 
   // Calcular el rango del mes actual: desde el día 1 hasta hoy
   const now = new Date()
@@ -165,49 +188,69 @@ export async function getRealSummary() {
   const since = firstDayOfMonth.toISOString().split('T')[0]
   const until = today.toISOString().split('T')[0]
 
-  console.log(`[getRealSummary] Obteniendo gasto del mes actual: ${since} hasta ${until}`)
+  console.log(`[getRealSummary] Mes actual: ${since} hasta ${until}`)
+  console.log(`[getRealSummary] Procesando ${allAccounts.length} cuenta(s) publicitaria(s)`)
 
-  // Obtener insights a nivel de campaña con el rango del mes actual
-  // Esto nos da el gasto de CADA campaña que estuvo activa en este período
-  const res = await http(`${act}/insights`, {
-    level: "campaign",
-    fields: "campaign_id,campaign_name,spend,impressions,ctr,actions",
-    time_range: JSON.stringify({ since, until }),
-    limit: "5000", // Suficiente para obtener todas las campañas
-  })
-
-  const campaignInsights = res?.data || []
-
-  // Sumar el gasto de todas las campañas que estuvieron activas en el mes
+  // Variables para acumular el total de TODAS las cuentas
   let totalSpend = 0
   let totalImpressions = 0
   let totalCtr = 0
-  let campaignCount = 0
+  let totalCampaignCount = 0
 
-  for (const insight of campaignInsights) {
-    const spend = Number(insight.spend || 0)
-    const impressions = Number(insight.impressions || 0)
-    const ctr = Number(insight.ctr || 0)
+  // Iterar sobre cada cuenta publicitaria
+  for (const accountId of allAccounts) {
+    console.log(`\n[getRealSummary] Procesando cuenta: ${accountId}`)
 
-    totalSpend += spend
-    totalImpressions += impressions
-    totalCtr += ctr
-    campaignCount++
+    try {
+      // Obtener insights a nivel de campaña con el rango del mes actual
+      const res = await http(`${accountId}/insights`, {
+        level: "campaign",
+        fields: "campaign_id,campaign_name,spend,impressions,ctr,actions",
+        time_range: JSON.stringify({ since, until }),
+        limit: "5000", // Suficiente para obtener todas las campañas
+      })
 
-    console.log(`  - Campaña ${insight.campaign_name || insight.campaign_id}: $${spend.toFixed(2)}`)
+      const campaignInsights = res?.data || []
+      let accountSpend = 0
+      let accountCampaignCount = 0
+
+      // Sumar campañas de esta cuenta
+      for (const insight of campaignInsights) {
+        const spend = Number(insight.spend || 0)
+        const impressions = Number(insight.impressions || 0)
+        const ctr = Number(insight.ctr || 0)
+
+        accountSpend += spend
+        totalSpend += spend
+        totalImpressions += impressions
+        totalCtr += ctr
+        totalCampaignCount++
+        accountCampaignCount++
+
+        console.log(`    ✓ ${insight.campaign_name || insight.campaign_id}: $${spend.toFixed(2)}`)
+      }
+
+      console.log(`  [${accountId}] ${accountCampaignCount} campañas = $${accountSpend.toFixed(2)}`)
+
+    } catch (error) {
+      console.error(`  ✗ Error procesando cuenta ${accountId}:`, error)
+      // Continuar con la siguiente cuenta aunque falle una
+    }
   }
 
-  // CTR promedio
-  const avgCtr = campaignCount > 0 ? totalCtr / campaignCount : 0
+  // CTR promedio de todas las campañas de todas las cuentas
+  const avgCtr = totalCampaignCount > 0 ? totalCtr / totalCampaignCount : 0
 
-  console.log(`[getRealSummary] Total de ${campaignCount} campañas activas`)
-  console.log(`[getRealSummary] Gasto total del mes: $${totalSpend.toFixed(2)}`)
+  console.log(`\n[getRealSummary] ════════════════════════════════════════`)
+  console.log(`[getRealSummary] TOTAL: ${totalCampaignCount} campañas activas`)
+  console.log(`[getRealSummary] GASTO TOTAL DEL MES: $${totalSpend.toFixed(2)}`)
+  console.log(`[getRealSummary] ════════════════════════════════════════\n`)
 
   return {
     totalSpend,
     totalCtr: avgCtr,
     totalImpressions,
-    campaignCount,
+    campaignCount: totalCampaignCount,
   }
 }
 
