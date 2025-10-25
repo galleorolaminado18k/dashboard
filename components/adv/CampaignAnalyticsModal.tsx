@@ -75,6 +75,19 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
     setIsLoading(true)
     setError('')
 
+    console.log('🚀 Iniciando análisis de IA para:', campaign.name)
+    console.log('📊 Datos enviados:', {
+      name: campaign.name,
+      spend: campaign.spend,
+      conversions: campaign.conv,
+      cpa: campaign.cpa,
+      sales: campaign.sales,
+      revenue: campaign.revenue,
+      roas: campaign.roas,
+      cvr: campaign.cvr,
+      budget: campaign.budget
+    })
+
     try {
       const response = await fetch('/api/ai/analyze-campaign', {
         method: 'POST',
@@ -96,21 +109,31 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
         }),
       })
 
+      console.log('📡 Respuesta recibida, status:', response.status)
+
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error('❌ Error en respuesta:', errorText)
+        throw new Error(`Error ${response.status}: ${errorText}`)
       }
 
       const data = await response.json()
+      console.log('✅ Datos parseados:', data)
 
       if (data.error) {
         throw new Error(data.error)
       }
 
-      setAiAnalysis(data.analysis)
+      if (data.analysis) {
+        console.log('📝 Análisis recibido, longitud:', data.analysis.length)
+        setAiAnalysis(data.analysis)
+      } else {
+        throw new Error('No se recibió análisis en la respuesta')
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'No se pudo obtener el análisis de IA'
+      console.error('💥 Error completo:', err)
       setError(errorMessage)
-      console.error('Error fetching AI analysis:', err)
     } finally {
       setIsLoading(false)
     }
