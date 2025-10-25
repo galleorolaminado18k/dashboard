@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const GROK_API_KEY = 'xai-7d9ef5c7-deca-4fcb-b06c-353f98ff9f0a'
+const GROK_API_KEY = 'xai-7d9ef5c7deca4fcbb06c353f98ff9f0a'
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions'
 
 export async function POST(request: NextRequest) {
