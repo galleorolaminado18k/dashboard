@@ -420,31 +420,6 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
             </div>
           )}
 
-          {/* KPIs Grid - Luxury Design - Más compacto */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {metrics.map((metric, i) => (
-              <div
-                key={i}
-                className="group relative p-3 rounded-xl bg-gradient-to-br from-neutral-800/80 to-neutral-900/80 border border-white/5 hover:border-[#C1A36A]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[#C1A36A]/10"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-1">
-                      {metric.label}
-                    </p>
-                    <p className={`text-lg font-bold ${metric.color} tracking-tight`}>
-                      {metric.value}
-                    </p>
-                  </div>
-                  <div className={`p-1.5 rounded-lg ${metric.bg} group-hover:scale-110 transition-transform`}>
-                    <metric.icon className={`w-4 h-4 ${metric.color}`} />
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-[#C1A36A]/0 to-[#C1A36A]/0 group-hover:from-[#C1A36A]/5 group-hover:to-transparent rounded-xl transition-all pointer-events-none" />
-              </div>
-            ))}
-          </div>
-
           {/* Chart Section - Luxury */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
