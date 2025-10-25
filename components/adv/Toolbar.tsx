@@ -24,16 +24,9 @@ export function Toolbar({
         <option>Últimos 7 días</option>
         <option>Hoy</option>
       </select>
-
-      <div className="ml-auto flex items-center gap-2">
-        <IconBtn title="Gráficos" onClick={onCharts}>
-          Gráficos
-        </IconBtn>
-        <IconBtn title="Exportar" onClick={onExport}>
-          Exportar
-        </IconBtn>
-      </div>
     </div>
   )
 }
+
+
 
