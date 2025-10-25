@@ -37,32 +37,17 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
   }
 
   // Use the server-provided monthly spend as the single source of truth.
-  // If the server passed a forced numeric spend, prefer it (avoids client overwrite).
-  // Do not re-fetch on the client to avoid flicker; the Server Component already fetched the value.
   const monthly = typeof forcedSpend === 'number' && Number.isFinite(forcedSpend)
     ? { thisMonth: forcedSpend, lastMonth: initialMonthly?.lastMonth ?? 0 }
     : (initialMonthly ?? { thisMonth: 0, lastMonth: 0 })
 
-  const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}&t=${Date.now()}`
+  const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
   const { data: campRes } = useSWR(campQuery, fetcher, {
-    refreshInterval: 30000, // Actualizar cada 30 segundos
+    refreshInterval: 10000, // Actualizar cada 10 segundos
     revalidateOnFocus: true, // Revalidar al enfocar la ventana
     revalidateOnReconnect: true, // Revalidar al reconectar
-    dedupingInterval: 5000, // Reducir deduping para permitir actualizaciones más frecuentes
-    compare: (a, b) => {
-      // Comparación profunda para detectar cambios en el gasto
-      if (!a || !b) return false
-      if (!a.rows || !b.rows) return false
-      if (a.rows.length !== b.rows.length) return false
-
-      // Verificar si alguna campaña cambió su gasto
-      for (let i = 0; i < a.rows.length; i++) {
-        if (a.rows[i].spend !== b.rows[i].spend) {
-          return false // Hay cambios, actualizar
-        }
-      }
-      return true // No hay cambios
-    },
+    dedupingInterval: 2000, // Permitir actualizaciones frecuentes
+    keepPreviousData: false, // No mantener datos previos, siempre usar los nuevos
   })
   const campaigns: Campaign[] = campRes?.campaigns || (initialCampRes?.campaigns ?? [])
 
