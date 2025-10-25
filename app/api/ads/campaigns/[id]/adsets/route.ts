@@ -16,18 +16,12 @@ const adsetsByCampaign: Record<string, any[]> = {
 }
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
-  if (!useReal) {
-    const adsets = adsetsByCampaign[params.id] || []
-    return NextResponse.json({ adsets })
-  }
-
+  // Forzar uso de datos reales en pesos colombianos
   try {
     const adsets = await advServer.getRealAdsets(params.id)
     return NextResponse.json({ adsets })
   } catch (err: any) {
     console.error("adv adsets error:", err)
-    const adsets = adsetsByCampaign[params.id] || []
-    return NextResponse.json({ adsets })
+    return NextResponse.json({ error: err.message, adsets: [] }, { status: 500 })
   }
 }
