@@ -278,91 +278,122 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8 bg-neutral-900/50">
-          {/* KPIs Grid - Luxury Design */}
-          <div className="grid grid-cols-3 gap-5 mb-8">
+        <div className="flex-1 overflow-y-auto p-6 bg-neutral-900/50">
+          {/* Status Alert at Top */}
+          {!isHighCPA() ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-r from-emerald-900/20 to-neutral-800/50 px-5 py-3 mb-6 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg shadow-lg shadow-emerald-500/20">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-emerald-400">Campaña Optimizada</h3>
+                  <p className="text-xs text-neutral-300 mt-0.5">
+                    Tu campaña está funcionando dentro de los parámetros esperados. El CPA está en un rango aceptable.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-900/20 to-neutral-800/50 px-5 py-3 mb-6 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow-lg shadow-amber-500/20">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-amber-400">Alerta: CPA Alto Detectado</h3>
+                  <p className="text-xs text-neutral-300 mt-0.5">
+                    La IA está analizando la campaña para proporcionarte recomendaciones específicas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* KPIs Grid - Luxury Design - Más compacto */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
             {metrics.map((metric, i) => (
               <div
                 key={i}
-                className="group relative p-5 rounded-2xl bg-gradient-to-br from-neutral-800/80 to-neutral-900/80 border border-white/5 hover:border-[#C1A36A]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#C1A36A]/10"
+                className="group relative p-3 rounded-xl bg-gradient-to-br from-neutral-800/80 to-neutral-900/80 border border-white/5 hover:border-[#C1A36A]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[#C1A36A]/10"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                    <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-1">
                       {metric.label}
                     </p>
-                    <p className={`text-2xl font-bold ${metric.color} tracking-tight`}>
+                    <p className={`text-lg font-bold ${metric.color} tracking-tight`}>
                       {metric.value}
                     </p>
                   </div>
-                  <div className={`p-2.5 rounded-xl ${metric.bg} group-hover:scale-110 transition-transform`}>
-                    <metric.icon className={`w-5 h-5 ${metric.color}`} />
+                  <div className={`p-1.5 rounded-lg ${metric.bg} group-hover:scale-110 transition-transform`}>
+                    <metric.icon className={`w-4 h-4 ${metric.color}`} />
                   </div>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-[#C1A36A]/0 to-[#C1A36A]/0 group-hover:from-[#C1A36A]/5 group-hover:to-transparent rounded-2xl transition-all pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#C1A36A]/0 to-[#C1A36A]/0 group-hover:from-[#C1A36A]/5 group-hover:to-transparent rounded-xl transition-all pointer-events-none" />
               </div>
             ))}
           </div>
 
           {/* Chart Section - Luxury */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="p-2 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-lg">
-                <BarChart3 className="w-5 h-5 text-white" />
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-1.5 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-lg">
+                <BarChart3 className="w-4 h-4 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white">Rendimiento de la Campaña</h3>
+              <h3 className="text-lg font-bold text-white">Rendimiento de la Campaña</h3>
             </div>
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-white/5 shadow-xl" style={{ height: '340px' }}>
+            <div className="p-4 rounded-xl bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-white/5 shadow-xl" style={{ height: '280px' }}>
               <Line data={chartData} options={chartOptions} />
             </div>
           </div>
 
           {/* AI Analysis Section - Luxury & Professional */}
           {isHighCPA() && (
-            <div className="rounded-2xl border-2 border-[#C1A36A]/30 bg-gradient-to-br from-amber-900/20 via-neutral-800/50 to-neutral-900/50 p-8 shadow-2xl shadow-[#C1A36A]/10 backdrop-blur">
-              <div className="flex items-center gap-4 mb-6">
+            <div className="rounded-2xl border-2 border-[#C1A36A]/30 bg-gradient-to-br from-amber-900/20 via-neutral-800/50 to-neutral-900/50 p-6 shadow-2xl shadow-[#C1A36A]/10 backdrop-blur">
+              <div className="flex items-center gap-3 mb-5">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-2xl blur-lg opacity-50" />
-                  <div className="relative p-3 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-2xl">
-                    <Sparkles className="w-6 h-6 text-white" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-xl blur-lg opacity-50" />
+                  <div className="relative p-2.5 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-xl">
+                    <Sparkles className="w-5 h-5 text-white" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
                     Análisis Inteligente con IA
-                    <span className="text-xs font-normal px-3 py-1 bg-[#C1A36A]/20 text-[#C1A36A] rounded-full border border-[#C1A36A]/30">
+                    <span className="text-[10px] font-normal px-2 py-0.5 bg-[#C1A36A]/20 text-[#C1A36A] rounded-full border border-[#C1A36A]/30">
                       Grok-Beta
                     </span>
                   </h3>
-                  <p className="text-sm text-neutral-400 mt-1">Experta en Marketing Digital · IQ 145</p>
+                  <p className="text-xs text-neutral-400 mt-1">Experta en Marketing Digital · IQ 145</p>
                 </div>
               </div>
 
               {isLoading && (
-                <div className="flex flex-col items-center justify-center py-12">
+                <div className="flex flex-col items-center justify-center py-10">
                   <div className="relative">
-                    <Loader2 className="w-12 h-12 text-[#C1A36A] animate-spin" />
+                    <Loader2 className="w-10 h-10 text-[#C1A36A] animate-spin" />
                     <div className="absolute inset-0 bg-[#C1A36A] blur-xl opacity-30 animate-pulse" />
                   </div>
-                  <span className="mt-4 text-neutral-300 font-medium">Analizando campaña con IA avanzada...</span>
-                  <span className="text-xs text-neutral-500 mt-2">Esto puede tomar unos segundos</span>
+                  <span className="mt-3 text-neutral-300 font-medium text-sm">Analizando campaña con IA avanzada...</span>
+                  <span className="text-xs text-neutral-500 mt-1">Esto puede tomar unos segundos</span>
                 </div>
               )}
 
               {error && (
-                <div className="p-5 bg-rose-900/20 border border-rose-500/30 rounded-xl text-rose-300 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <div className="p-4 bg-rose-900/20 border border-rose-500/30 rounded-lg text-rose-300 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold mb-1">Error al obtener análisis</p>
-                    <p className="text-sm text-rose-400">{error}</p>
+                    <p className="font-semibold text-sm mb-0.5">Error al obtener análisis</p>
+                    <p className="text-xs text-rose-400">{error}</p>
                   </div>
                 </div>
               )}
 
               {aiAnalysis && !isLoading && (
-                <div className="bg-neutral-900/50 rounded-xl p-6 border border-white/5">
+                <div className="bg-neutral-900/50 rounded-lg p-5 border border-white/5">
                   <div className="prose prose-invert prose-sm max-w-none">
-                    <div className="text-neutral-200 leading-relaxed whitespace-pre-wrap font-light">
+                    <div className="text-neutral-200 leading-relaxed whitespace-pre-wrap font-light text-sm">
                       {aiAnalysis}
                     </div>
                   </div>
@@ -370,27 +401,11 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
               )}
 
               {!isLoading && !aiAnalysis && !error && (
-                <div className="text-center py-6 text-neutral-400 flex items-center justify-center gap-2">
+                <div className="text-center py-5 text-neutral-400 flex items-center justify-center gap-2 text-sm">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Iniciando análisis...
                 </div>
               )}
-            </div>
-          )}
-
-          {!isHighCPA() && (
-            <div className="rounded-2xl border-2 border-emerald-500/30 bg-gradient-to-br from-emerald-900/20 via-neutral-800/50 to-neutral-900/50 p-7 shadow-xl">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg shadow-emerald-500/20">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-emerald-400">Campaña Optimizada</h3>
-                  <p className="text-sm text-neutral-300 mt-1.5 leading-relaxed">
-                    Tu campaña está funcionando dentro de los parámetros esperados. El CPA está en un rango aceptable y las métricas muestran un rendimiento estable.
-                  </p>
-                </div>
-              </div>
             </div>
           )}
         </div>
