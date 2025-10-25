@@ -43,11 +43,26 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
     ? { thisMonth: forcedSpend, lastMonth: initialMonthly?.lastMonth ?? 0 }
     : (initialMonthly ?? { thisMonth: 0, lastMonth: 0 })
 
-  const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
+  const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}&t=${Date.now()}`
   const { data: campRes } = useSWR(campQuery, fetcher, {
-    refreshInterval: 30000, // 30 segundos para evitar límite de API
-    fallbackData: initialCampRes ? initialCampRes : undefined,
-    dedupingInterval: 30000,
+    refreshInterval: 30000, // Actualizar cada 30 segundos
+    revalidateOnFocus: true, // Revalidar al enfocar la ventana
+    revalidateOnReconnect: true, // Revalidar al reconectar
+    dedupingInterval: 5000, // Reducir deduping para permitir actualizaciones más frecuentes
+    compare: (a, b) => {
+      // Comparación profunda para detectar cambios en el gasto
+      if (!a || !b) return false
+      if (!a.rows || !b.rows) return false
+      if (a.rows.length !== b.rows.length) return false
+
+      // Verificar si alguna campaña cambió su gasto
+      for (let i = 0; i < a.rows.length; i++) {
+        if (a.rows[i].spend !== b.rows[i].spend) {
+          return false // Hay cambios, actualizar
+        }
+      }
+      return true // No hay cambios
+    },
   })
   const campaigns: Campaign[] = campRes?.campaigns || (initialCampRes?.campaigns ?? [])
 
@@ -68,6 +83,20 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
     cvr: (r.conversions ?? 0) > 0 ? (r.sales ?? 0) / (r.conversions ?? 0) : 0,
     accountType: "Meta Ads",
   }))
+
+  // Log de actualización de campañas
+  React.useEffect(() => {
+    if (campRes?.rows) {
+      console.log('🔄 [ACTUALIZACIÓN CAMPAÑAS]', new Date().toLocaleTimeString())
+      console.log('📊 Total campañas:', campRes.rows.length)
+      campRes.rows.forEach((r: any) => {
+        if (r.status === 'active') {
+          console.log(`  ✅ ${r.name}: $${r.spend?.toLocaleString('es-CO') || 0}`)
+        }
+      })
+      console.log('💰 Suma total gasto:', campRes.rows.reduce((sum: number, r: any) => sum + (r.spend || 0), 0).toLocaleString('es-CO'))
+    }
+  }, [campRes])
 
   const handleToggleSelection = (campaignId: string) => {
     setSelectedCampaigns((prev) =>
