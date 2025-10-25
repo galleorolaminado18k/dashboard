@@ -7,6 +7,7 @@ import { GoldRing, Kpi, LiveBadge } from "@/components/adv/ui"
 import { fmtMoney, fmtNum } from '@/lib/format'
 import { Toolbar } from "@/components/adv/Toolbar"
 import { AdsTable } from "@/components/adv/Table"
+import StatsBar from "@/components/adv/StatsBar"
 
 type Campaign = {
   id: string
@@ -299,13 +300,65 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
-                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
-                  <h3 className="font-semibold text-sm">
-                    Conjuntos de anuncios de: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}
-                  </h3>
-                </div>
-                {adsets.length === 0 ? (
+              <>
+                {/* StatsBar para Conjuntos de Anuncios */}
+                {adsets.length > 0 && (
+                  <StatsBar
+                    title={`Conjuntos de anuncios: ${adsets.find((a: any) => a.id === selectedAdsetId)?.name || 'Todos'} (Campaña: ${rows.find(r => r.id === selectedCampaignId)?.name})`}
+                    items={[
+                      {
+                        label: "Entrega",
+                        value: adsets.filter((a: any) => a.status === 'active').length > 0 ? "Activa" : "Pausada",
+                        sub: `${adsets.filter((a: any) => a.status === 'active').length} de ${adsets.length} activos`
+                      },
+                      {
+                        label: "Presupuesto",
+                        value: fmtMoney(adsets.reduce((sum: number, a: any) => sum + (a.budget || 0), 0)),
+                        sub: `${adsets.length} conjuntos`
+                      },
+                      {
+                        label: "Gastado",
+                        value: fmtMoney(adsets.reduce((sum: number, a: any) => sum + (a.spend || 0), 0)),
+                        sub: "Total gastado"
+                      },
+                      {
+                        label: "Conversiones",
+                        value: fmtNum(adsets.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0)),
+                        sub: fmtMoney((adsets.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) / (adsets.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) + " / Conv."
+                      },
+                      {
+                        label: "Ventas",
+                        value: fmtNum(adsets.reduce((sum: number, a: any) => sum + (a.sales || 0), 0)),
+                        sub: "Total ventas"
+                      },
+                      {
+                        label: "Ingresos",
+                        value: fmtMoney(adsets.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0)),
+                        sub: "Total ingresos"
+                      },
+                      {
+                        label: "ROAS",
+                        value: `${((adsets.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0) / (adsets.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) || 1)) || 0).toFixed(2)}x`,
+                        sub: "Retorno inversión"
+                      },
+                      {
+                        label: "CVR",
+                        value: `${(((adsets.reduce((sum: number, a: any) => sum + (a.sales || 0), 0) / (adsets.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) * 100).toFixed(2)}%`,
+                        sub: "Ventas / Conv."
+                      }
+                    ]}
+                    showChartButton={true}
+                    onChartClick={() => alert("Función de gráficos para conjuntos de anuncios")}
+                  />
+                )}
+
+                <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+                  <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                    <h3 className="font-semibold text-sm">
+                      Conjuntos de anuncios de: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}
+                    </h3>
+                  </div>
+                  {adsets.length === 0 ? (
                   <div className="p-12 text-center">
                     <div className="max-w-md mx-auto">
                       <div className="mb-4">
@@ -382,6 +435,7 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                   </div>
                 )}
               </div>
+            </>
             )}
           </>
         )}
@@ -406,42 +460,58 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
               </div>
             ) : (
               <>
-                {/* KPIs para Anuncios */}
+                {/* StatsBar para Anuncios */}
                 {ads.length > 0 && (
-                  <div className="mb-6">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                      <Kpi
-                        title="GASTO TOTAL"
-                        value={fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0))}
-                        sub={<span className="text-xs text-neutral-500">{ads.length} anuncios</span>}
-                        tone="blue"
-                      />
-                      <Kpi
-                        title="CONVERSIONES"
-                        value={fmtNum(ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0))}
-                        sub={<span className="text-xs text-neutral-500">Total conversiones</span>}
-                        tone="violet"
-                      />
-                      <Kpi
-                        title="VENTAS"
-                        value={fmtNum(ads.reduce((sum: number, a: any) => sum + (a.sales || 0), 0))}
-                        sub={<span className="text-xs text-neutral-500">Total ventas</span>}
-                        tone="gold"
-                      />
-                      <Kpi
-                        title="ROAS"
-                        value={`${((ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) || 1)) || 0).toFixed(2)}x`}
-                        sub={<span className="text-xs text-neutral-500">{fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0))} ingresos</span>}
-                        tone="amber"
-                      />
-                      <Kpi
-                        title="CVR"
-                        value={`${(((ads.reduce((sum: number, a: any) => sum + (a.clicks || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.impressions || 0), 0) || 1)) || 0) * 100).toFixed(2)}%`}
-                        sub={<span className="text-xs text-neutral-500">{fmtNum(ads.reduce((sum: number, a: any) => sum + (a.impressions || 0), 0))} impresiones</span>}
-                        tone="gold"
-                      />
-                    </div>
-                  </div>
+                  <StatsBar
+                    title={selectedAdsetId
+                      ? `Anuncios del conjunto: ${adsets.find((a: any) => a.id === selectedAdsetId)?.name} (Campaña: ${rows.find(r => r.id === selectedCampaignId)?.name})`
+                      : `Anuncios de la campaña: ${rows.find(r => r.id === selectedCampaignId)?.name}`
+                    }
+                    items={[
+                      {
+                        label: "Entrega",
+                        value: ads.filter((a: any) => a.status === 'active').length > 0 ? "Activa" : "Pausada",
+                        sub: `${ads.filter((a: any) => a.status === 'active').length} de ${ads.length} activos`
+                      },
+                      {
+                        label: "Presupuesto",
+                        value: fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0)),
+                        sub: `${ads.length} anuncios`
+                      },
+                      {
+                        label: "Gastado",
+                        value: fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0)),
+                        sub: "Total gastado"
+                      },
+                      {
+                        label: "Conversiones",
+                        value: fmtNum(ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0)),
+                        sub: fmtMoney((ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) + " / Conv."
+                      },
+                      {
+                        label: "Ventas",
+                        value: fmtNum(ads.reduce((sum: number, a: any) => sum + (a.sales || 0), 0)),
+                        sub: "Total ventas"
+                      },
+                      {
+                        label: "Ingresos",
+                        value: fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0)),
+                        sub: "Total ingresos"
+                      },
+                      {
+                        label: "ROAS",
+                        value: `${((ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) || 1)) || 0).toFixed(2)}x`,
+                        sub: "Retorno inversión"
+                      },
+                      {
+                        label: "CVR",
+                        value: `${(((ads.reduce((sum: number, a: any) => sum + (a.sales || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) * 100).toFixed(2)}%`,
+                        sub: "Ventas / Conv."
+                      }
+                    ]}
+                    showChartButton={true}
+                    onChartClick={() => alert("Función de gráficos para anuncios")}
+                  />
                 )}
 
                 <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
