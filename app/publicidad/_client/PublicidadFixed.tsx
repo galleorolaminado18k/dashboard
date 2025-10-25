@@ -405,63 +405,103 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                 <p className="text-neutral-500">Cargando anuncios...</p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
-                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
-                  <h3 className="font-semibold text-sm">
-                    {selectedAdsetId ? (
-                      <>
-                        Anuncios del conjunto: {adsets.find((a: any) => a.id === selectedAdsetId)?.name || selectedAdsetId}
-                        <span className="text-xs text-neutral-500 ml-2">
-                          (Campaña: {rows.find(r => r.id === selectedCampaignId)?.name})
-                        </span>
-                      </>
-                    ) : (
-                      <>Anuncios de la campaña: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}</>
-                    )}
-                  </h3>
-                </div>
-                {ads.length === 0 ? (
-                  <div className="p-8 text-center text-neutral-500">
-                    {selectedAdsetId
-                      ? "No hay anuncios disponibles para este conjunto de anuncios"
-                      : "No hay anuncios disponibles para esta campaña"
-                    }
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-neutral-50 border-b border-neutral-200">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Clics</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-200">
-                        {ads.map((ad: any) => (
-                          <tr key={ad.id} className="hover:bg-neutral-50">
-                            <td className="px-4 py-3 text-sm">{ad.name}</td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                ad.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
-                              }`}>
-                                {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(ad.spend)}</td>
-                            <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.impressions)}</td>
-                            <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.clicks)}</td>
-                            <td className="px-4 py-3 text-right text-sm">{((ad.ctr || 0) * 100).toFixed(2)}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <>
+                {/* KPIs para Anuncios */}
+                {ads.length > 0 && (
+                  <div className="mb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      <Kpi
+                        title="GASTO TOTAL"
+                        value={fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0))}
+                        sub={<span className="text-xs text-neutral-500">{ads.length} anuncios</span>}
+                        tone="blue"
+                      />
+                      <Kpi
+                        title="CONVERSIONES"
+                        value={fmtNum(ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0))}
+                        sub={<span className="text-xs text-neutral-500">Total conversiones</span>}
+                        tone="violet"
+                      />
+                      <Kpi
+                        title="VENTAS"
+                        value={fmtNum(ads.reduce((sum: number, a: any) => sum + (a.sales || 0), 0))}
+                        sub={<span className="text-xs text-neutral-500">Total ventas</span>}
+                        tone="gold"
+                      />
+                      <Kpi
+                        title="ROAS"
+                        value={`${((ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) || 1)) || 0).toFixed(2)}x`}
+                        sub={<span className="text-xs text-neutral-500">{fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0))} ingresos</span>}
+                        tone="amber"
+                      />
+                      <Kpi
+                        title="CVR"
+                        value={`${(((ads.reduce((sum: number, a: any) => sum + (a.clicks || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.impressions || 0), 0) || 1)) || 0) * 100).toFixed(2)}%`}
+                        sub={<span className="text-xs text-neutral-500">{fmtNum(ads.reduce((sum: number, a: any) => sum + (a.impressions || 0), 0))} impresiones</span>}
+                        tone="gold"
+                      />
+                    </div>
                   </div>
                 )}
-              </div>
+
+                <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+                  <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                    <h3 className="font-semibold text-sm">
+                      {selectedAdsetId ? (
+                        <>
+                          Anuncios del conjunto: {adsets.find((a: any) => a.id === selectedAdsetId)?.name || selectedAdsetId}
+                          <span className="text-xs text-neutral-500 ml-2">
+                            (Campaña: {rows.find(r => r.id === selectedCampaignId)?.name})
+                          </span>
+                        </>
+                      ) : (
+                        <>Anuncios de la campaña: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}</>
+                      )}
+                    </h3>
+                  </div>
+                  {ads.length === 0 ? (
+                    <div className="p-8 text-center text-neutral-500">
+                      {selectedAdsetId
+                        ? "No hay anuncios disponibles para este conjunto de anuncios"
+                        : "No hay anuncios disponibles para esta campaña"
+                      }
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-neutral-50 border-b border-neutral-200">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Clics</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-200">
+                          {ads.map((ad: any) => (
+                            <tr key={ad.id} className="hover:bg-neutral-50">
+                              <td className="px-4 py-3 text-sm">{ad.name}</td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                  ad.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
+                                }`}>
+                                  {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(ad.spend)}</td>
+                              <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.impressions)}</td>
+                              <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.clicks)}</td>
+                              <td className="px-4 py-3 text-right text-sm">{((ad.ctr || 0) * 100).toFixed(2)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </>
         )}
