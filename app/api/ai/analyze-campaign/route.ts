@@ -25,29 +25,47 @@ ${campaign.cpa && campaign.cpa > 50000 ? '⚠️ ALERTA CRÍTICA: El CPA está s
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Como experta con 15 años de experiencia en Meta Ads, proporciona un análisis estructurado:
+Como experta con 15 años de experiencia en Meta Ads, proporciona un análisis DETALLADO y estructurado. IMPORTANTE: Cada sección debe tener MÍNIMO 2 párrafos de 6 oraciones cada uno. Sé específica, usa ejemplos concretos y explica el razonamiento detrás de cada recomendación.
 
 ## 1. 🎯 DIAGNÓSTICO PRINCIPAL
-¿Cuál es el problema más crítico que está afectando el rendimiento?
+Proporciona un análisis profundo del problema más crítico. Explica cómo identificaste el problema, qué métricas lo evidencian, y cuál es su impacto real en el negocio. Mínimo 2 párrafos de 6 oraciones cada uno.
 
 ## 2. 🔍 CAUSAS PROBABLES
-Identifica 3-4 causas raíz del bajo rendimiento basándote en las métricas.
+Identifica y EXPLICA EN DETALLE 3-4 causas raíz del bajo rendimiento. Para cada causa, describe por qué está afectando la campaña, cómo se manifiesta en las métricas, y qué evidencias lo sustentan. Desarrolla cada causa con profundidad, usando mínimo 6 oraciones por causa.
 
 ## 3. ⚡ ACCIONES INMEDIATAS (Implementar HOY)
-Lista 5 acciones específicas y priorizadas que se deben ejecutar inmediatamente:
+Lista 5 acciones específicas y priorizadas. Para CADA acción, proporciona:
+- Descripción detallada de qué hacer exactamente
+- Por qué es importante implementarla HOY
+- Cómo ejecutarla paso a paso
+- Qué impacto esperado tendrá
+- Cómo medir si está funcionando
+Mínimo 6 oraciones por acción.
 
 ## 4. 📈 OPTIMIZACIONES DE MEDIANO PLAZO (2-4 semanas)
-Estrategias sostenibles para mejorar el rendimiento:
+Describe estrategias sostenibles con gran nivel de detalle. Explica la teoría detrás de cada estrategia, cómo implementarla gradualmente, qué recursos se necesitan, y cómo hacer seguimiento del progreso. Mínimo 2 párrafos de 6 oraciones cada uno por estrategia.
 
 ## 5. 📊 MÉTRICAS A VIGILAR DIARIAMENTE
-¿Qué KPIs específicos debo monitorear cada día?
+Para cada KPI que menciones, explica:
+- Por qué es crítico monitorearlo
+- Qué valores son aceptables vs alarmantes
+- Cómo interpretar sus cambios
+- Qué acciones tomar según su comportamiento
+Desarrolla con mínimo 2 párrafos de 6 oraciones.
 
 ## 6. 💡 RECOMENDACIÓN CLAVE
-Un consejo final basado en tu experiencia que podría marcar la diferencia.
+Proporciona un consejo final extenso y profundo basado en tu experiencia. Explica casos de éxito similares, errores comunes a evitar, y cómo esta recomendación puede transformar los resultados. Mínimo 2 párrafos de 6 oraciones cada uno.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Sé específico, práctico y directo. Usa emojis para mejorar la legibilidad. Máximo 3500 tokens.`
+RECORDATORIO CRÍTICO: 
+- Cada sección DEBE tener contenido EXTENSO y DETALLADO
+- MÍNIMO 2 párrafos de 6 oraciones en cada punto principal
+- Usa ejemplos específicos y casos prácticos
+- Explica el PORQUÉ detrás de cada recomendación
+- Sé conversacional pero profesional
+- Usa emojis para mejorar la legibilidad
+- Máximo 4000 tokens (usa todo el espacio disponible para dar valor)`
 
     console.log('Llamando a Grok API...')
 

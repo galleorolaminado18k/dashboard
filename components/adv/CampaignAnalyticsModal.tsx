@@ -355,17 +355,30 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-xl blur-lg opacity-50" />
                   <div className="relative p-2.5 bg-gradient-to-br from-[#C1A36A] to-[#8B7355] rounded-xl">
-                    <Sparkles className="w-5 h-5 text-white" />
+                    {/* Logo de Grok IA */}
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" opacity="0.8"/>
+                      <path d="M2 17L12 22L22 17V12L12 17L2 12V17Z" fill="currentColor"/>
+                      <path d="M12 12V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    Análisis Inteligente con IA
-                    <span className="text-[10px] font-normal px-2 py-0.5 bg-[#C1A36A]/20 text-[#C1A36A] rounded-full border border-[#C1A36A]/30">
-                      Grok-Beta
-                    </span>
-                  </h3>
-                  <p className="text-xs text-neutral-400 mt-1">Experta en Marketing Digital · IQ 145</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-xl font-bold text-white">
+                      Análisis Inteligente con IA
+                    </h3>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#C1A36A]/20 rounded-full border border-[#C1A36A]/30">
+                      <svg className="w-3 h-3 text-[#C1A36A]" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" opacity="0.8"/>
+                        <path d="M2 17L12 22L22 17V12L12 17L2 12V17Z"/>
+                      </svg>
+                      <span className="text-[10px] font-semibold text-[#C1A36A]">
+                        Grok IA
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-neutral-400">Experta en Marketing Digital · IQ 145 · Análisis Detallado</p>
                 </div>
               </div>
 
