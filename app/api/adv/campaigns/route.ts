@@ -6,36 +6,47 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q")?.toLowerCase() ?? ""
   const state = url.searchParams.get("state") ?? "Todas"
 
-  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
-  if (useReal) {
-    try {
-      const campaigns = await advServer.getRealCampaigns()
-      // Apply client filters to keep response shape stable
-      const filtered = campaigns.filter((c: any) => {
-        const stateMatch = state === "Todas" ? true : state === "Activas" ? c.status === "active" : c.status === "paused"
-        const qMatch = q ? c.name.toLowerCase().includes(q) || c.id.includes(q) : true
-        return stateMatch && qMatch
-      })
-      const rows = filtered.map((c: any, i: number) => ({
+  // SIEMPRE usar datos reales de Meta Ads
+  try {
+    console.log('📡 [API CAMPAIGNS] Obteniendo datos REALES de Meta Ads...')
+    const campaigns = await advServer.getRealCampaigns()
+    console.log(`✅ [API CAMPAIGNS] ${campaigns.length} campañas obtenidas de Meta Ads`)
+
+    // Apply client filters to keep response shape stable
+    const filtered = campaigns.filter((c: any) => {
+      const stateMatch = state === "Todas" ? true : state === "Activas" ? c.status === "active" : c.status === "paused"
+      const qMatch = q ? c.name.toLowerCase().includes(q) || c.id.includes(q) : true
+      return stateMatch && qMatch
+    })
+
+    const rows = filtered.map((c: any, i: number) => {
+      const spend = c.spend_total ?? 0
+      console.log(`  💰 ${c.name}: $${spend.toLocaleString('es-CO')}`)
+      return {
         id: c.id,
         name: c.name,
         status: c.status === undefined ? "active" : c.status,
         delivery: c.status === "active" ? "Activa" : "Pausada",
         receive: "—",
         budget: c.daily_budget ?? 0,
-        spend: c.spend_total ?? 0,
+        spend: spend,
         conversions: 0,
         cpa: 0,
         sales: 0,
         revenue: 0,
         roas: 0,
         ctr: 0,
-      }))
-      return NextResponse.json({ campaigns: filtered, rows })
-    } catch (err: any) {
-      // Fall back to mocks when provider fails
-      console.error("adv: failed to fetch real campaigns:", err)
-    }
+      }
+    })
+
+    console.log(`💸 [API CAMPAIGNS] Total gasto: $${rows.reduce((sum, r) => sum + r.spend, 0).toLocaleString('es-CO')}`)
+    return NextResponse.json({ campaigns: filtered, rows })
+  } catch (err: any) {
+    // Si falla, loguear el error detallado
+    console.error("❌ [API CAMPAIGNS] Error al obtener datos reales de Meta Ads:", err)
+    console.error("Stack:", err.stack)
+    // Retornar error para que el cliente sepa que falló
+    return NextResponse.json({ error: err.message, campaigns: [], rows: [] }, { status: 500 })
   }
 
   // Mock fallback (unchanged)

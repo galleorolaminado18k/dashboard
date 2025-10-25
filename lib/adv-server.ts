@@ -148,8 +148,7 @@ export async function getRealCampaigns(): Promise<Campaign[]> {
 
 /** Ad sets reales de una campaña con insights (gasto, impresiones, CTR) */
 export async function getRealAdsets(campaignId: string) {
-  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
-  if (!useReal) throw new Error("USE_REAL_ADS disabled")
+  // Forzar uso de datos reales - validación eliminada
 
   // Verificar caché primero
   const cacheKey = `adsets_${campaignId}`
@@ -289,8 +288,7 @@ export async function getRealAdsets(campaignId: string) {
 
 /** Insights resumidos de una campaña (gasto, ctr, roas aprox si envías revenue) */
 export async function getRealInsights(campaignId: string) {
-  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
-  if (!useReal) throw new Error("USE_REAL_ADS disabled")
+  // Forzar uso de datos reales - validación eliminada
   const res = await http(`${campaignId}/insights`, {
     fields: "spend,ctr,actions",
     date_preset: "last_30d",
@@ -310,8 +308,7 @@ export async function getRealInsights(campaignId: string) {
 
 /** Anuncios reales de una campaña o adset con insights (gasto, impresiones, CTR, clicks) */
 export async function getRealAds(entityId: string) {
-  const useReal = process.env.USE_REAL_ADS === "true" || process.env.NEXT_PUBLIC_USE_REAL_ADS === "true"
-  if (!useReal) throw new Error("USE_REAL_ADS disabled")
+  // Forzar uso de datos reales - validación eliminada
 
   // Verificar caché primero
   const cacheKey = `ads_${entityId}`
