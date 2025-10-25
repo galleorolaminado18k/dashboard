@@ -4,6 +4,7 @@ import * as React from "react"
 import useSWR from "swr"
 import { fetcher } from "@/lib/adv-fetch"
 import { GoldRing, Kpi, LiveBadge } from "@/components/adv/ui"
+import { fmtMoney, fmtNum } from '@/lib/format'
 import { Toolbar } from "@/components/adv/Toolbar"
 import { AdsTable } from "@/components/adv/Table"
 
@@ -13,16 +14,18 @@ type Campaign = {
   status: "active" | "paused"
 }
 
-export default function Advertising({ initialKpis, initialCampRes }: { initialKpis?: any; initialCampRes?: any }) {
+export default function Advertising({ initialKpis, initialCampRes, initialMonthly, hideHeaderKPIs, forcedSpend }: { initialKpis?: any; initialCampRes?: any; initialMonthly?: any; hideHeaderKPIs?: boolean; forcedSpend?: number }) {
   const [range, setRange] = React.useState("Últimos 30 días")
   const [tab, setTab] = React.useState<"camps" | "sets" | "ads">("camps")
   const [q, setQ] = React.useState("")
   const [selectedFilter, setSelectedFilter] = React.useState("Todas")
   const [selectedCampaigns, setSelectedCampaigns] = React.useState<string[]>([])
+  const [selectedAdsets, setSelectedAdsets] = React.useState<string[]>([])
 
   const { data: kpiRes } = useSWR(`/api/adv/summary?range=${encodeURIComponent(range)}`, fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 30000, // 30 segundos para evitar límite de API
     fallbackData: initialKpis ? { data: initialKpis } : undefined,
+    dedupingInterval: 30000,
   })
   const kpis = kpiRes?.data || initialKpis || {
     spend: 0,
@@ -33,10 +36,18 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
     deltaSpend: "+0%",
   }
 
+  // Use the server-provided monthly spend as the single source of truth.
+  // If the server passed a forced numeric spend, prefer it (avoids client overwrite).
+  // Do not re-fetch on the client to avoid flicker; the Server Component already fetched the value.
+  const monthly = typeof forcedSpend === 'number' && Number.isFinite(forcedSpend)
+    ? { thisMonth: forcedSpend, lastMonth: initialMonthly?.lastMonth ?? 0 }
+    : (initialMonthly ?? { thisMonth: 0, lastMonth: 0 })
+
   const campQuery = `/api/adv/campaigns?q=${encodeURIComponent(q)}&range=${encodeURIComponent(range)}&state=${encodeURIComponent(selectedFilter)}`
   const { data: campRes } = useSWR(campQuery, fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 30000, // 30 segundos para evitar límite de API
     fallbackData: initialCampRes ? initialCampRes : undefined,
+    dedupingInterval: 30000,
   })
   const campaigns: Campaign[] = campRes?.campaigns || (initialCampRes?.campaigns ?? [])
 
@@ -62,7 +73,70 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
     setSelectedCampaigns((prev) =>
       prev.includes(campaignId) ? prev.filter((id) => id !== campaignId) : [...prev, campaignId],
     )
+    // Limpiar selección de adsets cuando cambias de campaña
+    setSelectedAdsets([])
   }
+
+  const handleToggleAdsetSelection = (adsetId: string) => {
+    setSelectedAdsets((prev) =>
+      prev.includes(adsetId) ? prev.filter((id) => id !== adsetId) : [...prev, adsetId],
+    )
+  }
+
+  // Obtener la primera campaña seleccionada para mostrar sus adsets/ads
+  const selectedCampaignId = selectedCampaigns.length > 0 ? selectedCampaigns[0] : null
+
+  // SIEMPRE fetch adsets cuando hay una campaña seleccionada (no solo cuando tab === "sets")
+  // Esto asegura que los adsets estén disponibles inmediatamente al seleccionar una campaña
+  const shouldFetchAdsets = !!selectedCampaignId
+  const adsetsQuery = shouldFetchAdsets ? `/api/adv/adsets?campaignId=${selectedCampaignId}` : null
+  const { data: adsetsRes, error: adsetsError } = useSWR(adsetsQuery, fetcher, {
+    refreshInterval: 60000, // 60 segundos en lugar de 5 para evitar límite de API
+    revalidateOnFocus: false, // No revalidar al enfocar para evitar peticiones excesivas
+    revalidateOnReconnect: false, // No revalidar al reconectar
+    dedupingInterval: 60000, // Evitar peticiones duplicadas en 60 segundos
+    shouldRetryOnError: false, // No reintentar automáticamente en errores
+  })
+
+  const adsets = adsetsRes?.rows || []
+
+  // Obtener el primer adset seleccionado
+  const selectedAdsetId = selectedAdsets.length > 0 ? selectedAdsets[0] : null
+
+  // Fetch ads cuando hay un adset seleccionado O cuando hay una campaña seleccionada
+  // Prioridad: si hay adset seleccionado, usar adsetId, sino usar campaignId
+  const shouldFetchAds = tab === "ads" && (selectedAdsetId || selectedCampaignId)
+  const adsQuery = shouldFetchAds
+    ? selectedAdsetId
+      ? `/api/adv/ads?adsetId=${selectedAdsetId}`
+      : `/api/adv/ads?campaignId=${selectedCampaignId}`
+    : null
+  const { data: adsRes, error: adsError } = useSWR(adsQuery, fetcher, {
+    refreshInterval: 60000, // 60 segundos para evitar límite de API
+    dedupingInterval: 60000,
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+  })
+
+  const ads = adsRes?.rows || []
+
+  // Log para depuración
+  React.useEffect(() => {
+    if (selectedCampaignId) {
+      console.log("[PublicidadFixed] Campaña seleccionada:", selectedCampaignId)
+      console.log("[PublicidadFixed] Cargando adsets automáticamente...")
+      console.log("[PublicidadFixed] Adsets data:", adsetsRes)
+      console.log("[PublicidadFixed] Adsets error:", adsetsError)
+      console.log("[PublicidadFixed] Total adsets encontrados:", adsets.length)
+    }
+    if ((selectedAdsetId || selectedCampaignId) && tab === "ads") {
+      console.log("[PublicidadFixed] Fetching ads for:", selectedAdsetId ? `adset ${selectedAdsetId}` : `campaign ${selectedCampaignId}`)
+      console.log("[PublicidadFixed] Ads data:", adsRes)
+      console.log("[PublicidadFixed] Ads rows:", ads)
+      console.log("[PublicidadFixed] Total ads spend:", ads.reduce((sum: number, ad: any) => sum + (ad.spend || 0), 0))
+      console.log("[PublicidadFixed] Ads error:", adsError)
+    }
+  }, [selectedCampaignId, selectedAdsetId, tab, adsetsRes, adsetsError, adsRes, adsError, ads, adsets])
 
   return (
     <div className="galle-ads min-h-screen bg-white">
@@ -113,40 +187,42 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Kpi
-            title="GASTO TOTAL"
-            value={`$${kpis.spend.toLocaleString()}`}
-            sub={<span className="text-emerald-600">{kpis.deltaSpend} vs anterior</span>}
-            tone="blue"
-          />
-          <Kpi
-            title="CONVERSIONES"
-            value={kpis.conv?.toLocaleString?.() ?? 0}
-            sub={`$${(kpis.cpa ?? 0).toLocaleString()} por conv.`}
-            tone="violet"
-          />
-          <Kpi
-            title="VENTAS"
-            value={kpis.sales?.toLocaleString?.() ?? 0}
-            sub={<span className="text-emerald-600">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conversión</span>}
-            tone="gold"
-          />
-          <Kpi
-            title="ROAS"
-            value={`${(kpis.roas ?? 0).toFixed(2)}x`}
-            sub={`$${(kpis.revenue ?? 0).toLocaleString()} ingresos`}
-            tone="amber"
-          />
-          <Kpi
-            title="CTR PROMEDIO"
-            value={`${((kpis.ctr ?? 0) * 100).toFixed(2)}%`}
-            sub={`${(kpis.impr ?? 0).toLocaleString()} impresiones`}
-            tone="gold"
-          />
+      {!hideHeaderKPIs && (
+        <div className="mx-auto max-w-7xl px-6 py-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <Kpi
+              title="GASTO TOTAL"
+              value={fmtMoney(monthly.thisMonth)}
+              sub={<span className="text-emerald-600 text-xs">{monthly.lastMonth ? `${fmtMoney(monthly.lastMonth)} mes ant.` : 'vs anterior'}</span>}
+              tone="blue"
+            />
+            <Kpi
+              title="CONVERSIONES"
+              value={fmtNum(kpis.conv)}
+              sub={<span className="text-xs">{fmtMoney(kpis.cpa)} por conv.</span>}
+              tone="violet"
+            />
+            <Kpi
+              title="VENTAS"
+              value={fmtNum(kpis.sales)}
+              sub={<span className="text-emerald-600 text-xs">{((kpis.convRate ?? 0) * 100).toFixed(2)}% tasa conv.</span>}
+              tone="gold"
+            />
+            <Kpi
+              title="ROAS"
+              value={`${(kpis.roas ?? 0).toFixed(2)}x`}
+              sub={<span className="text-xs">{fmtMoney(kpis.revenue)} ingresos</span>}
+              tone="amber"
+            />
+            <Kpi
+              title="CVR"
+              value={`${((kpis.cvr ?? 0) * 100).toFixed(2)}%`}
+              sub={<span className="text-xs">{fmtNum(kpis.impr)} impresiones</span>}
+              tone="gold"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-wrap items-center gap-2">
@@ -184,14 +260,196 @@ export default function Advertising({ initialKpis, initialCampRes }: { initialKp
           <AdsTable rows={rows} selectedCampaigns={selectedCampaigns} onToggleSelection={handleToggleSelection} />
         )}
         {tab === "sets" && (
-          <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-neutral-500">
-            Vista "Conjuntos de anuncios" (conéctala a /api/adv/adsets …)
-          </div>
+          <>
+            {!selectedCampaignId ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500 mb-2">Selecciona una campaña para ver sus conjuntos de anuncios</p>
+                <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña en la pestaña "Campañas"</p>
+              </div>
+            ) : adsetsError ? (
+              <div className="rounded-2xl border border-red-200 p-8 bg-red-50 text-center">
+                <p className="text-red-600 mb-2">Error al cargar conjuntos de anuncios</p>
+                <p className="text-sm text-red-500">{adsetsError?.message || String(adsetsError)}</p>
+                <pre className="mt-4 text-xs text-left bg-white p-4 rounded overflow-auto max-h-40">
+                  {JSON.stringify(adsetsError, null, 2)}
+                </pre>
+              </div>
+            ) : !adsetsRes ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D8BD80]"></div>
+                  <p className="text-neutral-500 font-medium">Cargando conjuntos de anuncios...</p>
+                  <p className="text-sm text-neutral-400">
+                    Campaña: {rows.find(r => r.id === selectedCampaignId)?.name}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                  <h3 className="font-semibold text-sm">
+                    Conjuntos de anuncios de: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}
+                  </h3>
+                </div>
+                {adsets.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <div className="max-w-md mx-auto">
+                      <div className="mb-4">
+                        <svg className="w-16 h-16 mx-auto text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-neutral-700 mb-2">
+                        Sin Conjuntos de Anuncios
+                      </h3>
+                      <p className="text-neutral-600 mb-3">
+                        Esta campaña no tiene conjuntos de anuncios configurados.
+                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-blue-800">
+                          <strong>💡 Nota:</strong> Los anuncios de esta campaña están directamente asociados a la campaña, sin necesidad de conjuntos de anuncios intermedios. Esto es una configuración válida en Meta Ads.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setTab("ads")}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#D8BD80] text-white rounded-xl font-medium hover:bg-[#c9ae71] transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                        Ver Anuncios de esta Campaña
+                      </button>
+                      <p className="text-xs text-neutral-500 mt-3">
+                        Haz clic para ir directamente a la pestaña "Anuncios"
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-neutral-50 border-b border-neutral-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase w-12"></th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Presupuesto</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-200">
+                        {adsets.map((adset: any) => (
+                          <tr key={adset.id} className="hover:bg-neutral-50">
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedAdsets.includes(adset.id)}
+                                onChange={() => handleToggleAdsetSelection(adset.id)}
+                                className="w-4 h-4 rounded border-neutral-300 text-[#D8BD80] focus:ring-[#D8BD80]"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm">{adset.name}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                adset.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
+                              }`}>
+                                {adset.delivery || (adset.status === 'active' ? 'Activa' : 'Pausada')}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtMoney(adset.budget)}</td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(adset.spend)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtNum(adset.impressions)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{((adset.ctr || 0) * 100).toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
         {tab === "ads" && (
-          <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-neutral-500">
-            Vista "Anuncios" (conéctala a /api/adv/ads …)
-          </div>
+          <>
+            {!selectedCampaignId && !selectedAdsetId ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500 mb-2">Selecciona una campaña o conjunto de anuncios para ver sus anuncios</p>
+                <p className="text-sm text-neutral-400">Haz clic en el checkbox de una campaña o en el checkbox de un conjunto de anuncios</p>
+              </div>
+            ) : adsError ? (
+              <div className="rounded-2xl border border-red-200 p-8 bg-red-50 text-center">
+                <p className="text-red-600 mb-2">Error al cargar anuncios</p>
+                <p className="text-sm text-red-500">{adsError?.message || String(adsError)}</p>
+                <pre className="mt-4 text-xs text-left bg-white p-4 rounded overflow-auto max-h-40">
+                  {JSON.stringify(adsError, null, 2)}
+                </pre>
+              </div>
+            ) : !adsRes ? (
+              <div className="rounded-2xl border border-neutral-200 p-8 bg-white text-center">
+                <p className="text-neutral-500">Cargando anuncios...</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+                <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+                  <h3 className="font-semibold text-sm">
+                    {selectedAdsetId ? (
+                      <>
+                        Anuncios del conjunto: {adsets.find((a: any) => a.id === selectedAdsetId)?.name || selectedAdsetId}
+                        <span className="text-xs text-neutral-500 ml-2">
+                          (Campaña: {rows.find(r => r.id === selectedCampaignId)?.name})
+                        </span>
+                      </>
+                    ) : (
+                      <>Anuncios de la campaña: {rows.find(r => r.id === selectedCampaignId)?.name || selectedCampaignId}</>
+                    )}
+                  </h3>
+                </div>
+                {ads.length === 0 ? (
+                  <div className="p-8 text-center text-neutral-500">
+                    {selectedAdsetId
+                      ? "No hay anuncios disponibles para este conjunto de anuncios"
+                      : "No hay anuncios disponibles para esta campaña"
+                    }
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-neutral-50 border-b border-neutral-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Clics</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-200">
+                        {ads.map((ad: any) => (
+                          <tr key={ad.id} className="hover:bg-neutral-50">
+                            <td className="px-4 py-3 text-sm">{ad.name}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                                ad.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
+                              }`}>
+                                {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(ad.spend)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.impressions)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.clicks)}</td>
+                            <td className="px-4 py-3 text-right text-sm">{((ad.ctr || 0) * 100).toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

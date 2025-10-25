@@ -1,6 +1,7 @@
 "use client"
 import { useMemo } from "react"
 import type { CampaignRow } from "@/lib/types"
+import { fmtMoney, fmtNum } from '@/lib/format'
 
 export default function AdsTable({
   data,
@@ -106,14 +107,14 @@ export default function AdsTable({
               </td>
 
               <td className="px-4 py-3 text-center">{row.c.deliveryLabel}</td>
-              <td className="px-4 py-3 text-center">${row.presupuesto.toLocaleString()}</td>
-              <td className="px-4 py-3 text-center">${row.gastado.toLocaleString()}</td>
-              <td className="px-4 py-3 text-center">{row.conv}</td>
-              <td className="px-4 py-3 text-center">${row.costoPorConv.toFixed(2)}</td>
-              <td className="px-4 py-3 text-center">{row.ventas}</td>
-              <td className="px-4 py-3 text-center">${row.ingresos.toLocaleString()}</td>
-              <td className="px-4 py-3 text-center">{row.roas.toFixed(2)}x</td>
-              <td className="px-4 py-3 text-center">{(row.cvr * 100).toFixed(2)}%</td>
+              <td className="px-4 py-3 text-center">{fmtMoney(row.presupuesto)}</td>
+              <td className="px-4 py-3 text-center">{fmtMoney(row.gastado)}</td>
+              <td className="px-4 py-3 text-center">{fmtNum(row.conv)}</td>
+              <td className="px-4 py-3 text-center">${(row.costoPorConv ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-center">{fmtNum(row.ventas)}</td>
+              <td className="px-4 py-3 text-center">{fmtMoney(row.ingresos)}</td>
+              <td className="px-4 py-3 text-center">{((row.roas ?? 0).toFixed(2))}x</td>
+              <td className="px-4 py-3 text-center">{(((row.cvr ?? 0) * 100).toFixed(2))}%</td>
 
               <td className="px-4 py-3 text-center">
                 <button

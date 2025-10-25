@@ -1,6 +1,7 @@
 "use client"
 import { Pill } from "./ui"
 import { Info } from "lucide-react"
+import { fmtMoney, fmtNum } from '@/lib/format'
 
 export function AdsTable({
   rows,
@@ -193,12 +194,12 @@ export function AdsTable({
               <td className="px-5 py-3">
                 <Pill color={r.delivery === "Activa" ? "green" : "amber"}>{r.delivery}</Pill>
               </td>
-              <td className="px-5 py-3 text-right tabular-nums">{r.budget ? `$${r.budget.toLocaleString()}` : "$0"}</td>
-              <td className="px-5 py-3 text-right tabular-nums">${r.spend.toLocaleString()}</td>
-              <td className="px-5 py-3 text-right tabular-nums">{r.conv.toLocaleString()}</td>
-              <td className="px-5 py-3 text-right tabular-nums">{r.cpa ? `$${r.cpa.toLocaleString()}` : "—"}</td>
-              <td className="px-5 py-3 text-right tabular-nums">{r.sales.toLocaleString()}</td>
-              <td className="px-5 py-3 text-right tabular-nums">${r.revenue.toLocaleString()}</td>
+              <td className="px-5 py-3 text-right tabular-nums">{r.budget ? fmtMoney(r.budget) : "$0"}</td>
+              <td className="px-5 py-3 text-right tabular-nums">{fmtMoney(r.spend)}</td>
+              <td className="px-5 py-3 text-right tabular-nums">{fmtNum(r.conv)}</td>
+              <td className="px-5 py-3 text-right tabular-nums">{r.cpa ? fmtMoney(r.cpa) : "—"}</td>
+              <td className="px-5 py-3 text-right tabular-nums">{fmtNum(r.sales)}</td>
+              <td className="px-5 py-3 text-right tabular-nums">{fmtMoney(r.revenue)}</td>
               <td className={`px-5 py-3 text-right tabular-nums ${r.roas >= 1 ? "text-emerald-600" : "text-rose-600"}`}>
                 {r.roas.toFixed(2)}x
               </td>
