@@ -56,13 +56,26 @@ export function CampaignAnalyticsModal({ campaign, onClose }: CampaignAnalyticsM
 
   // Determinar si el CPA es alto (lógica mejorada)
   const isHighCPA = () => {
-    if (!campaign.cpa) return false
+    // Si no hay conversiones, es problemático (PRIORIDAD 1)
+    if (campaign.conv === 0) {
+      console.log('⚠️ Campaña sin conversiones detectada')
+      return true
+    }
 
-    // Si no hay conversiones, es problemático
-    if (campaign.conv === 0) return true
+    // Si el CVR es muy bajo (menor a 0.8%)
+    if (campaign.cvr < 0.008) {
+      console.log('⚠️ CVR muy bajo detectado:', campaign.cvr)
+      return true
+    }
 
-    // CPA alto si es mayor a $50,000 o si el CVR es menor a 0.8%
-    return campaign.cpa > 50000 || campaign.cvr < 0.008
+    // Si hay CPA y es alto (mayor a $50,000)
+    if (campaign.cpa && campaign.cpa > 50000) {
+      console.log('⚠️ CPA alto detectado:', campaign.cpa)
+      return true
+    }
+
+    console.log('✅ Campaña con métricas aceptables')
+    return false
   }
 
   useEffect(() => {
