@@ -230,12 +230,19 @@ export async function getRealAdsets(campaignId: string) {
     const result = adsets.map((a: any, idx: number) => {
       const insight = insightsByAdsetId.get(String(a.id)) || {}
 
+      // Debug: Mostrar valores originales de presupuesto de Meta
+      console.log(`[getRealAdsets] DEBUG Adset "${a.name}":`)
+      console.log(`  - daily_budget (raw): ${a.daily_budget}`)
+      console.log(`  - lifetime_budget (raw): ${a.lifetime_budget}`)
+
       // Calcular presupuesto (priorizar daily_budget, sino lifetime_budget)
       const budget = a.daily_budget
         ? Number(a.daily_budget) / 100 // Meta devuelve en centavos
         : a.lifetime_budget
           ? Number(a.lifetime_budget) / 100
           : 0
+
+      console.log(`  - budget calculado: $${budget}`)
 
       const adsetData = {
         id: String(a.id),
@@ -251,7 +258,7 @@ export async function getRealAdsets(campaignId: string) {
         updated_time: a.updated_time || null,
       }
 
-      console.log(`  ${idx + 1}. "${adsetData.name}" → Estado: ${adsetData.status}, Gastado: $${adsetData.spend}, Impresiones: ${adsetData.impressions}`)
+      console.log(`  ${idx + 1}. "${adsetData.name}" → Estado: ${adsetData.status}, Presup: $${adsetData.budget}, Gastado: $${adsetData.spend}, Impresiones: ${adsetData.impressions}`)
 
       return adsetData
     })
