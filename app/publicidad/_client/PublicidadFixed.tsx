@@ -7,7 +7,6 @@ import { GoldRing, Kpi, LiveBadge } from "@/components/adv/ui"
 import { fmtMoney, fmtNum } from '@/lib/format'
 import { Toolbar } from "@/components/adv/Toolbar"
 import { AdsTable } from "@/components/adv/Table"
-import StatsBar from "@/components/adv/StatsBar"
 
 type Campaign = {
   id: string
@@ -301,56 +300,6 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
               </div>
             ) : (
               <>
-                {/* StatsBar para Conjuntos de Anuncios */}
-                {adsets.length > 0 && (
-                  <StatsBar
-                    title={`Conjuntos de anuncios: ${adsets.find((a: any) => a.id === selectedAdsetId)?.name || 'Todos'} (Campaña: ${rows.find(r => r.id === selectedCampaignId)?.name})`}
-                    items={[
-                      {
-                        label: "Entrega",
-                        value: adsets.filter((a: any) => a.status === 'active').length > 0 ? "Activa" : "Pausada",
-                        sub: `${adsets.filter((a: any) => a.status === 'active').length} de ${adsets.length} activos`
-                      },
-                      {
-                        label: "Presupuesto",
-                        value: fmtMoney(adsets.reduce((sum: number, a: any) => sum + (a.budget || 0), 0)),
-                        sub: `${adsets.length} conjuntos`
-                      },
-                      {
-                        label: "Gastado",
-                        value: fmtMoney(adsets.reduce((sum: number, a: any) => sum + (a.spend || 0), 0)),
-                        sub: "Total gastado"
-                      },
-                      {
-                        label: "Conversiones",
-                        value: fmtNum(adsets.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0)),
-                        sub: fmtMoney((adsets.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) / (adsets.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) + " / Conv."
-                      },
-                      {
-                        label: "Ventas",
-                        value: fmtNum(adsets.reduce((sum: number, a: any) => sum + (a.sales || 0), 0)),
-                        sub: "Total ventas"
-                      },
-                      {
-                        label: "Ingresos",
-                        value: fmtMoney(adsets.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0)),
-                        sub: "Total ingresos"
-                      },
-                      {
-                        label: "ROAS",
-                        value: `${((adsets.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0) / (adsets.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) || 1)) || 0).toFixed(2)}x`,
-                        sub: "Retorno inversión"
-                      },
-                      {
-                        label: "CVR",
-                        value: `${(((adsets.reduce((sum: number, a: any) => sum + (a.sales || 0), 0) / (adsets.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) * 100).toFixed(2)}%`,
-                        sub: "Ventas / Conv."
-                      }
-                    ]}
-                    showChartButton={true}
-                    onChartClick={() => alert("Función de gráficos para conjuntos de anuncios")}
-                  />
-                )}
 
                 <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
                   <div className="p-4 border-b border-neutral-200 bg-neutral-50">
@@ -504,59 +453,6 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
               </div>
             ) : (
               <>
-                {/* StatsBar para Anuncios */}
-                {ads.length > 0 && (
-                  <StatsBar
-                    title={selectedAdsetId
-                      ? `Anuncios del conjunto: ${adsets.find((a: any) => a.id === selectedAdsetId)?.name} (Campaña: ${rows.find(r => r.id === selectedCampaignId)?.name})`
-                      : `Anuncios de la campaña: ${rows.find(r => r.id === selectedCampaignId)?.name}`
-                    }
-                    items={[
-                      {
-                        label: "Entrega",
-                        value: ads.filter((a: any) => a.status === 'active').length > 0 ? "Activa" : "Pausada",
-                        sub: `${ads.filter((a: any) => a.status === 'active').length} de ${ads.length} activos`
-                      },
-                      {
-                        label: "Presupuesto",
-                        value: fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0)),
-                        sub: `${ads.length} anuncios`
-                      },
-                      {
-                        label: "Gastado",
-                        value: fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0)),
-                        sub: "Total gastado"
-                      },
-                      {
-                        label: "Conversiones",
-                        value: fmtNum(ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0)),
-                        sub: fmtMoney((ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) + " / Conv."
-                      },
-                      {
-                        label: "Ventas",
-                        value: fmtNum(ads.reduce((sum: number, a: any) => sum + (a.sales || 0), 0)),
-                        sub: "Total ventas"
-                      },
-                      {
-                        label: "Ingresos",
-                        value: fmtMoney(ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0)),
-                        sub: "Total ingresos"
-                      },
-                      {
-                        label: "ROAS",
-                        value: `${((ads.reduce((sum: number, a: any) => sum + (a.revenue || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.spend || 0), 0) || 1)) || 0).toFixed(2)}x`,
-                        sub: "Retorno inversión"
-                      },
-                      {
-                        label: "CVR",
-                        value: `${(((ads.reduce((sum: number, a: any) => sum + (a.sales || 0), 0) / (ads.reduce((sum: number, a: any) => sum + (a.conversions || 0), 0) || 1)) || 0) * 100).toFixed(2)}%`,
-                        sub: "Ventas / Conv."
-                      }
-                    ]}
-                    showChartButton={true}
-                    onChartClick={() => alert("Función de gráficos para anuncios")}
-                  />
-                )}
 
                 <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
                   <div className="p-4 border-b border-neutral-200 bg-neutral-50">
