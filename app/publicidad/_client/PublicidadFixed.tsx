@@ -393,43 +393,87 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-neutral-50 border-b border-neutral-200">
+                    <table className="w-full text-xs">
+                      <thead className="bg-neutral-50/50 border-b border-neutral-200">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase w-12"></th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Presupuesto</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                          <th className="text-left px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Estado</span>
+                          </th>
+                          <th className="text-left px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Nombre</span>
+                          </th>
+                          <th className="text-left px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Entrega</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Presup.</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Gastado</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Conv.</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">$ / Conv.</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Ventas</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">Ingresos</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">ROAS</span>
+                          </th>
+                          <th className="text-right px-2 py-3">
+                            <span className="text-xs font-medium text-neutral-600">CVR</span>
+                          </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-neutral-200">
-                        {adsets.map((adset: any) => (
-                          <tr key={adset.id} className="hover:bg-neutral-50">
-                            <td className="px-4 py-3">
-                              <input
-                                type="checkbox"
-                                checked={selectedAdsets.includes(adset.id)}
-                                onChange={() => handleToggleAdsetSelection(adset.id)}
-                                className="w-4 h-4 rounded border-neutral-300 text-[#D8BD80] focus:ring-[#D8BD80]"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-sm">{adset.name}</td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                adset.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
-                              }`}>
-                                {adset.delivery || (adset.status === 'active' ? 'Activa' : 'Pausada')}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right text-sm">{fmtMoney(adset.budget)}</td>
-                            <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(adset.spend)}</td>
-                            <td className="px-4 py-3 text-right text-sm">{fmtNum(adset.impressions)}</td>
-                            <td className="px-4 py-3 text-right text-sm">{((adset.ctr || 0) * 100).toFixed(2)}%</td>
-                          </tr>
-                        ))}
+                      <tbody className="divide-y divide-neutral-100">
+                        {adsets.map((adset: any) => {
+                          const cpa = (adset.conversions ?? 0) > 0 ? (adset.spend ?? 0) / (adset.conversions ?? 0) : 0
+                          const cvr = (adset.conversions ?? 0) > 0 ? (adset.sales ?? 0) / (adset.conversions ?? 0) : 0
+                          const roas = (adset.spend ?? 0) > 0 ? (adset.revenue ?? 0) / (adset.spend ?? 0) : 0
+                          
+                          return (
+                            <tr key={adset.id} className="hover:bg-neutral-50/50 transition-colors">
+                              <td className="px-2 py-3">
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedAdsets.includes(adset.id)}
+                                    onChange={() => handleToggleAdsetSelection(adset.id)}
+                                    className="w-4 h-4 rounded border-neutral-300 text-[#D8BD80] focus:ring-[#D8BD80] focus:ring-offset-0"
+                                  />
+                                  <span className={`inline-flex h-5 w-9 rounded-full ${adset.status === 'active' ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                                </div>
+                              </td>
+                              <td className="px-2 py-3">
+                                <div className="font-medium text-sm text-neutral-900 leading-tight">{adset.name}</div>
+                                <div className="text-xs text-neutral-500 mt-1">ID: {adset.id}</div>
+                              </td>
+                              <td className="px-2 py-3">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
+                                  adset.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                  {adset.delivery || (adset.status === 'active' ? 'Activa' : 'Pausada')}
+                                </span>
+                              </td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtMoney(adset.budget ?? 0)}</td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm font-medium text-neutral-900">{fmtMoney(adset.spend ?? 0)}</td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(adset.conversions ?? 0)}</td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{cpa > 0 ? fmtMoney(cpa) : '—'}</td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(adset.sales ?? 0)}</td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtMoney(adset.revenue ?? 0)}</td>
+                              <td className={`px-2 py-3 text-right tabular-nums text-sm font-medium ${roas >= 1 ? 'text-teal-600' : 'text-rose-600'}`}>
+                                {roas.toFixed(2)}x
+                              </td>
+                              <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(cvr * 100).toFixed(2)}%</td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -538,34 +582,84 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-neutral-50 border-b border-neutral-200">
+                      <table className="w-full text-xs">
+                        <thead className="bg-neutral-50/50 border-b border-neutral-200">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Nombre</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Estado</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Gastado</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Impresiones</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">Clics</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-neutral-500 uppercase">CTR</th>
+                            <th className="text-left px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Estado</span>
+                            </th>
+                            <th className="text-left px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Nombre</span>
+                            </th>
+                            <th className="text-left px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Entrega</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Gastado</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Conv.</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">$ / Conv.</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Ventas</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Ingresos</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">ROAS</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">CVR</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">Impresiones</span>
+                            </th>
+                            <th className="text-right px-2 py-3">
+                              <span className="text-xs font-medium text-neutral-600">CTR</span>
+                            </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-neutral-200">
-                          {ads.map((ad: any) => (
-                            <tr key={ad.id} className="hover:bg-neutral-50">
-                              <td className="px-4 py-3 text-sm">{ad.name}</td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                                  ad.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-neutral-100 text-neutral-600'
-                                }`}>
-                                  {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right text-sm font-medium">{fmtMoney(ad.spend)}</td>
-                              <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.impressions)}</td>
-                              <td className="px-4 py-3 text-right text-sm">{fmtNum(ad.clicks)}</td>
-                              <td className="px-4 py-3 text-right text-sm">{((ad.ctr || 0) * 100).toFixed(2)}%</td>
-                            </tr>
-                          ))}
+                        <tbody className="divide-y divide-neutral-100">
+                          {ads.map((ad: any) => {
+                            const cpa = (ad.conversions ?? 0) > 0 ? (ad.spend ?? 0) / (ad.conversions ?? 0) : 0
+                            const cvr = (ad.conversions ?? 0) > 0 ? (ad.sales ?? 0) / (ad.conversions ?? 0) : 0
+                            const roas = (ad.spend ?? 0) > 0 ? (ad.revenue ?? 0) / (ad.spend ?? 0) : 0
+                            const ctr = (ad.impressions ?? 0) > 0 ? (ad.clicks ?? 0) / (ad.impressions ?? 0) : 0
+
+                            return (
+                              <tr key={ad.id} className="hover:bg-neutral-50/50 transition-colors">
+                                <td className="px-2 py-3">
+                                  <span className={`inline-flex h-5 w-9 rounded-full ${ad.status === 'active' ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                                </td>
+                                <td className="px-2 py-3">
+                                  <div className="font-medium text-sm text-neutral-900 leading-tight">{ad.name}</div>
+                                  <div className="text-xs text-neutral-500 mt-1">ID: {ad.id}</div>
+                                </td>
+                                <td className="px-2 py-3">
+                                  <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
+                                    ad.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
+                                  </span>
+                                </td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm font-medium text-neutral-900">{fmtMoney(ad.spend ?? 0)}</td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.conversions ?? 0)}</td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{cpa > 0 ? fmtMoney(cpa) : '—'}</td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.sales ?? 0)}</td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtMoney(ad.revenue ?? 0)}</td>
+                                <td className={`px-2 py-3 text-right tabular-nums text-sm font-medium ${roas >= 1 ? 'text-teal-600' : 'text-rose-600'}`}>
+                                  {roas.toFixed(2)}x
+                                </td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(cvr * 100).toFixed(2)}%</td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.impressions ?? 0)}</td>
+                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(ctr * 100).toFixed(2)}%</td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
