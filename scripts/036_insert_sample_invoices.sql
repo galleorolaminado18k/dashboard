@@ -126,7 +126,7 @@ SELECT
   i.client_name,
   i.client_phone,
   i.client_address,
-  SPLIT_PART(i.client_address, ', ', 2) as city, -- Extraer ciudad de la dirección
+  SPLIT_PART(i.client_address, ', ', 2) as city,
   jsonb_build_array(
     jsonb_build_object(
       'name', (SELECT description FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1),
@@ -148,23 +148,46 @@ SELECT
   i.issue_date
 FROM public.invoices i
 WHERE i.invoice_number LIKE 'FAC-2025-0%'
-ON CONFLICT (invoice_number) DO NOTHING;
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sales s WHERE s.invoice_number = i.invoice_number
+  );
 
 -- PASO 6: Verificar que se crearon las facturas, productos y ventas
 SELECT
+  'FACTURA' as tipo,
   i.invoice_number,
   i.client_name,
-  i.client_address,
   i.total,
   i.status,
-  i.guia,
-  i.transportadora,
-  COUNT(ii.id) as num_productos,
-  s.id as sale_id
+  COUNT(ii.id) as num_productos
 FROM public.invoices i
 LEFT JOIN public.invoice_items ii ON i.invoice_number = ii.invoice_id
-LEFT JOIN public.sales s ON i.invoice_number = s.invoice_number
 WHERE i.invoice_number LIKE 'FAC-2025-0%'
-GROUP BY i.invoice_number, i.client_name, i.client_address, i.total, i.status, i.guia, i.transportadora, s.id
+GROUP BY i.invoice_number, i.client_name, i.total, i.status
 ORDER BY i.invoice_number;
+
+-- Verificar productos insertados
+SELECT
+  'PRODUCTOS' as tipo,
+  invoice_id,
+  description,
+  quantity,
+  unit_price,
+  total
+FROM public.invoice_items
+WHERE invoice_id LIKE 'FAC-2025-0%'
+ORDER BY invoice_id;
+
+-- Verificar ventas creadas
+SELECT
+  'VENTA' as tipo,
+  invoice_number,
+  client_name,
+  city,
+  total_amount,
+  status,
+  products
+FROM public.sales
+WHERE invoice_number LIKE 'FAC-2025-0%'
+ORDER BY invoice_number;
 
