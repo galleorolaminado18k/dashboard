@@ -4,6 +4,33 @@
 -- Descripción: Crea 3 facturas de ejemplo para pruebas
 -- =====================================================
 
+-- Primero, verificar qué columnas tiene la tabla
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'invoices'
+  AND table_schema = 'public'
+ORDER BY ordinal_position;
+
+-- Si la tabla no existe, crearla primero
+CREATE TABLE IF NOT EXISTS public.invoices (
+  invoice_number TEXT PRIMARY KEY,
+  client_name TEXT NOT NULL,
+  client_nit TEXT,
+  client_phone TEXT,
+  client_address TEXT,
+  issue_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  due_date TIMESTAMP WITH TIME ZONE,
+  subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  tax_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  total NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending',
+  payment_method TEXT,
+  guia TEXT,
+  transportadora TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Insertar facturas de ejemplo
 INSERT INTO public.invoices (
   invoice_number,
