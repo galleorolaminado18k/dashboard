@@ -1,35 +1,25 @@
+ADD COLUMN IF NOT EXISTS guia TEXT,
+ADD COLUMN IF NOT EXISTS transportadora TEXT;
 -- =====================================================
 -- SCRIPT 036: Insertar facturas de ejemplo
 -- =====================================================
 -- Descripción: Crea 3 facturas de ejemplo para pruebas
+-- Primero agrega las columnas que faltan a la tabla
 -- =====================================================
 
--- Primero, verificar qué columnas tiene la tabla
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_name = 'invoices'
-  AND table_schema = 'public'
-ORDER BY ordinal_position;
-
--- Si la tabla no existe, crearla primero
-CREATE TABLE IF NOT EXISTS public.invoices (
-  invoice_number TEXT PRIMARY KEY,
-  client_name TEXT NOT NULL,
-  client_nit TEXT,
-  client_phone TEXT,
-  client_address TEXT,
-  issue_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  due_date TIMESTAMP WITH TIME ZONE,
-  subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  tax_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  total NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'pending',
-  payment_method TEXT,
-  guia TEXT,
-  transportadora TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+-- Agregar columnas que faltan a la tabla invoices
+ALTER TABLE public.invoices
+ADD COLUMN IF NOT EXISTS client_name TEXT,
+ADD COLUMN IF NOT EXISTS client_nit TEXT,
+ADD COLUMN IF NOT EXISTS client_phone TEXT,
+ADD COLUMN IF NOT EXISTS client_address TEXT,
+ADD COLUMN IF NOT EXISTS issue_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS due_date TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS subtotal NUMERIC(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total NUMERIC(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending',
+ADD COLUMN IF NOT EXISTS payment_method TEXT,
 
 -- Insertar facturas de ejemplo
 INSERT INTO public.invoices (
