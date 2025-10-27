@@ -1,7 +1,7 @@
 -- =====================================================
 -- SCRIPT 036: Insertar facturas de ejemplo
 -- =====================================================
--- Descripción: Crea 5 facturas de ejemplo para pruebas
+-- Descripción: Crea 3 facturas de ejemplo para pruebas
 --              basadas en la interfaz mostrada
 -- =====================================================
 
@@ -77,42 +77,6 @@ INSERT INTO public.invoices (
     'MP-SB048078311',
     'Deprisa',
     '[{"name": "Producto C", "quantity": 20, "price": 160000}]'::jsonb
-  ),
-  (
-    'FAC-2025-004',
-    'Almacenes Unidos S.A',
-    '900555444-9',
-    '3159876543',
-    'Transversal 30 #40-50',
-    'Barranquilla',
-    '2025-10-21',
-    '2025-11-21',
-    4500000,
-    855000,
-    5355000,
-    'Pagado',
-    'Transferencia',
-    'MP-SB048078312',
-    'Servientrega',
-    '[{"name": "Producto D", "quantity": 15, "price": 300000}]'::jsonb
-  ),
-  (
-    'FAC-2025-005',
-    'Tiendas Express Colombia',
-    '890333222-5',
-    '3187654321',
-    'Diagonal 45 #20-15',
-    'Cartagena',
-    '2025-10-24',
-    '2025-11-24',
-    1500000,
-    285000,
-    1785000,
-    'Pendiente Pago',
-    'Efectivo',
-    'MP-SB048078313',
-    'Coordinadora',
-    '[{"name": "Producto E", "quantity": 8, "price": 187500}]'::jsonb
   )
 ON CONFLICT (invoice_number) DO NOTHING;
 
