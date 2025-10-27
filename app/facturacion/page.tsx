@@ -58,6 +58,7 @@ export default function FacturacionPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   const monthNames = getMonthNames()
 
@@ -78,6 +79,29 @@ export default function FacturacionPage() {
     currentMonthCount: statsData?.currentMonthCount ?? 0,
     previousMonthCount: statsData?.previousMonthCount ?? 0,
     twoMonthsAgoCount: statsData?.twoMonthsAgoCount ?? 0,
+  }
+
+  async function sincronizarConMiPaquete() {
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/facturacion/sync-all", {
+        method: "POST",
+      })
+      const result = await res.json()
+      if (result.ok) {
+        alert(
+          `✅ Sincronización completada:\n- ${result.actualizadas} facturas actualizadas\n- ${result.ventasExitosas} ventas exitosas\n- ${result.devoluciones} devoluciones`
+        )
+        await mutateInvoices()
+        await mutateStats()
+      } else {
+        alert(`❌ Error: ${result.error}`)
+      }
+    } catch (error) {
+      console.error(error)
+      alert("❌ Error al sincronizar con MiPaquete")
+    }
+    setSyncing(false)
   }
 
   const formatCurrency = (amount: number) => {
@@ -127,6 +151,14 @@ export default function FacturacionPage() {
               <p className="mt-1 text-sm text-zinc-600">Gestiona y genera facturas para tus clientes</p>
             </div>
             <div className="flex gap-3">
+              <Button
+                onClick={sincronizarConMiPaquete}
+                disabled={syncing}
+                className="bg-[#C8A96A] hover:bg-[#B8996A] text-white font-medium"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "Sincronizando..." : "🔄 Sincronizar MiPaquete"}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => {
