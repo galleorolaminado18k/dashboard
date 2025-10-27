@@ -13,6 +13,27 @@ export default function FacturacionPage() {
   }>("/api/facturacion/list", fetcher)
   const facturas = data?.facturas ?? []
   const [sending, setSending] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+
+  async function sincronizarConMiPaquete() {
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/facturacion/sync-all", {
+        method: "POST",
+      })
+      const result = await res.json()
+      if (result.ok) {
+        alert(`✅ Sincronización completada:\n- ${result.actualizadas} facturas actualizadas\n- ${result.ventasExitosas} ventas exitosas\n- ${result.devoluciones} devoluciones`)
+        await mutate()
+      } else {
+        alert(`❌ Error: ${result.error}`)
+      }
+    } catch (error) {
+      console.error(error)
+      alert("❌ Error al sincronizar con MiPaquete")
+    }
+    setSyncing(false)
+  }
 
   async function crearDemo() {
     setSending(true)
@@ -61,6 +82,13 @@ export default function FacturacionPage() {
           </span>
         </h1>
         <div className="flex gap-2">
+          <button
+            onClick={sincronizarConMiPaquete}
+            disabled={syncing}
+            className="rounded-full h-9 px-4 bg-[#D8BD80] text-white hover:bg-[#c9ae71] transition-colors disabled:opacity-50 font-medium"
+          >
+            {syncing ? "Sincronizando..." : "🔄 Sincronizar MiPaquete"}
+          </button>
           <button
             onClick={() => mutate()}
             className="rounded-full h-9 px-4 border border-[#D8BD80]/30 hover:border-[#D8BD80]/60 transition-colors"
@@ -148,17 +176,19 @@ export default function FacturacionPage() {
                             factura: f.numero,
                             estado: "Pagado",
                             metodo: f.metodo,
+                            guia: f.guia
                           }),
                         })
                         mutate()
                       }}
-                      className="h-8 px-3 rounded-full border border-[#D8BD80]/30 hover:border-[#D8BD80]/60 transition-colors text-xs"
+                      className="h-8 px-3 rounded-full bg-emerald-100 text-emerald-900 hover:bg-emerald-200 transition-colors text-xs font-medium"
                     >
-                      Marcar pagado
+                      ✓ Confirmar Venta
                     </button>
 
                     <button
                       onClick={async () => {
+                        if (!confirm("¿Confirmar devolución de este pedido?")) return
                         await fetch("/api/facturacion/sync", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
@@ -166,13 +196,14 @@ export default function FacturacionPage() {
                             factura: f.numero,
                             estado: "Devuelto",
                             motivo: "Cliente rechazó",
+                            guia: f.guia
                           }),
                         })
                         mutate()
                       }}
-                      className="h-8 px-3 rounded-full border border-[#D8BD80]/30 hover:border-[#D8BD80]/60 transition-colors text-xs"
+                      className="h-8 px-3 rounded-full bg-rose-100 text-rose-900 hover:bg-rose-200 transition-colors text-xs font-medium"
                     >
-                      Devolver
+                      ✗ Devolución
                     </button>
 
                     <a
@@ -181,7 +212,7 @@ export default function FacturacionPage() {
                       className="h-8 px-3 rounded-full border border-[#D8BD80]/30 hover:border-[#D8BD80]/60 transition-colors grid place-items-center text-xs"
                       rel="noreferrer"
                     >
-                      Imprimir POS
+                      🖨️ Imprimir
                     </a>
                   </div>
                 </td>
