@@ -100,17 +100,34 @@ INSERT INTO public.invoices (
 ON CONFLICT (invoice_number) DO NOTHING;
 
 -- PASO 4: Insertar productos (invoice_items) para cada factura
+-- Usando el ID (UUID) de la factura, no el invoice_number
 INSERT INTO public.invoice_items (invoice_id, description, quantity, unit_price, total)
-VALUES
-  -- Productos para FAC-2025-001
-  ('FAC-2025-001', 'Anillo de Oro 18K', 2, 1250000, 2500000),
-
-  -- Productos para FAC-2025-002
-  ('FAC-2025-002', 'Cadena de Plata 925', 3, 600000, 1800000),
-
-  -- Productos para FAC-2025-003
-  ('FAC-2025-003', 'Aretes de Oro con Diamantes', 1, 3200000, 3200000)
-ON CONFLICT DO NOTHING;
+SELECT
+  i.id,
+  'Anillo de Oro 18K',
+  2,
+  1250000,
+  2500000
+FROM public.invoices i
+WHERE i.invoice_number = 'FAC-2025-001'
+UNION ALL
+SELECT
+  i.id,
+  'Cadena de Plata 925',
+  3,
+  600000,
+  1800000
+FROM public.invoices i
+WHERE i.invoice_number = 'FAC-2025-002'
+UNION ALL
+SELECT
+  i.id,
+  'Aretes de Oro con Diamantes',
+  1,
+  3200000,
+  3200000
+FROM public.invoices i
+WHERE i.invoice_number = 'FAC-2025-003';
 
 -- PASO 5: Crear registros en la tabla SALES automáticamente
 INSERT INTO public.sales (
@@ -136,9 +153,9 @@ SELECT
   SPLIT_PART(i.client_address, ', ', 2) as city,
   jsonb_build_array(
     jsonb_build_object(
-      'name', (SELECT description FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1),
-      'quantity', (SELECT quantity FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1),
-      'price', (SELECT unit_price FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1)
+      'name', (SELECT description FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1),
+      'quantity', (SELECT quantity FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1),
+      'price', (SELECT unit_price FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1)
     )
   ) as products,
   i.payment_method,
@@ -168,7 +185,7 @@ SELECT
   i.status,
   COUNT(ii.id) as num_productos
 FROM public.invoices i
-LEFT JOIN public.invoice_items ii ON i.invoice_number = ii.invoice_id
+LEFT JOIN public.invoice_items ii ON i.id = ii.invoice_id
 WHERE i.invoice_number LIKE 'FAC-2025-0%'
 GROUP BY i.invoice_number, i.client_name, i.total, i.status
 ORDER BY i.invoice_number;
@@ -176,14 +193,15 @@ ORDER BY i.invoice_number;
 -- Verificar productos insertados
 SELECT
   'PRODUCTOS' as tipo,
-  invoice_id,
-  description,
-  quantity,
-  unit_price,
-  total
-FROM public.invoice_items
-WHERE invoice_id LIKE 'FAC-2025-0%'
-ORDER BY invoice_id;
+  i.invoice_number,
+  ii.description,
+  ii.quantity,
+  ii.unit_price,
+  ii.total
+FROM public.invoice_items ii
+INNER JOIN public.invoices i ON ii.invoice_id = i.id
+WHERE i.invoice_number LIKE 'FAC-2025-0%'
+ORDER BY i.invoice_number;
 
 -- Verificar ventas creadas
 SELECT
