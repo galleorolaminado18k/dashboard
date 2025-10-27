@@ -511,12 +511,6 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                             <th className="text-right px-2 py-3">
                               <span className="text-xs font-medium text-neutral-600">CVR</span>
                             </th>
-                            <th className="text-right px-2 py-3">
-                              <span className="text-xs font-medium text-neutral-600">Impresiones</span>
-                            </th>
-                            <th className="text-right px-2 py-3">
-                              <span className="text-xs font-medium text-neutral-600">CTR</span>
-                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100">
@@ -551,8 +545,6 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
                                   {roas.toFixed(2)}x
                                 </td>
                                 <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(cvr * 100).toFixed(2)}%</td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.impressions ?? 0)}</td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(ctr * 100).toFixed(2)}%</td>
                               </tr>
                             )
                           })}
