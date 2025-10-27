@@ -104,6 +104,27 @@ export default function FacturacionPage() {
     setSyncing(false)
   }
 
+  async function crearFacturasEjemplo() {
+    if (!confirm("¿Crear 5 facturas de ejemplo para pruebas?")) return
+
+    try {
+      const res = await fetch("/api/invoices/seed", {
+        method: "POST",
+      })
+      const result = await res.json()
+      if (result.ok) {
+        alert(`✅ ${result.message}`)
+        await mutateInvoices()
+        await mutateStats()
+      } else {
+        alert(`❌ Error: ${result.error}`)
+      }
+    } catch (error) {
+      console.error(error)
+      alert("❌ Error al crear facturas de ejemplo")
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -216,6 +237,28 @@ export default function FacturacionPage() {
                       <li>Recarga esta página</li>
                     </ol>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Botón para crear facturas de ejemplo si no hay facturas */}
+          {!isMissingTablesError && invoicesData?.data?.length === 0 && (
+            <div className="mb-6 rounded-lg border-2 border-amber-400 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-900 mb-1">No hay facturas creadas</h3>
+                  <p className="text-sm text-amber-800 mb-3">
+                    Aún no tienes facturas en el sistema. Puedes crear facturas de ejemplo para probar la funcionalidad.
+                  </p>
+                  <Button
+                    onClick={crearFacturasEjemplo}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Crear 5 Facturas de Ejemplo
+                  </Button>
                 </div>
               </div>
             </div>
