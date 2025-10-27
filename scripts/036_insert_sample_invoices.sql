@@ -25,6 +25,13 @@ ADD COLUMN IF NOT EXISTS payment_method TEXT,
 ADD COLUMN IF NOT EXISTS guia TEXT,
 ADD COLUMN IF NOT EXISTS transportadora TEXT;
 
+-- PASO 2.5: Agregar columnas que faltan a la tabla invoice_items
+ALTER TABLE public.invoice_items
+ADD COLUMN IF NOT EXISTS description TEXT,
+ADD COLUMN IF NOT EXISTS quantity NUMERIC(10, 2) DEFAULT 1,
+ADD COLUMN IF NOT EXISTS unit_price NUMERIC(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total NUMERIC(12, 2) DEFAULT 0;
+
 -- PASO 3: Insertar facturas de ejemplo
 INSERT INTO public.invoices (
   invoice_number,
