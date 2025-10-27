@@ -235,11 +235,12 @@ export async function getRealAdsets(campaignId: string) {
       console.log(`  - daily_budget (raw): ${a.daily_budget}`)
       console.log(`  - lifetime_budget (raw): ${a.lifetime_budget}`)
 
-      // Calcular presupuesto (priorizar daily_budget, sino lifetime_budget)
+      // Calcular presupuesto - Meta API devuelve el valor en la moneda de la cuenta (ya en dólares)
+      // NO dividir por 100, ese campo ya viene en el formato correcto
       const budget = a.daily_budget
-        ? Number(a.daily_budget) / 100 // Meta devuelve en centavos
+        ? Number(a.daily_budget)
         : a.lifetime_budget
-          ? Number(a.lifetime_budget) / 100
+          ? Number(a.lifetime_budget)
           : 0
 
       console.log(`  - budget calculado: $${budget}`)
