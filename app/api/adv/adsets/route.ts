@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getRealAdsets } from "@/lib/adv-server"
+import { getAdsetsWithCRMData } from "@/lib/adv-combined"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log("[API adsets] Fetching adsets for campaign:", campaignId)
-    const adsets = await getRealAdsets(campaignId)
+    console.log("[API adsets] Fetching adsets with CRM data for campaign:", campaignId)
+    const adsets = await getAdsetsWithCRMData(campaignId)
     console.log("[API adsets] Adsets fetched successfully, count:", adsets.length)
 
     if (adsets.length === 0) {
@@ -34,15 +34,21 @@ export async function GET(request: NextRequest) {
         delivery: adset.delivery || (adset.status === "active" ? "Activa" : "Pausada"),
         budget: Number(adset.budget || 0),
         spend: Number(adset.spend || 0),
+        conversions: Number(adset.conversions || 0),  // Del CRM
+        cpa: Number(adset.cpa || 0),                  // Calculado
+        sales: Number(adset.sales || 0),              // Del CRM (pedido-completo)
+        revenue: Number(adset.revenue || 0),          // De tabla sales
+        roas: Number(adset.roas || 0),                // Calculado
+        cvr: Number(adset.cvr || 0),                  // Calculado
         impressions: Number(adset.impressions || 0),
         clicks: Number(adset.clicks || 0),
         ctr: Number(adset.ctr || 0),
       }
-      console.log(`[API adsets]   → ${row.name}: budget=$${row.budget}, spend=$${row.spend}, impressions=${row.impressions}`)
+      console.log(`[API adsets]   → ${row.name}: budget=$${row.budget}, spend=$${row.spend}, conv=${row.conversions}, sales=${row.sales}, revenue=$${row.revenue}, roas=${row.roas.toFixed(2)}x`)
       return row
     })
 
-    console.log("[API adsets] Returning", rows.length, "adsets")
+    console.log("[API adsets] Returning", rows.length, "adsets with CRM data")
     // Siempre retornar éxito, incluso si no hay adsets
     return NextResponse.json({
       adsets,
