@@ -1,5 +1,3 @@
-ADD COLUMN IF NOT EXISTS guia TEXT,
-ADD COLUMN IF NOT EXISTS transportadora TEXT;
 -- =====================================================
 -- SCRIPT 036: Insertar facturas de ejemplo
 -- =====================================================
@@ -20,6 +18,8 @@ ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(12, 2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS total NUMERIC(12, 2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending',
 ADD COLUMN IF NOT EXISTS payment_method TEXT,
+ADD COLUMN IF NOT EXISTS guia TEXT,
+ADD COLUMN IF NOT EXISTS transportadora TEXT;
 
 -- Insertar facturas de ejemplo
 INSERT INTO public.invoices (
