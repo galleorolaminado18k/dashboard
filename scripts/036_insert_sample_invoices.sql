@@ -2,10 +2,14 @@
 -- SCRIPT 036: Insertar facturas de ejemplo
 -- =====================================================
 -- Descripción: Crea 3 facturas de ejemplo para pruebas
--- Primero agrega las columnas que faltan a la tabla
+-- Primero elimina el CHECK constraint y agrega columnas
 -- =====================================================
 
--- Agregar columnas que faltan a la tabla invoices
+-- PASO 1: Eliminar el CHECK CONSTRAINT que está causando el error
+ALTER TABLE public.invoices
+DROP CONSTRAINT IF EXISTS invoices_status_check;
+
+-- PASO 2: Agregar columnas que faltan a la tabla invoices
 ALTER TABLE public.invoices
 ADD COLUMN IF NOT EXISTS client_name TEXT,
 ADD COLUMN IF NOT EXISTS client_nit TEXT,
@@ -21,7 +25,7 @@ ADD COLUMN IF NOT EXISTS payment_method TEXT,
 ADD COLUMN IF NOT EXISTS guia TEXT,
 ADD COLUMN IF NOT EXISTS transportadora TEXT;
 
--- Insertar facturas de ejemplo
+-- PASO 3: Insertar facturas de ejemplo
 INSERT INTO public.invoices (
   invoice_number,
   client_name,
@@ -49,8 +53,8 @@ INSERT INTO public.invoices (
     2500000,
     475000,
     2975000,
-    'paid',
-    'transferencia',
+    'PAGADO',
+    'Transferencia',
     'MP-SB048078309',
     'Servientrega'
   ),
@@ -65,8 +69,8 @@ INSERT INTO public.invoices (
     1800000,
     342000,
     2142000,
-    'pending',
-    'efectivo',
+    'PENDIENTE PAGO',
+    'Efectivo',
     'MP-SB048078310',
     'Coordinadora'
   ),
@@ -81,14 +85,14 @@ INSERT INTO public.invoices (
     3200000,
     608000,
     3808000,
-    'paid',
-    'credito',
+    'ENTREGADO',
+    'Credito',
     'MP-SB048078311',
     'Deprisa'
   )
 ON CONFLICT (invoice_number) DO NOTHING;
 
--- Verificar que se crearon las facturas
+-- PASO 4: Verificar que se crearon las facturas
 SELECT
   invoice_number,
   client_name,
