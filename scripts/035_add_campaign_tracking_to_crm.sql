@@ -46,6 +46,4 @@ WHERE s.client_phone = (
 AND c.campaign_id IS NOT NULL
 AND s.campaign_id IS NULL;
 
-COMMENT ON SCRIPT '035_add_campaign_tracking_to_crm.sql' IS
-'Agrega campos de tracking de campañas publicitarias al CRM para medir conversiones y ROI reales';
 
