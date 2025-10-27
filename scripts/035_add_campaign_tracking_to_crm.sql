@@ -35,15 +35,12 @@ COMMENT ON COLUMN conversations.utm_term IS 'Término UTM (palabra clave)';
 
 -- 4. Actualizar ventas existentes con campaign_id desde conversations
 -- (solo si hay campaign_id en conversations)
-UPDATE sales s
+UPDATE public.sales
 SET campaign_id = c.campaign_id
 FROM conversations c
-WHERE s.client_phone = (
-  SELECT cl.phone
-  FROM clients cl
-  WHERE cl.id = c.client_id
-)
-AND c.campaign_id IS NOT NULL
-AND s.campaign_id IS NULL;
+INNER JOIN clients cl ON cl.id = c.client_id
+WHERE public.sales.client_phone = cl.phone
+  AND c.campaign_id IS NOT NULL
+  AND public.sales.campaign_id IS NULL;
 
 
