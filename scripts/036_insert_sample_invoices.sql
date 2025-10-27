@@ -49,7 +49,7 @@ INSERT INTO public.invoices (
     2500000,
     475000,
     2975000,
-    'PAGADO',
+    'paid',
     'transferencia',
     'MP-SB048078309',
     'Servientrega'
@@ -65,7 +65,7 @@ INSERT INTO public.invoices (
     1800000,
     342000,
     2142000,
-    'PENDIENTE PAGO',
+    'pending',
     'efectivo',
     'MP-SB048078310',
     'Coordinadora'
@@ -81,7 +81,7 @@ INSERT INTO public.invoices (
     3200000,
     608000,
     3808000,
-    'ENTREGADO',
+    'paid',
     'credito',
     'MP-SB048078311',
     'Deprisa'
