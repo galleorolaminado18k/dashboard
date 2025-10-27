@@ -522,29 +522,29 @@ export default function Advertising({ initialKpis, initialCampRes, initialMonthl
 
                             return (
                               <tr key={ad.id} className="hover:bg-neutral-50/50 transition-colors">
-                                <td className="px-2 py-3">
+                                <td className="px-3 py-3">
                                   <span className={`inline-flex h-5 w-9 rounded-full ${ad.status === 'active' ? 'bg-green-500' : 'bg-neutral-300'}`} />
                                 </td>
-                                <td className="px-2 py-3">
+                                <td className="px-3 py-3">
                                   <div className="font-medium text-sm text-neutral-900 leading-tight">{ad.name}</div>
                                   <div className="text-xs text-neutral-500 mt-1">ID: {ad.id}</div>
                                 </td>
-                                <td className="px-2 py-3">
+                                <td className="px-3 py-3 text-center">
                                   <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
                                     ad.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
                                   }`}>
                                     {ad.delivery || (ad.status === 'active' ? 'Activo' : 'Pausado')}
                                   </span>
                                 </td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm font-medium text-neutral-900">{fmtMoney(ad.spend ?? 0)}</td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.conversions ?? 0)}</td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{cpa > 0 ? fmtMoney(cpa) : '—'}</td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.sales ?? 0)}</td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtMoney(ad.revenue ?? 0)}</td>
-                                <td className={`px-2 py-3 text-right tabular-nums text-sm font-medium ${roas >= 1 ? 'text-teal-600' : 'text-rose-600'}`}>
+                                <td className="px-3 py-3 text-right tabular-nums text-sm font-medium text-neutral-900">{fmtMoney(ad.spend ?? 0)}</td>
+                                <td className="px-3 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.conversions ?? 0)}</td>
+                                <td className="px-3 py-3 text-right tabular-nums text-sm text-neutral-900">{cpa > 0 ? fmtMoney(cpa) : '—'}</td>
+                                <td className="px-3 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtNum(ad.sales ?? 0)}</td>
+                                <td className="px-3 py-3 text-right tabular-nums text-sm text-neutral-900">{fmtMoney(ad.revenue ?? 0)}</td>
+                                <td className={`px-3 py-3 text-right tabular-nums text-sm font-medium ${roas >= 1 ? 'text-teal-600' : 'text-rose-600'}`}>
                                   {roas.toFixed(2)}x
                                 </td>
-                                <td className="px-2 py-3 text-right tabular-nums text-sm text-neutral-900">{(cvr * 100).toFixed(2)}%</td>
+                                <td className="px-3 py-3 text-right tabular-nums text-sm text-neutral-900">{(cvr * 100).toFixed(2)}%</td>
                               </tr>
                             )
                           })}
