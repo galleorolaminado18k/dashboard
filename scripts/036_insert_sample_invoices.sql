@@ -92,16 +92,79 @@ INSERT INTO public.invoices (
   )
 ON CONFLICT (invoice_number) DO NOTHING;
 
--- PASO 4: Verificar que se crearon las facturas
-SELECT
+-- PASO 4: Insertar productos (invoice_items) para cada factura
+INSERT INTO public.invoice_items (invoice_id, description, quantity, unit_price, total)
+VALUES
+  -- Productos para FAC-2025-001
+  ('FAC-2025-001', 'Anillo de Oro 18K', 2, 1250000, 2500000),
+
+  -- Productos para FAC-2025-002
+  ('FAC-2025-002', 'Cadena de Plata 925', 3, 600000, 1800000),
+
+  -- Productos para FAC-2025-003
+  ('FAC-2025-003', 'Aretes de Oro con Diamantes', 1, 3200000, 3200000)
+ON CONFLICT DO NOTHING;
+
+-- PASO 5: Crear registros en la tabla SALES automáticamente
+INSERT INTO public.sales (
   invoice_number,
   client_name,
+  client_phone,
   client_address,
-  total,
+  city,
+  products,
+  payment_method,
+  total_amount,
+  shipping_amount,
   status,
-  guia,
-  transportadora
-FROM public.invoices
-WHERE invoice_number LIKE 'FAC-2025-0%'
-ORDER BY invoice_number;
+  mipaquete_code,
+  carrier,
+  created_at
+)
+SELECT
+  i.invoice_number,
+  i.client_name,
+  i.client_phone,
+  i.client_address,
+  SPLIT_PART(i.client_address, ', ', 2) as city, -- Extraer ciudad de la dirección
+  jsonb_build_array(
+    jsonb_build_object(
+      'name', (SELECT description FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1),
+      'quantity', (SELECT quantity FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1),
+      'price', (SELECT unit_price FROM public.invoice_items WHERE invoice_id = i.invoice_number LIMIT 1)
+    )
+  ) as products,
+  i.payment_method,
+  i.total,
+  0 as shipping_amount,
+  CASE
+    WHEN i.status = 'PAGADO' THEN 'entregado'
+    WHEN i.status = 'PENDIENTE PAGO' THEN 'pendiente'
+    WHEN i.status = 'ENTREGADO' THEN 'entregado'
+    ELSE 'pendiente'
+  END as status,
+  i.guia,
+  i.transportadora,
+  i.issue_date
+FROM public.invoices i
+WHERE i.invoice_number LIKE 'FAC-2025-0%'
+ON CONFLICT (invoice_number) DO NOTHING;
+
+-- PASO 6: Verificar que se crearon las facturas, productos y ventas
+SELECT
+  i.invoice_number,
+  i.client_name,
+  i.client_address,
+  i.total,
+  i.status,
+  i.guia,
+  i.transportadora,
+  COUNT(ii.id) as num_productos,
+  s.id as sale_id
+FROM public.invoices i
+LEFT JOIN public.invoice_items ii ON i.invoice_number = ii.invoice_id
+LEFT JOIN public.sales s ON i.invoice_number = s.invoice_number
+WHERE i.invoice_number LIKE 'FAC-2025-0%'
+GROUP BY i.invoice_number, i.client_name, i.client_address, i.total, i.status, i.guia, i.transportadora, s.id
+ORDER BY i.invoice_number;
 
