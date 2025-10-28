@@ -344,20 +344,6 @@ export default function InventarioPage() {
                   </div>
                 </th>
 
-                {/* Especificaciones */}
-                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase group relative">
-                  <div className="inline-flex items-center gap-1">
-                    Espec.
-                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Especificaciones (Tamaño/Grosor/Medida)
-                      </div>
-                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -top-1"></div>
-                    </div>
-                  </div>
-                </th>
-
                 {/* Precio Detal */}
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
                   <div className="inline-flex items-center gap-1 justify-end">
@@ -497,17 +483,12 @@ export default function InventarioPage() {
                     </div>
                   </div>
                 </th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Cant.</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Gar.</th>
-                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase">Estado</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">V. Total</th>
-                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase">Acc.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
                       Cargando productos...
@@ -516,7 +497,7 @@ export default function InventarioPage() {
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={12} className="px-4 py-12 text-center text-gray-500">
                     <Package className="w-16 h-16 mx-auto mb-3 text-gray-300" />
                     <div className="text-lg font-medium text-gray-700">No hay productos en el inventario</div>
                     <div className="text-sm text-gray-500 mt-1">Haz clic en "Nuevo producto" para agregar uno</div>
@@ -549,20 +530,6 @@ export default function InventarioPage() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-sky-100 text-sky-700">
                           {getCategoryAbbr(product.category || 'N/A')}
                         </span>
-                      </td>
-                      <td className="px-2 py-2">
-                        {['CADENAS', 'PULSERAS', 'TOBILLERAS'].includes(product.category) ? (
-                          <div className="text-[9px] text-gray-700">
-                            {product.tamano && <div className="font-medium">T: {product.tamano}</div>}
-                            {product.grosor && <div>G: {product.grosor}</div>}
-                          </div>
-                        ) : ['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'ANILLOS', 'CANDONGAS', 'HERRAJES'].includes(product.category) ? (
-                          <div className="text-[9px] font-medium text-purple-700">
-                            {product.medida_mm || '-'}
-                          </div>
-                        ) : (
-                          <span className="text-[9px] text-gray-400">-</span>
-                        )}
                       </td>
                       <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
                         {formatCurrency(product.price_retail || 0)}
