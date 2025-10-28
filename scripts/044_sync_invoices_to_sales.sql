@@ -29,10 +29,10 @@ DECLARE
   v_sale_status TEXT;
   v_items_count INTEGER;
 BEGIN
-  -- Verificar si existe la tabla invoice_items y contar items
+  -- Contar items reales para esta factura (invoice_id en invoice_items es TEXT)
   SELECT COUNT(*) INTO v_items_count
-  FROM information_schema.tables
-  WHERE table_schema = 'public' AND table_name = 'invoice_items';
+  FROM public.invoice_items
+  WHERE invoice_id = NEW.invoice_number::TEXT;
 
   IF v_items_count > 0 THEN
     -- Construir el JSONB de productos desde invoice_items
@@ -46,7 +46,7 @@ BEGIN
     )
     INTO v_products
     FROM public.invoice_items
-    WHERE invoice_id = NEW.invoice_number;
+    WHERE invoice_id = NEW.invoice_number::TEXT;
   END IF;
 
   -- Si no hay productos aún, usar un array vacío o crear uno genérico
@@ -91,11 +91,11 @@ BEGIN
       total_amount = COALESCE(NEW.total, total_amount),
       products = v_products,
       status = v_sale_status,
-      invoice_number = NEW.invoice_number,
+      invoice_number = NEW.invoice_number::TEXT,
       notes = NEW.notes,
       mipaquete_code = NEW.guia,
       updated_at = NOW(),
-      invoice_id = NEW.invoice_number
+      invoice_id = NEW.invoice_number::TEXT
     WHERE id = NEW.sale_id;
 
     v_sale_id := NEW.sale_id;
@@ -129,20 +129,18 @@ BEGIN
       0, -- Por defecto
       v_products,
       v_sale_status,
-      NEW.invoice_number,
+      NEW.invoice_number::TEXT,
       NEW.notes,
       NEW.guia,
       COALESCE(NEW.issue_date, NOW()),
       NOW(),
-      NEW.invoice_number,
+      NEW.invoice_number::TEXT,
       CASE WHEN UPPER(COALESCE(NEW.status, '')) = 'DEVOLUCION' THEN true ELSE false END
     )
     RETURNING id INTO v_sale_id;
 
-    -- Actualizar la factura con el sale_id
-    UPDATE public.invoices
-    SET sale_id = v_sale_id
-    WHERE invoice_number = NEW.invoice_number;
+    -- Actualizar la factura con el sale_id (sin recursión infinita porque sale_id no dispara UPDATE)
+    NEW.sale_id := v_sale_id;
   END IF;
 
   RETURN NEW;
@@ -153,10 +151,11 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
--- 5. Crear trigger que se ejecuta después de INSERT o UPDATE en invoices
+-- 5. Crear trigger que se ejecuta ANTES de INSERT o UPDATE en invoices
+-- Usamos BEFORE para poder modificar NEW.sale_id sin causar recursión
 DROP TRIGGER IF EXISTS trigger_sync_invoice_to_sale ON public.invoices;
 CREATE TRIGGER trigger_sync_invoice_to_sale
-  AFTER INSERT OR UPDATE ON public.invoices
+  BEFORE INSERT OR UPDATE ON public.invoices
   FOR EACH ROW
   EXECUTE FUNCTION sync_invoice_to_sale();
 
