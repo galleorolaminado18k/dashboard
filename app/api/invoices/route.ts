@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
         notes: body.notes,
         guia: body.guia,
         transportadora: body.transportadora,
+        vendedor: body.vendedor || 'Sistema',
+        evidencia: body.evidencia,
       })
       .select()
       .single()

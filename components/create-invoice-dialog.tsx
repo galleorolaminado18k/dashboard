@@ -49,6 +49,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     notes: "",
     guia: "",
     transportadora: "",
+    vendedor: "",
+    evidencia: "",
   })
   const [items, setItems] = useState<InvoiceItem[]>([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
 
@@ -157,6 +159,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           notes: "",
           guia: "",
           transportadora: "",
+          vendedor: "",
+          evidencia: "",
         })
         setItems([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
         setSelectedSale("")
@@ -305,6 +309,26 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     <SelectItem value="Envía">Envía</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label htmlFor="vendedor">Vendedor</Label>
+                <Input
+                  id="vendedor"
+                  value={formData.vendedor}
+                  onChange={(e) => setFormData({ ...formData, vendedor: e.target.value })}
+                  placeholder="Nombre del vendedor"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="evidencia">Evidencia (URL)</Label>
+                <Input
+                  id="evidencia"
+                  value={formData.evidencia}
+                  onChange={(e) => setFormData({ ...formData, evidencia: e.target.value })}
+                  placeholder="URL de evidencia de entrega"
+                  className="mt-1"
+                />
               </div>
             </div>
           </div>
