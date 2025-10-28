@@ -62,7 +62,8 @@ export default function InventarioPage() {
     warehouse_type: 'cantidad',
     quantity: 1,
     notes: '',
-    special_exit_type: '' // Para salidas especiales: bono, obsequios, canje, puntos, otros
+    special_exit_type: '', // Para salidas especiales: bono, obsequios, canje, puntos, otros
+    special_discount_qty: 1 // Para ajuste especial: cantidad del 1 al 30 a descontar
   })
 
   const { data, error, isLoading, mutate } = useSWR('/api/inventory', fetcher, {
@@ -140,6 +141,13 @@ export default function InventarioPage() {
       return
     }
 
+    if (movementForm.movement_type === 'ajuste_especial') {
+      if (!movementForm.notes.trim()) {
+        alert('⚠️ La descripción es obligatoria para Ajuste Especial')
+        return
+      }
+    }
+
     if (movementForm.movement_type === 'salida') {
       if (!movementForm.special_exit_type) {
         alert('⚠️ Debes seleccionar el tipo de Salida Especial')
@@ -154,12 +162,18 @@ export default function InventarioPage() {
     setSaving(true)
 
     try {
+      // Si es ajuste especial, usar la cantidad especial
+      const quantityToSend = movementForm.movement_type === 'ajuste_especial'
+        ? (movementForm.special_discount_qty || 1)
+        : movementForm.quantity
+
       const response = await fetch('/api/inventory/movements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           inventory_id: selectedProduct.id,
-          ...movementForm
+          ...movementForm,
+          quantity: quantityToSend
         })
       })
 
@@ -207,7 +221,8 @@ export default function InventarioPage() {
       warehouse_type: 'cantidad',
       quantity: 1,
       notes: '',
-      special_exit_type: ''
+      special_exit_type: '',
+      special_discount_qty: 1
     })
   }
 
@@ -902,12 +917,13 @@ export default function InventarioPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Movimiento *</label>
                   <select
                     value={movementForm.movement_type}
-                    onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value, special_exit_type: ''})}
+                    onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value, special_exit_type: '', special_discount_qty: 1})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="entrada">Entrada</option>
                     <option value="salida">Salidas Especiales</option>
                     <option value="ajuste">Ajuste por Conteo de Inventario</option>
+                    <option value="ajuste_especial">Ajuste Especial</option>
                     <option value="transferencia">Transferencia por Garantía</option>
                   </select>
                 </div>
@@ -948,21 +964,44 @@ export default function InventarioPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={movementForm.quantity}
-                  onChange={(e) => setMovementForm({...movementForm, quantity: Number(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
+              {/* Campo de Cantidad a Descontar para Ajuste Especial */}
+              {movementForm.movement_type === 'ajuste_especial' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad a Descontar del Stock Actual *</label>
+                  <select
+                    value={movementForm.special_discount_qty || 1}
+                    onChange={(e) => setMovementForm({...movementForm, special_discount_qty: Number(e.target.value)})}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    {Array.from({length: 30}, (_, i) => i + 1).map(num => (
+                      <option key={num} value={num}>{num}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Se descontará esta cantidad del stock actual: {selectedProduct?.stock || 0} → {Math.max(0, (selectedProduct?.stock || 0) - (movementForm.special_discount_qty || 1))}
+                  </p>
+                </div>
+              )}
+
+              {/* Campo de Cantidad - ocultar si es ajuste especial */}
+              {movementForm.movement_type !== 'ajuste_especial' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={movementForm.quantity}
+                    onChange={(e) => setMovementForm({...movementForm, quantity: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas {(movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'salida') && '*'}
+                  Notas {(movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'ajuste_especial' || movementForm.movement_type === 'salida') && '*'}
                 </label>
                 <textarea
                   value={movementForm.notes}
@@ -970,11 +1009,13 @@ export default function InventarioPage() {
                   placeholder={
                     movementForm.movement_type === 'ajuste'
                       ? 'Descripción del conteo de inventario (obligatorio)...'
+                      : movementForm.movement_type === 'ajuste_especial'
+                      ? 'Descripción del ajuste especial (obligatorio)...'
                       : movementForm.movement_type === 'salida'
                       ? 'Descripción de la salida especial (obligatorio)...'
                       : 'Detalles del movimiento...'
                   }
-                  required={movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'salida'}
+                  required={movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'ajuste_especial' || movementForm.movement_type === 'salida'}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
