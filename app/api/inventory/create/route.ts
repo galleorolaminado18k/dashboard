@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     // Validar campos requeridos
-    if (!body.sku || !body.name || body.price === undefined) {
+    if (!body.sku || !body.name || (body.price_retail === undefined && body.price === undefined)) {
       return NextResponse.json({
         ok: false,
         error: 'Faltan campos requeridos: sku, name, price'
