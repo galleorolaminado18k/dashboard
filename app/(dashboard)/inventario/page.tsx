@@ -292,7 +292,31 @@ export default function InventarioPage() {
               <tr>
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">SKU</th>
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Nombre</th>
-                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Cat.</th>
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1">
+                    Cat.
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    {/* Tooltip con lista de categorías */}
+                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-3 py-2 rounded shadow-lg">
+                        <div className="font-semibold mb-1 text-[10px]">Categorías:</div>
+                        <div className="space-y-0.5">
+                          <div>CAD = CADENAS</div>
+                          <div>ARE = ARETES</div>
+                          <div>DIJ = DIJES</div>
+                          <div>PUL = PULSERAS</div>
+                          <div>TOB = TOBILLERAS</div>
+                          <div>MAN = MANILLAS</div>
+                          <div>BAL = BALINES</div>
+                          <div>ANI = ANILLOS</div>
+                          <div>CAN = CANDONGAS</div>
+                          <div>HER = HERRAJES</div>
+                        </div>
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Espec.</th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Detal</th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Mayor</th>
@@ -348,17 +372,9 @@ export default function InventarioPage() {
                         )}
                       </td>
                       <td className="px-2 py-2">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 group relative">
-                          <span className="text-[9px] font-medium">{getCategoryAbbr(product.category || 'N/A')}</span>
-                          <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" />
-                          {/* Tooltip con nombre completo */}
-                          <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block z-10 whitespace-nowrap">
-                            <div className="bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg">
-                              {product.category || 'N/A'}
-                            </div>
-                            <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -bottom-1"></div>
-                          </div>
-                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-sky-100 text-sky-700">
+                          {getCategoryAbbr(product.category || 'N/A')}
+                        </span>
                       </td>
                       <td className="px-2 py-2">
                         {['CADENAS', 'PULSERAS', 'TOBILLERAS'].includes(product.category) ? (
