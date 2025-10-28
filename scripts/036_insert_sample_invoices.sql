@@ -131,7 +131,6 @@ WHERE i.invoice_number = 'FAC-2025-003';
 
 -- PASO 5: Crear registros en la tabla SALES automáticamente
 INSERT INTO public.sales (
-  invoice_number,
   client_name,
   client_phone,
   city,
@@ -145,7 +144,6 @@ INSERT INTO public.sales (
   created_at
 )
 SELECT
-  i.invoice_number,
   i.client_name,
   i.client_phone,
   SPLIT_PART(i.client_address, ', ', 2) as city,
@@ -169,10 +167,7 @@ SELECT
   'Campaña de Oro 18K' as campaign_id,
   i.issue_date
 FROM public.invoices i
-WHERE i.invoice_number LIKE 'FAC-2025-0%'
-  AND NOT EXISTS (
-    SELECT 1 FROM public.sales s WHERE s.invoice_number = i.invoice_number
-  );
+WHERE i.invoice_number LIKE 'FAC-2025-0%';
 
 -- PASO 6: Verificar que se crearon las facturas, productos y ventas
 SELECT
@@ -204,7 +199,7 @@ ORDER BY i.invoice_number;
 -- Verificar ventas creadas
 SELECT
   'VENTA' as tipo,
-  invoice_number,
+  id,
   client_name,
   city,
   total_amount,
@@ -215,6 +210,7 @@ SELECT
   mipaquete_code,
   products
 FROM public.sales
-WHERE invoice_number LIKE 'FAC-2025-0%'
-ORDER BY invoice_number;
+WHERE mipaquete_code LIKE 'MP-SB04807831%'
+ORDER BY created_at DESC
+LIMIT 10;
 
