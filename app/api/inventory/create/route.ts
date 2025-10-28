@@ -23,9 +23,12 @@ export async function POST(request: Request) {
         name: body.name,
         description: body.description || null,
         category: body.category || null,
-        price: Number(body.price),
+        price: Number(body.price_retail) || 0, // Mantener price como price_retail por compatibilidad
         cost: Number(body.cost) || 0,
+        price_retail: Number(body.price_retail) || 0,
+        price_wholesale: Number(body.price_wholesale) || 0,
         stock: Number(body.stock) || 0,
+        stock_warranty: Number(body.stock_warranty) || 0,
         min_stock: Number(body.min_stock) || 0,
         max_stock: Number(body.max_stock) || 0,
         status: body.status || 'active'
