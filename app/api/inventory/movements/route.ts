@@ -42,6 +42,9 @@ export async function POST(request: Request) {
 
     // Preparar notas con tipo de salida especial si aplica
     let finalNotes = body.notes || null
+    let finalQuantity = Number(body.quantity)
+    let finalMovementType = body.movement_type
+
     if (body.movement_type === 'salida' && body.special_exit_type) {
       const specialTypeLabels: Record<string, string> = {
         bono: 'Bono',
@@ -53,6 +56,9 @@ export async function POST(request: Request) {
       const typeLabel = specialTypeLabels[body.special_exit_type] || body.special_exit_type
       finalNotes = `[${typeLabel}] ${body.notes || ''}`
     } else if (body.movement_type === 'ajuste_especial') {
+      // Ajuste especial y ajuste funcionan igual: ajustan el valor absoluto
+      // La diferencia es solo en la interfaz para facilitar operaciones rápidas
+      finalMovementType = 'ajuste' // Convertir a ajuste para unificar en DB
       const action = body.special_action === 'agregar' ? 'Agregado' : 'Descuento'
       finalNotes = `[Ajuste Especial - ${action} de ${body.quantity}] ${body.notes || ''}`
     }
@@ -62,9 +68,9 @@ export async function POST(request: Request) {
       .from('inventory_movements')
       .insert([{
         inventory_id: body.inventory_id,
-        movement_type: body.movement_type,
+        movement_type: finalMovementType,
         warehouse_type: body.warehouse_type || 'cantidad',
-        quantity: Number(body.quantity),
+        quantity: finalQuantity,
         notes: finalNotes,
         created_by: body.created_by || 'sistema'
       }])

@@ -163,16 +163,19 @@ export default function InventarioPage() {
     setSaving(true)
 
     try {
-      // Determinar la cantidad y tipo de movimiento para ajuste especial
-      let finalMovementType = movementForm.movement_type
+      // Calcular la cantidad a enviar según el tipo de movimiento
       let quantityToSend = movementForm.quantity
+      const currentStock = movementForm.warehouse_type === 'garantia'
+        ? (selectedProduct.stock_warranty || 0)
+        : (selectedProduct.stock || 0)
 
+      // Para ajuste especial: calcular el nuevo stock absoluto
       if (movementForm.movement_type === 'ajuste_especial') {
-        quantityToSend = movementForm.special_discount_qty || 1
-        // Si la acción es "agregar", se convierte en una entrada
-        // Si la acción es "descontar", se mantiene como ajuste especial (que resta)
+        const changeQty = movementForm.special_discount_qty || 1
         if (movementForm.special_action === 'agregar') {
-          finalMovementType = 'entrada'
+          quantityToSend = currentStock + changeQty
+        } else {
+          quantityToSend = Math.max(0, currentStock - changeQty)
         }
       }
 
@@ -181,9 +184,12 @@ export default function InventarioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           inventory_id: selectedProduct.id,
-          ...movementForm,
-          movement_type: finalMovementType,
-          quantity: quantityToSend
+          movement_type: movementForm.movement_type,
+          warehouse_type: movementForm.warehouse_type,
+          quantity: quantityToSend,
+          notes: movementForm.notes,
+          special_exit_type: movementForm.special_exit_type,
+          special_action: movementForm.special_action
         })
       })
 
@@ -199,6 +205,11 @@ export default function InventarioPage() {
         alert('❌ Error: ' + result.error)
       }
     } catch (error: any) {
+      alert('❌ Error al registrar movimiento: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  } {
       alert('❌ Error al registrar movimiento: ' + error.message)
     } finally {
       setSaving(false)
@@ -358,76 +369,6 @@ export default function InventarioPage() {
                   </div>
                 </th>
 
-                {/* Precio Detal */}
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
-                  <div className="inline-flex items-center gap-1 justify-end">
-                    P. Detal
-                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Precio al Detal
-                      </div>
-                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
-                    </div>
-                  </div>
-                </th>
-
-                {/* Precio Mayor */}
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
-                  <div className="inline-flex items-center gap-1 justify-end">
-                    P. Mayor
-                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Precio al por Mayor
-                      </div>
-                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
-                    </div>
-                  </div>
-                </th>
-
-                {/* Costo */}
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
-                  <div className="inline-flex items-center gap-1 justify-end">
-                    Costo
-                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Costo del Producto
-                      </div>
-                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
-                    </div>
-                  </div>
-                </th>
-
-                {/* Utilidad Detal */}
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
-                  <div className="inline-flex items-center gap-1 justify-end">
-                    Util. Detal
-                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Utilidad al Detal
-                      </div>
-                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
-                    </div>
-                  </div>
-                </th>
-
-                {/* Utilidad Mayor */}
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
-                  <div className="inline-flex items-center gap-1 justify-end">
-                    Util. Mayor
-                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Utilidad al por Mayor
-                      </div>
-                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
-                    </div>
-                  </div>
-                </th>
-
                 {/* Cantidad */}
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
                   <div className="inline-flex items-center gap-1 justify-end">
@@ -450,6 +391,76 @@ export default function InventarioPage() {
                     <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
                       <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
                         Garantías
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Costo */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Costo
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Costo del Producto
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Precio Detal */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    P. Detal
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Precio al Detal
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Utilidad Detal */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Util. Detal
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Utilidad al Detal
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Precio Mayor */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    P. Mayor
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Precio al por Mayor
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Utilidad Mayor */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Util. Mayor
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Utilidad al por Mayor
                       </div>
                       <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
                     </div>
@@ -531,9 +542,12 @@ export default function InventarioPage() {
 
                   return (
                     <tr key={product.id} className="hover:bg-amber-50/30 transition-colors">
+                      {/* SKU */}
                       <td className="px-2 py-2">
                         <div className="font-mono text-[11px] font-medium text-gray-900">{product.sku}</div>
                       </td>
+
+                      {/* Nombre */}
                       <td className="px-2 py-2">
                         <div className="font-medium text-[11px] text-gray-900 max-w-[120px] truncate">{product.name}</div>
                         <div className="text-[9px] text-sky-600 mt-0.5 font-medium">{product.category || 'Sin categoría'}</div>
@@ -541,40 +555,15 @@ export default function InventarioPage() {
                           <div className="text-[9px] text-gray-500 mt-0.5 max-w-[120px] truncate">{product.description}</div>
                         )}
                       </td>
+
+                      {/* Categoría */}
                       <td className="px-2 py-2">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-sky-100 text-sky-700">
                           {getCategoryAbbr(product.category || 'N/A')}
                         </span>
                       </td>
-                      <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
-                        {formatCurrency(product.price_retail || 0)}
-                      </td>
-                      <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
-                        {formatCurrency(product.price_wholesale || 0)}
-                      </td>
-                      <td className="px-2 py-2 text-right text-[11px] text-gray-600">
-                        {formatCurrency(product.cost || 0)}
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <div className="flex flex-col items-end gap-0">
-                          <span className="text-[10px] font-medium text-emerald-700">
-                            {formatCurrency(profitRetail)}
-                          </span>
-                          <span className="text-[9px] text-emerald-600">
-                            {marginRetail.toFixed(1)}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <div className="flex flex-col items-end gap-0">
-                          <span className="text-[10px] font-medium text-blue-700">
-                            {formatCurrency(profitWholesale)}
-                          </span>
-                          <span className="text-[9px] text-blue-600">
-                            {marginWholesale.toFixed(1)}%
-                          </span>
-                        </div>
-                      </td>
+
+                      {/* Cantidad */}
                       <td className="px-2 py-2 text-right">
                         <div className="flex flex-col items-end gap-0.5">
                           <span className={`text-[11px] font-semibold ${
@@ -596,11 +585,54 @@ export default function InventarioPage() {
                           </div>
                         </div>
                       </td>
+
+                      {/* Garantía */}
                       <td className="px-2 py-2 text-right">
                         <span className="text-[11px] font-semibold text-violet-700">
                           {product.stock_warranty || 0}
                         </span>
                       </td>
+
+                      {/* Costo */}
+                      <td className="px-2 py-2 text-right text-[11px] text-gray-600">
+                        {formatCurrency(product.cost || 0)}
+                      </td>
+
+                      {/* Precio Detal */}
+                      <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
+                        {formatCurrency(product.price_retail || 0)}
+                      </td>
+
+                      {/* Utilidad Detal */}
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex flex-col items-end gap-0">
+                          <span className="text-[10px] font-medium text-emerald-700">
+                            {formatCurrency(profitRetail)}
+                          </span>
+                          <span className="text-[9px] text-emerald-600">
+                            {marginRetail.toFixed(1)}%
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Precio Mayor */}
+                      <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
+                        {formatCurrency(product.price_wholesale || 0)}
+                      </td>
+
+                      {/* Utilidad Mayor */}
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex flex-col items-end gap-0">
+                          <span className="text-[10px] font-medium text-blue-700">
+                            {formatCurrency(profitWholesale)}
+                          </span>
+                          <span className="text-[9px] text-blue-600">
+                            {marginWholesale.toFixed(1)}%
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Estado */}
                       <td className="px-2 py-2 text-center">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
                           product.status === 'active' 
@@ -610,9 +642,13 @@ export default function InventarioPage() {
                           {product.status === 'active' ? 'Act.' : 'Inac.'}
                         </span>
                       </td>
+
+                      {/* Costo Total */}
                       <td className="px-2 py-2 text-right font-bold text-[11px] text-emerald-700">
                         {formatCurrency(totalValue)}
                       </td>
+
+                      {/* Acciones */}
                       <td className="px-2 py-2 text-center">
                         <button
                           onClick={() => openMovementModal(product)}
@@ -931,11 +967,11 @@ export default function InventarioPage() {
                     onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value, special_exit_type: '', special_discount_qty: 1, special_action: 'descontar'})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
-                    <option value="entrada">Entrada</option>
-                    <option value="salida">Salidas Especiales</option>
+                    <option value="entrada">Entrada (agregar a cantidad)</option>
+                    <option value="salida">Salidas Especiales (descontar de cantidad)</option>
                     <option value="ajuste">Ajuste por Conteo de Inventario</option>
-                    <option value="ajuste_especial">Ajuste Especial</option>
-                    <option value="transferencia">Transferencia por Garantía</option>
+                    <option value="ajuste_especial">Ajuste Especial (rápido)</option>
+                    <option value="transferencia">Transferencia por Garantía (cantidad → garantía)</option>
                   </select>
                 </div>
 
@@ -1019,10 +1055,20 @@ export default function InventarioPage() {
                     {' '}{movementForm.special_discount_qty || 1} unidad(es) del stock actual
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
-                    Stock: {selectedProduct?.stock || 0} → {
-                      movementForm.special_action === 'descontar'
-                        ? Math.max(0, (selectedProduct?.stock || 0) - (movementForm.special_discount_qty || 1))
-                        : (selectedProduct?.stock || 0) + (movementForm.special_discount_qty || 1)
+                    Stock {movementForm.warehouse_type === 'garantia' ? 'Garantía' : 'Cantidad'}: {
+                      movementForm.warehouse_type === 'garantia'
+                        ? (selectedProduct?.stock_warranty || 0)
+                        : (selectedProduct?.stock || 0)
+                    } → {
+                      (() => {
+                        const current = movementForm.warehouse_type === 'garantia'
+                          ? (selectedProduct?.stock_warranty || 0)
+                          : (selectedProduct?.stock || 0)
+                        const change = movementForm.special_discount_qty || 1
+                        return movementForm.special_action === 'descontar'
+                          ? Math.max(0, current - change)
+                          : current + change
+                      })()
                     }
                   </p>
                 </div>
