@@ -25,7 +25,7 @@ export default function InventarioPage() {
     sku: '',
     name: '',
     description: '',
-    category: 'Joyería',
+    category: 'CADENAS',
     cost: 0,
     price_retail: 0,
     price_wholesale: 0,
@@ -33,7 +33,11 @@ export default function InventarioPage() {
     stock_warranty: 0,
     min_stock: 0,
     max_stock: 0,
-    status: 'active'
+    status: 'active',
+    // Campos de medidas según categoría
+    tamano: '', // Para CADENAS, PULSERAS, TOBILLERAS
+    grosor: '', // Para CADENAS, PULSERAS, TOBILLERAS
+    medida_mm: '' // Para ARETES, DIJES, MANILLAS, BALINES, ANILLOS, CANDONGAS, HERRAJES
   })
 
   const [movementForm, setMovementForm] = useState({
@@ -63,6 +67,26 @@ export default function InventarioPage() {
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar campos de medidas según categoría
+    if (['CADENAS', 'PULSERAS', 'TOBILLERAS'].includes(productForm.category)) {
+      if (!productForm.tamano.trim()) {
+        alert('⚠️ El campo Tamaño es obligatorio para ' + productForm.category)
+        return
+      }
+      if (!productForm.grosor.trim()) {
+        alert('⚠️ El campo Grosor es obligatorio para ' + productForm.category)
+        return
+      }
+    }
+
+    if (['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'ANILLOS', 'CANDONGAS', 'HERRAJES'].includes(productForm.category)) {
+      if (!productForm.medida_mm.trim()) {
+        alert('⚠️ El campo Medida (MM) es obligatorio para ' + productForm.category)
+        return
+      }
+    }
+
     setSaving(true)
 
     try {
@@ -145,7 +169,7 @@ export default function InventarioPage() {
       sku: '',
       name: '',
       description: '',
-      category: 'Joyería',
+      category: 'CADENAS',
       cost: 0,
       price_retail: 0,
       price_wholesale: 0,
@@ -153,7 +177,10 @@ export default function InventarioPage() {
       stock_warranty: 0,
       min_stock: 0,
       max_stock: 0,
-      status: 'active'
+      status: 'active',
+      tamano: '',
+      grosor: '',
+      medida_mm: ''
     })
   }
 
@@ -249,6 +276,7 @@ export default function InventarioPage() {
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">SKU</th>
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Nombre</th>
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Cat.</th>
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Espec.</th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Detal</th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Mayor</th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Costo</th>
@@ -264,7 +292,7 @@ export default function InventarioPage() {
             <tbody className="divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
                       Cargando productos...
@@ -273,7 +301,7 @@ export default function InventarioPage() {
                 </tr>
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={14} className="px-4 py-12 text-center text-gray-500">
                     <Package className="w-16 h-16 mx-auto mb-3 text-gray-300" />
                     <div className="text-lg font-medium text-gray-700">No hay productos en el inventario</div>
                     <div className="text-sm text-gray-500 mt-1">Haz clic en "Nuevo producto" para agregar uno</div>
@@ -306,6 +334,20 @@ export default function InventarioPage() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-sky-100 text-sky-700">
                           {product.category || 'N/A'}
                         </span>
+                      </td>
+                      <td className="px-2 py-2">
+                        {['CADENAS', 'PULSERAS', 'TOBILLERAS'].includes(product.category) ? (
+                          <div className="text-[9px] text-gray-700">
+                            {product.tamano && <div className="font-medium">T: {product.tamano}</div>}
+                            {product.grosor && <div>G: {product.grosor}</div>}
+                          </div>
+                        ) : ['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'ANILLOS', 'CANDONGAS', 'HERRAJES'].includes(product.category) ? (
+                          <div className="text-[9px] font-medium text-purple-700">
+                            {product.medida_mm || '-'}
+                          </div>
+                        ) : (
+                          <span className="text-[9px] text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
                         {formatCurrency(product.price_retail || 0)}
@@ -424,16 +466,23 @@ export default function InventarioPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
                     <select
+                      required
                       value={productForm.category}
-                      onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                      onChange={(e) => setProductForm({...productForm, category: e.target.value, tamano: '', grosor: '', medida_mm: ''})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
                     >
-                      <option>Joyería</option>
-                      <option>Accesorios</option>
-                      <option>Relojes</option>
-                      <option>Otros</option>
+                      <option value="CADENAS">CADENAS</option>
+                      <option value="ARETES">ARETES</option>
+                      <option value="DIJES">DIJES</option>
+                      <option value="PULSERAS">PULSERAS</option>
+                      <option value="TOBILLERAS">TOBILLERAS</option>
+                      <option value="MANILLAS">MANILLAS</option>
+                      <option value="BALINES">BALINES</option>
+                      <option value="ANILLOS">ANILLOS</option>
+                      <option value="CANDONGAS">CANDONGAS</option>
+                      <option value="HERRAJES">HERRAJES</option>
                     </select>
                   </div>
                 </div>
@@ -460,6 +509,48 @@ export default function InventarioPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
                   />
                 </div>
+
+                {/* Campos de medidas según categoría */}
+                {['CADENAS', 'PULSERAS', 'TOBILLERAS'].includes(productForm.category) && (
+                  <div className="grid grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div>
+                      <label className="block text-sm font-medium text-blue-900 mb-1">Tamaño *</label>
+                      <input
+                        type="text"
+                        required
+                        value={productForm.tamano}
+                        onChange={(e) => setProductForm({...productForm, tamano: e.target.value})}
+                        placeholder="Ej: 45cm, 18 pulgadas"
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-blue-900 mb-1">Grosor *</label>
+                      <input
+                        type="text"
+                        required
+                        value={productForm.grosor}
+                        onChange={(e) => setProductForm({...productForm, grosor: e.target.value})}
+                        placeholder="Ej: 2mm, 3mm"
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'ANILLOS', 'CANDONGAS', 'HERRAJES'].includes(productForm.category) && (
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <label className="block text-sm font-medium text-purple-900 mb-1">Medida (MM) *</label>
+                    <input
+                      type="text"
+                      required
+                      value={productForm.medida_mm}
+                      onChange={(e) => setProductForm({...productForm, medida_mm: e.target.value})}
+                      placeholder="Ej: 5mm, 8mm, 10x15mm"
+                      className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Precios y Costos */}

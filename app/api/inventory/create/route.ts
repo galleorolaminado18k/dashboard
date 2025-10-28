@@ -31,7 +31,11 @@ export async function POST(request: Request) {
         stock_warranty: Number(body.stock_warranty) || 0,
         min_stock: Number(body.min_stock) || 0,
         max_stock: Number(body.max_stock) || 0,
-        status: body.status || 'active'
+        status: body.status || 'active',
+        // Campos de medidas
+        tamano: body.tamano || null,
+        grosor: body.grosor || null,
+        medida_mm: body.medida_mm || null
       }])
       .select()
       .single()
