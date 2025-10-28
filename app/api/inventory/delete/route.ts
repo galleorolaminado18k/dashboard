@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/client"
 
-export async function POST(request: Request) {
+export async function DELETE(request: Request) {
   const supabase = createClient()
 
   try {
@@ -15,34 +15,29 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Actualizar producto en Supabase
-    const { data, error } = await supabase
+    // Eliminar producto de Supabase
+    const { error } = await supabase
       .from('inventory')
-      .update({
-        status: body.status,
-        updated_at: new Date().toISOString()
-      })
+      .delete()
       .eq('id', body.id)
-      .select()
-      .single()
 
     if (error) {
-      console.error('[Inventory Update] Error:', error)
+      console.error('[Inventory Delete] Error:', error)
       return NextResponse.json({
         ok: false,
         error: error.message
       }, { status: 500 })
     }
 
-    console.log('[Inventory Update] Product updated:', data)
+    console.log('[Inventory Delete] Product deleted:', body.id)
 
     return NextResponse.json({
       ok: true,
-      product: data
+      message: 'Producto eliminado exitosamente'
     })
 
   } catch (error: any) {
-    console.error('[Inventory Update] Exception:', error)
+    console.error('[Inventory Delete] Exception:', error)
     return NextResponse.json({
       ok: false,
       error: error.message || 'Error interno del servidor'
