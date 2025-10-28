@@ -131,26 +131,25 @@ WHERE i.invoice_number = 'FAC-2025-003';
 
 -- PASO 5: Crear registros en la tabla SALES automáticamente
 INSERT INTO public.sales (
-  invoice_number,
+  sale_id,
   client_name,
   client_phone,
-  client_address,
-  city,
+  client_email,
   products,
+  total,
   payment_method,
-  total_amount,
-  shipping_amount,
   status,
+  shipping_company,
+  tracking_number,
   mipaquete_code,
-  carrier,
-  created_at
+  seller_name,
+  sale_date
 )
 SELECT
   i.invoice_number,
   i.client_name,
   i.client_phone,
-  i.client_address,
-  SPLIT_PART(i.client_address, ', ', 2) as city,
+  LOWER(REPLACE(i.client_name, ' ', '')) || '@example.com' as client_email,
   jsonb_build_array(
     jsonb_build_object(
       'name', (SELECT product_name FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1),
@@ -158,22 +157,23 @@ SELECT
       'price', (SELECT unit_price FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1)
     )
   ) as products,
-  i.payment_method,
   i.total,
-  0 as shipping_amount,
+  LOWER(i.payment_method) as payment_method,
   CASE
-    WHEN i.status = 'PAGADO' THEN 'entregado'
+    WHEN i.status = 'PAGADO' THEN 'completada'
     WHEN i.status = 'PENDIENTE PAGO' THEN 'pendiente'
-    WHEN i.status = 'ENTREGADO' THEN 'entregado'
+    WHEN i.status = 'ENTREGADO' THEN 'completada'
     ELSE 'pendiente'
   END as status,
-  i.guia,
   i.transportadora,
+  i.guia,
+  i.guia as mipaquete_code,
+  'Sistema' as seller_name,
   i.issue_date
 FROM public.invoices i
 WHERE i.invoice_number LIKE 'FAC-2025-0%'
   AND NOT EXISTS (
-    SELECT 1 FROM public.sales s WHERE s.invoice_number = i.invoice_number
+    SELECT 1 FROM public.sales s WHERE s.sale_id = i.invoice_number
   );
 
 -- PASO 6: Verificar que se crearon las facturas, productos y ventas
@@ -206,13 +206,14 @@ ORDER BY i.invoice_number;
 -- Verificar ventas creadas
 SELECT
   'VENTA' as tipo,
-  invoice_number,
+  sale_id,
   client_name,
-  city,
-  total_amount,
+  total,
   status,
-  products
+  products,
+  shipping_company,
+  tracking_number
 FROM public.sales
-WHERE invoice_number LIKE 'FAC-2025-0%'
-ORDER BY invoice_number;
+WHERE sale_id LIKE 'FAC-2025-0%'
+ORDER BY sale_id;
 
