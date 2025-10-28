@@ -12,6 +12,7 @@ ADD COLUMN IF NOT EXISTS client_name TEXT,
 ADD COLUMN IF NOT EXISTS client_phone TEXT,
 ADD COLUMN IF NOT EXISTS client_address TEXT,
 ADD COLUMN IF NOT EXISTS city TEXT,
+ADD COLUMN IF NOT EXISTS state TEXT,
 ADD COLUMN IF NOT EXISTS products JSONB,
 ADD COLUMN IF NOT EXISTS total_amount NUMERIC(12, 2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS shipping_amount NUMERIC(12, 2) DEFAULT 0,
@@ -151,6 +152,7 @@ INSERT INTO public.sales (
   client_name,
   client_phone,
   city,
+  state,
   products,
   total_amount,
   shipping_amount,
@@ -165,6 +167,12 @@ SELECT
   i.client_name,
   i.client_phone,
   SPLIT_PART(i.client_address, ', ', 2) as city,
+  CASE
+    WHEN SPLIT_PART(i.client_address, ', ', 2) = 'Bogotá' THEN 'Cundinamarca'
+    WHEN SPLIT_PART(i.client_address, ', ', 2) = 'Medellín' THEN 'Antioquia'
+    WHEN SPLIT_PART(i.client_address, ', ', 2) = 'Cali' THEN 'Valle del Cauca'
+    ELSE 'Cundinamarca'
+  END as state,
   jsonb_build_array(
     jsonb_build_object(
       'name', (SELECT product_name FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1),
@@ -221,6 +229,7 @@ SELECT
   order_id,
   client_name,
   city,
+  state,
   total_amount,
   shipping_amount,
   revenue_no_shipping,
