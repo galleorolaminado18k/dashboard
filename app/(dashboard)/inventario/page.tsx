@@ -324,20 +324,8 @@ export default function InventarioPage() {
                     Cat.
                     <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
                     <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
-                      <div className="bg-gray-900 text-white text-[9px] px-3 py-2 rounded shadow-lg">
-                        <div className="font-semibold mb-1 text-[10px]">Categoría:</div>
-                        <div className="space-y-0.5">
-                          <div>CAD = CADENAS</div>
-                          <div>ARE = ARETES</div>
-                          <div>DIJ = DIJES</div>
-                          <div>PUL = PULSERAS</div>
-                          <div>TOB = TOBILLERAS</div>
-                          <div>MAN = MANILLAS</div>
-                          <div>BAL = BALINES</div>
-                          <div>ANI = ANILLOS</div>
-                          <div>CAN = CANDONGAS</div>
-                          <div>HER = HERRAJES</div>
-                        </div>
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Categoría
                       </div>
                       <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -top-1"></div>
                     </div>
