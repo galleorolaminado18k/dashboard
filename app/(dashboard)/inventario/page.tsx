@@ -137,11 +137,6 @@ export default function InventarioPage() {
     if (!selectedProduct) return
 
     // Validaciones específicas
-    if (movementForm.movement_type === 'ajuste' && !movementForm.notes.trim()) {
-      alert('⚠️ La descripción es obligatoria para Ajuste por Conteo de Inventario')
-      return
-    }
-
     if (movementForm.movement_type === 'ajuste_especial') {
       if (!movementForm.notes.trim()) {
         alert('⚠️ La descripción es obligatoria para Ajuste Especial')
@@ -964,8 +959,7 @@ export default function InventarioPage() {
                   >
                     <option value="entrada">Entrada (agregar a cantidad)</option>
                     <option value="salida">Salidas Especiales (descontar de cantidad)</option>
-                    <option value="ajuste">Ajuste por Conteo de Inventario</option>
-                    <option value="ajuste_especial">Ajuste Especial (rápido)</option>
+                    <option value="ajuste_especial">Ajuste Especial</option>
                     <option value="transferencia">Transferencia por Garantía (cantidad → garantía)</option>
                   </select>
                 </div>
@@ -1086,21 +1080,19 @@ export default function InventarioPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas {(movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'ajuste_especial' || movementForm.movement_type === 'salida') && '*'}
+                  Notas {(movementForm.movement_type === 'ajuste_especial' || movementForm.movement_type === 'salida') && '*'}
                 </label>
                 <textarea
                   value={movementForm.notes}
                   onChange={(e) => setMovementForm({...movementForm, notes: e.target.value})}
                   placeholder={
-                    movementForm.movement_type === 'ajuste'
-                      ? 'Descripción del conteo de inventario (obligatorio)...'
-                      : movementForm.movement_type === 'ajuste_especial'
+                    movementForm.movement_type === 'ajuste_especial'
                       ? 'Descripción del ajuste especial (obligatorio)...'
                       : movementForm.movement_type === 'salida'
                       ? 'Descripción de la salida especial (obligatorio)...'
                       : 'Detalles del movimiento...'
                   }
-                  required={movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'ajuste_especial' || movementForm.movement_type === 'salida'}
+                  required={movementForm.movement_type === 'ajuste_especial' || movementForm.movement_type === 'salida'}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />

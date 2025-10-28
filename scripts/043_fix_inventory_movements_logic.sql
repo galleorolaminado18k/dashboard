@@ -1,5 +1,5 @@
 -- Migration 043: Fix Inventory Movements Logic
--- Unificar ajuste y ajuste_especial, corregir lógica de movimientos
+-- Simplificar movimientos: eliminar ajuste por conteo, solo ajuste especial
 
 -- 1. Actualizar función del trigger para manejar correctamente todos los tipos
 CREATE OR REPLACE FUNCTION update_inventory_stock()
@@ -21,8 +21,8 @@ BEGIN
       UPDATE public.inventory SET stock_warranty = GREATEST(0, stock_warranty - NEW.quantity) WHERE id = NEW.inventory_id;
     END IF;
 
-  -- AJUSTE: Ajusta directamente el valor (unificado: ajuste por conteo o ajuste especial)
-  ELSIF NEW.movement_type = 'ajuste' OR NEW.movement_type = 'ajuste_especial' THEN
+  -- AJUSTE ESPECIAL: Ajusta directamente el valor absoluto
+  ELSIF NEW.movement_type = 'ajuste_especial' THEN
     IF NEW.warehouse_type = 'cantidad' THEN
       UPDATE public.inventory SET stock = NEW.quantity WHERE id = NEW.inventory_id;
     ELSIF NEW.warehouse_type = 'garantia' THEN
@@ -57,5 +57,5 @@ CREATE TRIGGER trigger_update_inventory_stock
 
 -- Verificar tipos de movimiento válidos
 COMMENT ON COLUMN public.inventory_movements.movement_type IS
-  'Tipos válidos: entrada (agregar), salida (descontar), ajuste/ajuste_especial (ajustar valor directo), transferencia (cantidad→garantía)';
+  'Tipos válidos: entrada (agregar), salida (descontar), ajuste_especial (ajustar valor directo), transferencia (cantidad→garantía)';
 

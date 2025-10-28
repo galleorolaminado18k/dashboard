@@ -32,17 +32,15 @@ Las columnas de la tabla de inventario ahora siguen este orden:
 |------|--------|-------------|
 | **Entrada** | ➕ Agregar | Agrega unidades a Cantidad o Garantía (según warehouse_type) |
 | **Salida** | ➖ Descontar | Descuenta de Cantidad (salidas especiales: bono, obsequios, canje, puntos, otros) |
-| **Ajuste por Conteo** | 🔢 Ajustar | Establece el valor absoluto del stock (ejemplo: conteo físico resultó en 50 → se ajusta a 50) |
-| **Ajuste Especial** | 🔢 Ajustar | Igual que ajuste por conteo, pero con interfaz rápida (agregar/descontar 1-15 unidades) |
+| **Ajuste Especial** | 🔢 Ajustar | Establece el valor absoluto del stock con interfaz rápida (agregar/descontar 1-15 unidades) |
 | **Transferencia** | 🔄 Transferir | Sale de Cantidad e ingresa a Garantía |
 
-#### Unificación de Ajustes
+#### Simplificación de Ajustes
 
-- **Ajuste por Conteo** y **Ajuste Especial** ahora funcionan de la misma manera
-- Ambos establecen un nuevo valor absoluto de stock
-- La diferencia está en la interfaz:
-  - **Ajuste por Conteo**: Requiere ingresar el nuevo valor total manualmente
-  - **Ajuste Especial**: Permite agregar/descontar 1-15 unidades de forma rápida, calculando el nuevo valor automáticamente
+- Solo existe **Ajuste Especial** para ajustar el stock manualmente
+- Permite agregar/descontar 1-15 unidades de forma rápida
+- Calcula automáticamente el nuevo valor absoluto del stock
+- Ideal para correcciones rápidas sin tener que calcular el total manualmente
 
 #### Ejemplos Prácticos
 
@@ -56,28 +54,23 @@ Las columnas de la tabla de inventario ahora siguen este orden:
 - Salida de 2 unidades
 - Stock resultante: **13**
 
-**Ajuste por Conteo:**
-- Stock actual: 13
-- Conteo físico: 12 unidades
-- Se ajusta a: **12**
-
 **Ajuste Especial (Descontar 3):**
-- Stock actual: 12
+- Stock actual: 13
 - Acción: Descontar 3
-- Cálculo: 12 - 3 = 9
-- Se ajusta a: **9**
+- Cálculo: 13 - 3 = 10
+- Se ajusta a: **10**
 
 **Ajuste Especial (Agregar 5):**
-- Stock actual: 9
+- Stock actual: 10
 - Acción: Agregar 5
-- Cálculo: 9 + 5 = 14
-- Se ajusta a: **14**
+- Cálculo: 10 + 5 = 15
+- Se ajusta a: **15**
 
 **Transferencia por Garantía:**
-- Stock Cantidad: 14
+- Stock Cantidad: 15
 - Stock Garantía: 2
 - Transferir 1 unidad
-- Stock Cantidad: **13** | Stock Garantía: **3**
+- Stock Cantidad: **14** | Stock Garantía: **3**
 
 ### 3. Archivos Modificados
 
@@ -113,7 +106,7 @@ Para aplicar los cambios en la base de datos, ejecutar en Supabase SQL Editor:
 
 ✅ **Entrada** → Siempre agrega a Cantidad (o Garantía si se selecciona)  
 ✅ **Salidas Especiales** → Siempre descuentan de Cantidad  
-✅ **Ajuste** → Establece valor absoluto (ej: si hay 10 y ajustas a 7, queda 7)  
+✅ **Ajuste Especial** → Establece valor absoluto calculado (ej: si hay 10 y descontas 3, ajusta a 7)  
 ✅ **Transferencia** → Sale de Cantidad, entra a Garantía  
 ✅ **No se permiten stocks negativos** → Se usa `GREATEST(0, valor)` en el trigger
 

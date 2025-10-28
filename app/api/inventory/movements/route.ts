@@ -15,8 +15,8 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Validar tipos de movimiento (incluye ajuste_especial)
-    const validTypes = ['entrada', 'salida', 'ajuste', 'ajuste_especial', 'transferencia']
+    // Validar tipos de movimiento (solo ajuste_especial, sin ajuste)
+    const validTypes = ['entrada', 'salida', 'ajuste_especial', 'transferencia']
     if (!validTypes.includes(body.movement_type)) {
       return NextResponse.json({
         ok: false,
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Validar que ajuste, ajuste_especial y salidas tengan descripción
-    if ((body.movement_type === 'ajuste' || body.movement_type === 'ajuste_especial' || body.movement_type === 'salida') && !body.notes) {
+    // Validar que ajuste_especial y salidas tengan descripción
+    if ((body.movement_type === 'ajuste_especial' || body.movement_type === 'salida') && !body.notes) {
       return NextResponse.json({
         ok: false,
         error: 'La descripción es obligatoria para este tipo de movimiento'
@@ -56,9 +56,7 @@ export async function POST(request: Request) {
       const typeLabel = specialTypeLabels[body.special_exit_type] || body.special_exit_type
       finalNotes = `[${typeLabel}] ${body.notes || ''}`
     } else if (body.movement_type === 'ajuste_especial') {
-      // Ajuste especial y ajuste funcionan igual: ajustan el valor absoluto
-      // La diferencia es solo en la interfaz para facilitar operaciones rápidas
-      finalMovementType = 'ajuste' // Convertir a ajuste para unificar en DB
+      // Ajuste especial: ajusta el valor absoluto del stock
       const action = body.special_action === 'agregar' ? 'Agregado' : 'Descuento'
       finalNotes = `[Ajuste Especial - ${action} de ${body.quantity}] ${body.notes || ''}`
     }
