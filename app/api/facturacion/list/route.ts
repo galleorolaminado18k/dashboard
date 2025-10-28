@@ -44,7 +44,7 @@ export async function GET() {
       metodo: inv.payment_method || 'Contraentrega',
       items: (inv.invoice_items || []).map((item: any) => ({
         ref: item.id || '',
-        descripcion: item.description || '',
+        descripcion: item.product_name || item.description || '',
         und: Number(item.quantity || 1),
         ivaPct: 19, // IVA estándar
         precioBase: Number(item.unit_price || 0),
