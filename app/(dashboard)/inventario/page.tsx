@@ -243,22 +243,22 @@ export default function InventarioPage() {
       {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-xs">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">SKU</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Categoría</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Precio Detal</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Precio Mayor</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Costo</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Utilidad Detal</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Utilidad Mayor</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Cantidad</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Garantías</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Valor Total</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Acciones</th>
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">SKU</th>
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Nombre</th>
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Cat.</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Detal</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Mayor</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Costo</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Util. Detal</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Util. Mayor</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Cant.</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Gar.</th>
+                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase">Estado</th>
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">V. Total</th>
+                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase">Acc.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -293,56 +293,56 @@ export default function InventarioPage() {
 
                   return (
                     <tr key={product.id} className="hover:bg-amber-50/30 transition-colors">
-                      <td className="px-4 py-4">
-                        <div className="font-mono text-sm font-medium text-gray-900">{product.sku}</div>
+                      <td className="px-2 py-2">
+                        <div className="font-mono text-[11px] font-medium text-gray-900">{product.sku}</div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-gray-900">{product.name}</div>
+                      <td className="px-2 py-2">
+                        <div className="font-medium text-[11px] text-gray-900 max-w-[120px] truncate">{product.name}</div>
                         {product.description && (
-                          <div className="text-xs text-gray-500 mt-0.5">{product.description}</div>
+                          <div className="text-[9px] text-gray-500 mt-0.5 max-w-[120px] truncate">{product.description}</div>
                         )}
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-700">
-                          {product.category || 'Sin categoría'}
+                      <td className="px-2 py-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-sky-100 text-sky-700">
+                          {product.category || 'N/A'}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-right font-semibold text-gray-900">
+                      <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
                         {formatCurrency(product.price_retail || 0)}
                       </td>
-                      <td className="px-4 py-4 text-right font-semibold text-gray-900">
+                      <td className="px-2 py-2 text-right font-semibold text-[11px] text-gray-900">
                         {formatCurrency(product.price_wholesale || 0)}
                       </td>
-                      <td className="px-4 py-4 text-right text-gray-600">
+                      <td className="px-2 py-2 text-right text-[11px] text-gray-600">
                         {formatCurrency(product.cost || 0)}
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-sm font-medium text-emerald-700">
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex flex-col items-end gap-0">
+                          <span className="text-[10px] font-medium text-emerald-700">
                             {formatCurrency(profitRetail)}
                           </span>
-                          <span className="text-xs text-emerald-600">
+                          <span className="text-[9px] text-emerald-600">
                             {marginRetail.toFixed(1)}%
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-sm font-medium text-blue-700">
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex flex-col items-end gap-0">
+                          <span className="text-[10px] font-medium text-blue-700">
                             {formatCurrency(profitWholesale)}
                           </span>
-                          <span className="text-xs text-blue-600">
+                          <span className="text-[9px] text-blue-600">
                             {marginWholesale.toFixed(1)}%
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex flex-col items-end gap-1.5">
-                          <span className={`text-lg font-semibold ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className={`text-[11px] font-semibold ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
                             {product.stock || 0}
                           </span>
                           {product.max_stock > 0 && (
-                            <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="w-12 h-1 bg-gray-200 rounded-full overflow-hidden">
                               <div
                                 className={`h-full transition-all ${
                                   isLowStock ? 'bg-rose-400' : stockPercent > 50 ? 'bg-emerald-400' : 'bg-amber-400'
@@ -353,30 +353,30 @@ export default function InventarioPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <span className="text-lg font-semibold text-violet-700">
+                      <td className="px-2 py-2 text-right">
+                        <span className="text-[11px] font-semibold text-violet-700">
                           {product.stock_warranty || 0}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                      <td className="px-2 py-2 text-center">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
                           product.status === 'active' 
                             ? 'bg-emerald-100 text-emerald-700' 
                             : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {product.status === 'active' ? 'Activo' : 'Inactivo'}
+                          {product.status === 'active' ? 'Act.' : 'Inac.'}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-right font-bold text-emerald-700">
+                      <td className="px-2 py-2 text-right font-bold text-[11px] text-emerald-700">
                         {formatCurrency(totalValue)}
                       </td>
-                      <td className="px-4 py-4 text-center">
+                      <td className="px-2 py-2 text-center">
                         <button
                           onClick={() => openMovementModal(product)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                          className="inline-flex items-center gap-0.5 px-2 py-1 text-[10px] font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
                         >
                           <ArrowUpDown className="w-3 h-3" />
-                          Movimiento
+                          Mov.
                         </button>
                       </td>
                     </tr>
