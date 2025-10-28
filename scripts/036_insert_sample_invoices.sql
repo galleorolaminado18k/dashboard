@@ -7,6 +7,7 @@
 
 -- PASO 0: Agregar columnas que faltan a la tabla SALES
 ALTER TABLE public.sales
+ADD COLUMN IF NOT EXISTS order_id TEXT,
 ADD COLUMN IF NOT EXISTS client_name TEXT,
 ADD COLUMN IF NOT EXISTS client_phone TEXT,
 ADD COLUMN IF NOT EXISTS client_address TEXT,
@@ -146,6 +147,7 @@ WHERE i.invoice_number = 'FAC-2025-003';
 
 -- PASO 5: Crear registros en la tabla SALES automáticamente
 INSERT INTO public.sales (
+  order_id,
   client_name,
   client_phone,
   city,
@@ -159,6 +161,7 @@ INSERT INTO public.sales (
   created_at
 )
 SELECT
+  'ORD-' || i.invoice_number as order_id,
   i.client_name,
   i.client_phone,
   SPLIT_PART(i.client_address, ', ', 2) as city,
@@ -215,6 +218,7 @@ ORDER BY i.invoice_number;
 SELECT
   'VENTA' as tipo,
   id,
+  order_id,
   client_name,
   city,
   total_amount,
@@ -225,7 +229,7 @@ SELECT
   mipaquete_code,
   products
 FROM public.sales
-WHERE mipaquete_code LIKE 'MP-SB04807831%'
+WHERE order_id LIKE 'ORD-FAC-2025-0%'
 ORDER BY created_at DESC
 LIMIT 10;
 
