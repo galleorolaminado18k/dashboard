@@ -181,10 +181,10 @@ BEGIN
   FOR invoice_record IN
     SELECT * FROM public.invoices WHERE sale_id IS NULL
   LOOP
-    -- Verificar si hay items para esta factura
+    -- Verificar si hay items para esta factura (invoice_id es TEXT)
     SELECT COUNT(*) INTO v_items_count
     FROM public.invoice_items
-    WHERE invoice_id = invoice_record.invoice_number;
+    WHERE invoice_id = invoice_record.invoice_number::TEXT;
 
     -- Construir productos solo si existen items
     IF v_items_count > 0 THEN
@@ -198,7 +198,7 @@ BEGIN
       )
       INTO v_products
       FROM public.invoice_items
-      WHERE invoice_id = invoice_record.invoice_number;
+      WHERE invoice_id = invoice_record.invoice_number::TEXT;
     ELSE
       -- Si no hay items, crear un producto genérico con el total
       v_products := jsonb_build_array(
@@ -257,12 +257,12 @@ BEGIN
         0,
         v_products,
         v_sale_status,
-        invoice_record.invoice_number,
+        invoice_record.invoice_number::TEXT,
         invoice_record.notes,
         invoice_record.guia,
         COALESCE(invoice_record.issue_date, NOW()),
         NOW(),
-        invoice_record.invoice_number,
+        invoice_record.invoice_number::TEXT,
         CASE WHEN UPPER(COALESCE(invoice_record.status, '')) = 'DEVOLUCION' THEN true ELSE false END
       )
       RETURNING id INTO v_sale_id;
