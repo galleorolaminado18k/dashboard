@@ -5,6 +5,21 @@
 -- Primero elimina el CHECK constraint y agrega columnas
 -- =====================================================
 
+-- PASO 0: Agregar columnas que faltan a la tabla SALES
+ALTER TABLE public.sales
+ADD COLUMN IF NOT EXISTS client_name TEXT,
+ADD COLUMN IF NOT EXISTS client_phone TEXT,
+ADD COLUMN IF NOT EXISTS client_address TEXT,
+ADD COLUMN IF NOT EXISTS city TEXT,
+ADD COLUMN IF NOT EXISTS products JSONB,
+ADD COLUMN IF NOT EXISTS total_amount NUMERIC(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS shipping_amount NUMERIC(12, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS payment_method TEXT,
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pendiente',
+ADD COLUMN IF NOT EXISTS mipaquete_code TEXT,
+ADD COLUMN IF NOT EXISTS campaign_id TEXT,
+ADD COLUMN IF NOT EXISTS invoice_number TEXT;
+
 -- PASO 1: Eliminar el CHECK CONSTRAINT que está causando el error
 ALTER TABLE public.invoices
 DROP CONSTRAINT IF EXISTS invoices_status_check;
