@@ -209,11 +209,6 @@ export default function InventarioPage() {
     } finally {
       setSaving(false)
     }
-  } {
-      alert('❌ Error al registrar movimiento: ' + error.message)
-    } finally {
-      setSaving(false)
-    }
   }
 
   const resetProductForm = () => {
