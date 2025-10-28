@@ -444,14 +444,14 @@ export default function InventarioPage() {
                   </div>
                 </th>
 
-                {/* Valor Total */}
+                {/* Costo Total */}
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
                   <div className="inline-flex items-center gap-1 justify-end">
-                    V. Total
+                    Costo Total
                     <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
                     <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
                       <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
-                        Valor Total en Inventario
+                        Costo Total de Inventario
                       </div>
                       <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
                     </div>
@@ -551,19 +551,23 @@ export default function InventarioPage() {
                       </td>
                       <td className="px-2 py-2 text-right">
                         <div className="flex flex-col items-end gap-0.5">
-                          <span className={`text-[11px] font-semibold ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
+                          <span className={`text-[11px] font-semibold ${
+                            (product.stock || 0) >= 1 && (product.stock || 0) <= 5 ? 'text-red-600' :
+                            (product.stock || 0) >= 6 && (product.stock || 0) <= 10 ? 'text-orange-600' :
+                            (product.stock || 0) >= 11 ? 'text-green-600' : 'text-gray-900'
+                          }`}>
                             {product.stock || 0}
                           </span>
-                          {product.max_stock > 0 && (
-                            <div className="w-12 h-1 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all ${
-                                  isLowStock ? 'bg-rose-400' : stockPercent > 50 ? 'bg-emerald-400' : 'bg-amber-400'
-                                }`}
-                                style={{ width: `${Math.min(stockPercent, 100)}%` }}
-                              />
-                            </div>
-                          )}
+                          <div className="w-12 h-1 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all ${
+                                (product.stock || 0) >= 1 && (product.stock || 0) <= 5 ? 'bg-red-500' :
+                                (product.stock || 0) >= 6 && (product.stock || 0) <= 10 ? 'bg-orange-500' :
+                                (product.stock || 0) >= 11 ? 'bg-green-500' : 'bg-gray-400'
+                              }`}
+                              style={{ width: `${product.max_stock > 0 ? Math.min(stockPercent, 100) : 100}%` }}
+                            />
+                          </div>
                         </div>
                       </td>
                       <td className="px-2 py-2 text-right">
