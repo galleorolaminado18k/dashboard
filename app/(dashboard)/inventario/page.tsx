@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import useSWR from "swr"
-import { Package, Plus, Search, X, Save, TrendingUp, ArrowUpDown } from "lucide-react"
+import { Package, Plus, Search, X, Save, TrendingUp, ArrowUpDown, Info } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -12,6 +12,23 @@ function formatCurrency(value: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(value)
+}
+
+// Función para obtener abreviatura de categoría
+function getCategoryAbbr(category: string): string {
+  const abbrs: Record<string, string> = {
+    'CADENAS': 'CAD',
+    'ARETES': 'ARE',
+    'DIJES': 'DIJ',
+    'PULSERAS': 'PUL',
+    'TOBILLERAS': 'TOB',
+    'MANILLAS': 'MAN',
+    'BALINES': 'BAL',
+    'ANILLOS': 'ANI',
+    'CANDONGAS': 'CAN',
+    'HERRAJES': 'HER'
+  }
+  return abbrs[category] || category.substring(0, 3).toUpperCase()
 }
 
 export default function InventarioPage() {
@@ -331,9 +348,17 @@ export default function InventarioPage() {
                         )}
                       </td>
                       <td className="px-2 py-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium bg-sky-100 text-sky-700">
-                          {product.category || 'N/A'}
-                        </span>
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 group relative">
+                          <span className="text-[9px] font-medium">{getCategoryAbbr(product.category || 'N/A')}</span>
+                          <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+                          {/* Tooltip con nombre completo */}
+                          <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block z-10 whitespace-nowrap">
+                            <div className="bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg">
+                              {product.category || 'N/A'}
+                            </div>
+                            <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -bottom-1"></div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-2 py-2">
                         {['CADENAS', 'PULSERAS', 'TOBILLERAS'].includes(product.category) ? (
