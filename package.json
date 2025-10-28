@@ -8,7 +8,9 @@
     "dev": "next dev",
     "postinstall": "node scripts/next-fix-route-collisions.mjs && node scripts/prefer-non-group-pages.mjs",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "git:auto": "powershell -ExecutionPolicy Bypass -File scripts/auto-commit.ps1",
+    "git:push": "git add . && git commit -m \"Auto-commit: Actualización automática\" && git push"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
