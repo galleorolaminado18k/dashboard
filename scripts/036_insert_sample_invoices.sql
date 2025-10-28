@@ -131,25 +131,24 @@ WHERE i.invoice_number = 'FAC-2025-003';
 
 -- PASO 5: Crear registros en la tabla SALES automáticamente
 INSERT INTO public.sales (
-  sale_id,
+  invoice_number,
   client_name,
   client_phone,
-  client_email,
+  city,
   products,
-  total,
+  total_amount,
+  shipping_amount,
   payment_method,
   status,
-  shipping_company,
-  tracking_number,
   mipaquete_code,
-  seller_name,
-  sale_date
+  campaign_id,
+  created_at
 )
 SELECT
   i.invoice_number,
   i.client_name,
   i.client_phone,
-  LOWER(REPLACE(i.client_name, ' ', '')) || '@example.com' as client_email,
+  SPLIT_PART(i.client_address, ', ', 2) as city,
   jsonb_build_array(
     jsonb_build_object(
       'name', (SELECT product_name FROM public.invoice_items WHERE invoice_id = i.id LIMIT 1),
@@ -158,22 +157,21 @@ SELECT
     )
   ) as products,
   i.total,
+  0 as shipping_amount,
   LOWER(i.payment_method) as payment_method,
   CASE
-    WHEN i.status = 'PAGADO' THEN 'completada'
+    WHEN i.status = 'PAGADO' THEN 'pagada'
     WHEN i.status = 'PENDIENTE PAGO' THEN 'pendiente'
-    WHEN i.status = 'ENTREGADO' THEN 'completada'
+    WHEN i.status = 'ENTREGADO' THEN 'pagada'
     ELSE 'pendiente'
   END as status,
-  i.transportadora,
-  i.guia,
   i.guia as mipaquete_code,
-  'Sistema' as seller_name,
+  'Campaña de Oro 18K' as campaign_id,
   i.issue_date
 FROM public.invoices i
 WHERE i.invoice_number LIKE 'FAC-2025-0%'
   AND NOT EXISTS (
-    SELECT 1 FROM public.sales s WHERE s.sale_id = i.invoice_number
+    SELECT 1 FROM public.sales s WHERE s.invoice_number = i.invoice_number
   );
 
 -- PASO 6: Verificar que se crearon las facturas, productos y ventas
@@ -206,14 +204,17 @@ ORDER BY i.invoice_number;
 -- Verificar ventas creadas
 SELECT
   'VENTA' as tipo,
-  sale_id,
+  invoice_number,
   client_name,
-  total,
+  city,
+  total_amount,
+  shipping_amount,
+  revenue_no_shipping,
   status,
-  products,
-  shipping_company,
-  tracking_number
+  payment_method,
+  mipaquete_code,
+  products
 FROM public.sales
-WHERE sale_id LIKE 'FAC-2025-0%'
-ORDER BY sale_id;
+WHERE invoice_number LIKE 'FAC-2025-0%'
+ORDER BY invoice_number;
 
