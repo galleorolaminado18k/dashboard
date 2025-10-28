@@ -53,7 +53,8 @@ export async function POST(request: Request) {
       const typeLabel = specialTypeLabels[body.special_exit_type] || body.special_exit_type
       finalNotes = `[${typeLabel}] ${body.notes || ''}`
     } else if (body.movement_type === 'ajuste_especial') {
-      finalNotes = `[Ajuste Especial - Descuento de ${body.quantity}] ${body.notes || ''}`
+      const action = body.special_action === 'agregar' ? 'Agregado' : 'Descuento'
+      finalNotes = `[Ajuste Especial - ${action} de ${body.quantity}] ${body.notes || ''}`
     }
 
     // Insertar movimiento (el trigger actualizará el stock automáticamente)

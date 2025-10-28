@@ -63,7 +63,8 @@ export default function InventarioPage() {
     quantity: 1,
     notes: '',
     special_exit_type: '', // Para salidas especiales: bono, obsequios, canje, puntos, otros
-    special_discount_qty: 1 // Para ajuste especial: cantidad del 1 al 30 a descontar
+    special_discount_qty: 1, // Para ajuste especial: cantidad del 1 al 15
+    special_action: 'descontar' // Para ajuste especial: descontar o agregar
   })
 
   const { data, error, isLoading, mutate } = useSWR('/api/inventory', fetcher, {
@@ -162,10 +163,18 @@ export default function InventarioPage() {
     setSaving(true)
 
     try {
-      // Si es ajuste especial, usar la cantidad especial
-      const quantityToSend = movementForm.movement_type === 'ajuste_especial'
-        ? (movementForm.special_discount_qty || 1)
-        : movementForm.quantity
+      // Determinar la cantidad y tipo de movimiento para ajuste especial
+      let finalMovementType = movementForm.movement_type
+      let quantityToSend = movementForm.quantity
+
+      if (movementForm.movement_type === 'ajuste_especial') {
+        quantityToSend = movementForm.special_discount_qty || 1
+        // Si la acción es "agregar", se convierte en una entrada
+        // Si la acción es "descontar", se mantiene como ajuste especial (que resta)
+        if (movementForm.special_action === 'agregar') {
+          finalMovementType = 'entrada'
+        }
+      }
 
       const response = await fetch('/api/inventory/movements', {
         method: 'POST',
@@ -173,6 +182,7 @@ export default function InventarioPage() {
         body: JSON.stringify({
           inventory_id: selectedProduct.id,
           ...movementForm,
+          movement_type: finalMovementType,
           quantity: quantityToSend
         })
       })
@@ -222,7 +232,8 @@ export default function InventarioPage() {
       quantity: 1,
       notes: '',
       special_exit_type: '',
-      special_discount_qty: 1
+      special_discount_qty: 1,
+      special_action: 'descontar'
     })
   }
 
@@ -917,7 +928,7 @@ export default function InventarioPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Movimiento *</label>
                   <select
                     value={movementForm.movement_type}
-                    onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value, special_exit_type: '', special_discount_qty: 1})}
+                    onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value, special_exit_type: '', special_discount_qty: 1, special_action: 'descontar'})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="entrada">Entrada</option>
@@ -964,22 +975,55 @@ export default function InventarioPage() {
                 </div>
               )}
 
-              {/* Campo de Cantidad a Descontar para Ajuste Especial */}
+              {/* Campos para Ajuste Especial: Acción + Cantidad */}
               {movementForm.movement_type === 'ajuste_especial' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad a Descontar del Stock Actual *</label>
-                  <select
-                    value={movementForm.special_discount_qty || 1}
-                    onChange={(e) => setMovementForm({...movementForm, special_discount_qty: Number(e.target.value)})}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  >
-                    {Array.from({length: 30}, (_, i) => i + 1).map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Se descontará esta cantidad del stock actual: {selectedProduct?.stock || 0} → {Math.max(0, (selectedProduct?.stock || 0) - (movementForm.special_discount_qty || 1))}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Selector 1: Acción (Descontar o Agregar) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Acción *</label>
+                    <select
+                      value={movementForm.special_action || 'descontar'}
+                      onChange={(e) => setMovementForm({...movementForm, special_action: e.target.value})}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      <option value="descontar">Descontar</option>
+                      <option value="agregar">Agregar</option>
+                    </select>
+                  </div>
+
+                  {/* Selector 2: Cantidad (1-15) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                    <select
+                      value={movementForm.special_discount_qty || 1}
+                      onChange={(e) => setMovementForm({...movementForm, special_discount_qty: Number(e.target.value)})}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      {Array.from({length: 15}, (_, i) => i + 1).map(num => (
+                        <option key={num} value={num}>{num}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Preview del resultado */}
+              {movementForm.movement_type === 'ajuste_especial' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <span className="font-semibold">
+                      {movementForm.special_action === 'descontar' ? '➖ Se descontará' : '➕ Se agregará'}
+                    </span>
+                    {' '}{movementForm.special_discount_qty || 1} unidad(es) del stock actual
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Stock: {selectedProduct?.stock || 0} → {
+                      movementForm.special_action === 'descontar'
+                        ? Math.max(0, (selectedProduct?.stock || 0) - (movementForm.special_discount_qty || 1))
+                        : (selectedProduct?.stock || 0) + (movementForm.special_discount_qty || 1)
+                    }
                   </p>
                 </div>
               )}
