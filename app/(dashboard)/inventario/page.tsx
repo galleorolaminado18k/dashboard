@@ -510,6 +510,7 @@ export default function InventarioPage() {
                       </td>
                       <td className="px-2 py-2">
                         <div className="font-medium text-[11px] text-gray-900 max-w-[120px] truncate">{product.name}</div>
+                        <div className="text-[9px] text-sky-600 mt-0.5 font-medium">{product.category || 'Sin categoría'}</div>
                         {product.description && (
                           <div className="text-[9px] text-gray-500 mt-0.5 max-w-[120px] truncate">{product.description}</div>
                         )}
