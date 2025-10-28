@@ -290,13 +290,39 @@ export default function InventarioPage() {
           <table className="w-full text-xs">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
               <tr>
-                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">SKU</th>
-                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Nombre</th>
+                {/* SKU */}
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1">
+                    SKU
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Código Único del Producto
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Nombre */}
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1">
+                    Nombre
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Nombre del Producto
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Categoría */}
                 <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase group relative">
                   <div className="inline-flex items-center gap-1">
                     Cat.
                     <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
-                    {/* Tooltip con lista de categorías */}
                     <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
                       <div className="bg-gray-900 text-white text-[9px] px-3 py-2 rounded shadow-lg">
                         <div className="font-semibold mb-1 text-[10px]">Categorías:</div>
@@ -317,12 +343,160 @@ export default function InventarioPage() {
                     </div>
                   </div>
                 </th>
-                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase">Espec.</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Detal</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">P. Mayor</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Costo</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Util. Detal</th>
-                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Util. Mayor</th>
+
+                {/* Especificaciones */}
+                <th className="px-2 py-2 text-left text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1">
+                    Espec.
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute left-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Especificaciones (Tamaño/Grosor/Medida)
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Precio Detal */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    P. Detal
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Precio al Detal
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Precio Mayor */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    P. Mayor
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Precio al por Mayor
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Costo */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Costo
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Costo del Producto
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Utilidad Detal */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Util. Detal
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Utilidad al Detal
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Utilidad Mayor */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Util. Mayor
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Utilidad al por Mayor
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Cantidad */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Cant.
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Cantidad en Stock
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Garantías */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    Gar.
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Garantías
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Estado */}
+                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-center">
+                    Estado
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Estado del Producto
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-1/2 -translate-x-1/2 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Valor Total */}
+                <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-end">
+                    V. Total
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Valor Total en Inventario
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute right-3 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
+
+                {/* Acciones */}
+                <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase group relative">
+                  <div className="inline-flex items-center gap-1 justify-center">
+                    Acc.
+                    <Info className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity cursor-help" />
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 hidden group-hover:block z-20 whitespace-nowrap">
+                      <div className="bg-gray-900 text-white text-[9px] px-2 py-1 rounded shadow-lg">
+                        Acciones
+                      </div>
+                      <div className="w-2 h-2 bg-gray-900 transform rotate-45 absolute left-1/2 -translate-x-1/2 -top-1"></div>
+                    </div>
+                  </div>
+                </th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Cant.</th>
                 <th className="px-2 py-2 text-right text-[10px] font-semibold text-gray-700 uppercase">Gar.</th>
                 <th className="px-2 py-2 text-center text-[10px] font-semibold text-gray-700 uppercase">Estado</th>
