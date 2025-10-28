@@ -235,7 +235,6 @@ SELECT
   subtotal,
   total_amount,
   shipping_amount,
-  revenue_no_shipping,
   status,
   payment_method,
   mipaquete_code,
