@@ -196,7 +196,8 @@ SELECT
   'Campaña de Oro 18K' as campaign_id,
   i.issue_date
 FROM public.invoices i
-WHERE i.invoice_number LIKE 'FAC-2025-0%';
+WHERE i.invoice_number LIKE 'FAC-2025-0%'
+ON CONFLICT (order_id) DO NOTHING;
 
 -- PASO 6: Verificar que se crearon las facturas, productos y ventas
 SELECT
