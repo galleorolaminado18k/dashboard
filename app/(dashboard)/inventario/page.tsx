@@ -38,6 +38,12 @@ export default function InventarioPage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [saving, setSaving] = useState(false)
 
+  // Filtros
+  const [filterCategory, setFilterCategory] = useState<string>("")
+  const [filterStatus, setFilterStatus] = useState<string>("") // active, inactive
+  const [filterStockLevel, setFilterStockLevel] = useState<string>("") // low, medium, high
+  const [filterWarranty, setFilterWarranty] = useState<boolean | null>(null) // true para con garantías, false para sin garantías
+
   const [productForm, setProductForm] = useState({
     sku: '',
     name: '',
@@ -73,16 +79,58 @@ export default function InventarioPage() {
 
   const products = data?.products || []
 
-  const filteredProducts = products.filter((p: any) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku.toLowerCase().includes(search.toLowerCase())
-  )
+  // Aplicar todos los filtros
+  const filteredProducts = products.filter((p: any) => {
+    // Filtro de búsqueda por nombre o SKU
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku.toLowerCase().includes(search.toLowerCase())
+
+    // Filtro de categoría
+    const matchesCategory = !filterCategory || p.category === filterCategory
+
+    // Filtro de estado (activo/inactivo)
+    const matchesStatus = !filterStatus || p.status === filterStatus
+
+    // Filtro de nivel de stock
+    let matchesStockLevel = true
+    if (filterStockLevel) {
+      const stock = p.stock || 0
+      if (filterStockLevel === 'low') {
+        matchesStockLevel = stock >= 1 && stock <= 5
+      } else if (filterStockLevel === 'medium') {
+        matchesStockLevel = stock >= 6 && stock <= 10
+      } else if (filterStockLevel === 'high') {
+        matchesStockLevel = stock >= 11
+      }
+    }
+
+    // Filtro de garantías
+    let matchesWarranty = true
+    if (filterWarranty !== null) {
+      if (filterWarranty) {
+        matchesWarranty = (p.stock_warranty || 0) > 0
+      } else {
+        matchesWarranty = (p.stock_warranty || 0) === 0
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesStockLevel && matchesWarranty
+  })
 
   // KPIs calculados
   const totalValue = products.reduce((sum: number, p: any) => sum + ((p.price_retail || 0) * (p.stock || 0)), 0)
   const totalUnits = products.reduce((sum: number, p: any) => sum + (p.stock || 0) + (p.stock_warranty || 0), 0)
   const avgCost = products.length > 0 ? products.reduce((sum: number, p: any) => sum + (p.cost || 0), 0) / products.length : 0
-  const lowStock = products.filter((p: any) => (p.stock || 0) <= (p.min_stock || 0)).length
+
+  // Contar productos en rojo (stock bajo: 1-5 unidades)
+  const lowStockProducts = products.filter((p: any) => {
+    const stock = p.stock || 0
+    return stock >= 1 && stock <= 5
+  })
+  const lowStockCount = lowStockProducts.length
+
+  // Obtener categorías únicas para el filtro
+  const categories = Array.from(new Set(products.map((p: any) => p.category).filter(Boolean))) as string[]
 
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -284,8 +332,8 @@ export default function InventarioPage() {
 
         <div className="bg-gradient-to-br from-rose-50 to-rose-100 border-l-4 border-rose-400 p-5 rounded-xl shadow-sm">
           <div className="text-sm text-rose-700 font-medium mb-1">Stock bajo</div>
-          <div className="text-2xl font-bold text-rose-900">{lowStock}</div>
-          <div className="text-xs text-rose-600">productos en alerta</div>
+          <div className="text-2xl font-bold text-rose-900">{lowStockCount}</div>
+          <div className="text-xs text-rose-600">productos en rojo (1-5 unidades)</div>
         </div>
 
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-l-4 border-emerald-400 p-5 rounded-xl shadow-sm">
@@ -308,6 +356,90 @@ export default function InventarioPage() {
         </div>
         <div className="text-sm text-gray-600">
           {filteredProducts.length} de {products.length} productos
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="w-4 h-4 text-gray-600" />
+          <h3 className="text-sm font-semibold text-gray-700">Filtros</h3>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {/* Filtro de Categoría */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="">Todas</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro de Estado */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Estado</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="">Todos</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+
+          {/* Filtro de Nivel de Stock */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Nivel de Stock</label>
+            <select
+              value={filterStockLevel}
+              onChange={(e) => setFilterStockLevel(e.target.value)}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="">Todos</option>
+              <option value="low">Stock Bajo (1-5)</option>
+              <option value="medium">Stock Medio (6-10)</option>
+              <option value="high">Stock Alto (11+)</option>
+            </select>
+          </div>
+
+          {/* Filtro de Garantías */}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Garantías</label>
+            <select
+              value={filterWarranty === null ? "" : filterWarranty ? "with" : "without"}
+              onChange={(e) => setFilterWarranty(e.target.value === "" ? null : e.target.value === "with")}
+              className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <option value="">Todos</option>
+              <option value="with">Con Garantías</option>
+              <option value="without">Sin Garantías</option>
+            </select>
+          </div>
+
+          {/* Botón Limpiar Filtros */}
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setFilterCategory("")
+                setFilterStatus("")
+                setFilterStockLevel("")
+                setFilterWarranty(null)
+              }}
+              className="w-full px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center justify-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Limpiar
+            </button>
+          </div>
         </div>
       </div>
 
