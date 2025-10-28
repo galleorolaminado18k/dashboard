@@ -15,13 +15,43 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Validar tipos de movimiento
-    const validTypes = ['entrada', 'salida', 'ajuste', 'transferencia', 'garantia']
+    // Validar tipos de movimiento (ya no existe 'garantia', es 'transferencia')
+    const validTypes = ['entrada', 'salida', 'ajuste', 'transferencia']
     if (!validTypes.includes(body.movement_type)) {
       return NextResponse.json({
         ok: false,
         error: `movement_type debe ser uno de: ${validTypes.join(', ')}`
       }, { status: 400 })
+    }
+
+    // Validar que salidas especiales tengan tipo
+    if (body.movement_type === 'salida' && !body.special_exit_type) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Las salidas especiales requieren special_exit_type'
+      }, { status: 400 })
+    }
+
+    // Validar que ajuste y salidas tengan descripción
+    if ((body.movement_type === 'ajuste' || body.movement_type === 'salida') && !body.notes) {
+      return NextResponse.json({
+        ok: false,
+        error: 'La descripción es obligatoria para este tipo de movimiento'
+      }, { status: 400 })
+    }
+
+    // Preparar notas con tipo de salida especial si aplica
+    let finalNotes = body.notes || null
+    if (body.movement_type === 'salida' && body.special_exit_type) {
+      const specialTypeLabels: Record<string, string> = {
+        bono: 'Bono',
+        obsequios: 'Obsequios',
+        canje: 'Canje',
+        puntos_acumulados: 'Puntos Acumulados',
+        otros: 'Otros'
+      }
+      const typeLabel = specialTypeLabels[body.special_exit_type] || body.special_exit_type
+      finalNotes = `[${typeLabel}] ${body.notes || ''}`
     }
 
     // Insertar movimiento (el trigger actualizará el stock automáticamente)
@@ -32,7 +62,7 @@ export async function POST(request: Request) {
         movement_type: body.movement_type,
         warehouse_type: body.warehouse_type || 'cantidad',
         quantity: Number(body.quantity),
-        notes: body.notes || null,
+        notes: finalNotes,
         created_by: body.created_by || 'sistema'
       }])
       .select()

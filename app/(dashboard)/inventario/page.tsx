@@ -40,7 +40,8 @@ export default function InventarioPage() {
     movement_type: 'entrada',
     warehouse_type: 'cantidad',
     quantity: 1,
-    notes: ''
+    notes: '',
+    special_exit_type: '' // Para salidas especiales: bono, obsequios, canje, puntos, otros
   })
 
   const { data, error, isLoading, mutate } = useSWR('/api/inventory', fetcher, {
@@ -91,6 +92,23 @@ export default function InventarioPage() {
   const handleMovementSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedProduct) return
+
+    // Validaciones específicas
+    if (movementForm.movement_type === 'ajuste' && !movementForm.notes.trim()) {
+      alert('⚠️ La descripción es obligatoria para Ajuste por Conteo de Inventario')
+      return
+    }
+
+    if (movementForm.movement_type === 'salida') {
+      if (!movementForm.special_exit_type) {
+        alert('⚠️ Debes seleccionar el tipo de Salida Especial')
+        return
+      }
+      if (!movementForm.notes.trim()) {
+        alert('⚠️ La descripción es obligatoria para Salidas Especiales')
+        return
+      }
+    }
 
     setSaving(true)
 
@@ -144,7 +162,8 @@ export default function InventarioPage() {
       movement_type: 'entrada',
       warehouse_type: 'cantidad',
       quantity: 1,
-      notes: ''
+      notes: '',
+      special_exit_type: ''
     })
   }
 
@@ -617,25 +636,24 @@ export default function InventarioPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Movimiento *</label>
                   <select
                     value={movementForm.movement_type}
-                    onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value})}
+                    onChange={(e) => setMovementForm({...movementForm, movement_type: e.target.value, special_exit_type: ''})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="entrada">Entrada</option>
-                    <option value="salida">Salida</option>
-                    <option value="ajuste">Ajuste</option>
-                    <option value="transferencia">Transferencia</option>
-                    <option value="garantia">Garantía</option>
+                    <option value="salida">Salidas Especiales</option>
+                    <option value="ajuste">Ajuste por Conteo de Inventario</option>
+                    <option value="transferencia">Transferencia por Garantía</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {movementForm.movement_type === 'garantia' ? 'Mover a Garantía' : 'Almacén'}
+                    {movementForm.movement_type === 'transferencia' ? 'Mover a Garantía' : 'Almacén'}
                   </label>
                   <select
                     value={movementForm.warehouse_type}
                     onChange={(e) => setMovementForm({...movementForm, warehouse_type: e.target.value})}
-                    disabled={movementForm.movement_type === 'garantia'}
+                    disabled={movementForm.movement_type === 'transferencia'}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-100"
                   >
                     <option value="cantidad">Cantidad</option>
@@ -643,6 +661,26 @@ export default function InventarioPage() {
                   </select>
                 </div>
               </div>
+
+              {/* Campo de Tipo de Salida Especial */}
+              {movementForm.movement_type === 'salida' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Salida Especial *</label>
+                  <select
+                    value={movementForm.special_exit_type}
+                    onChange={(e) => setMovementForm({...movementForm, special_exit_type: e.target.value})}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <option value="">-- Seleccionar tipo --</option>
+                    <option value="bono">Bono</option>
+                    <option value="obsequios">Obsequios</option>
+                    <option value="canje">Canje</option>
+                    <option value="puntos_acumulados">Puntos Acumulados</option>
+                    <option value="otros">Otros</option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
@@ -657,11 +695,20 @@ export default function InventarioPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notas {(movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'salida') && '*'}
+                </label>
                 <textarea
                   value={movementForm.notes}
                   onChange={(e) => setMovementForm({...movementForm, notes: e.target.value})}
-                  placeholder="Detalles del movimiento..."
+                  placeholder={
+                    movementForm.movement_type === 'ajuste'
+                      ? 'Descripción del conteo de inventario (obligatorio)...'
+                      : movementForm.movement_type === 'salida'
+                      ? 'Descripción de la salida especial (obligatorio)...'
+                      : 'Detalles del movimiento...'
+                  }
+                  required={movementForm.movement_type === 'ajuste' || movementForm.movement_type === 'salida'}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
