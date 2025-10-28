@@ -228,7 +228,6 @@ ORDER BY i.invoice_number;
 -- Verificar ventas creadas
 SELECT
   'VENTA' as tipo,
-  id,
   order_id,
   client_name,
   city,
@@ -240,6 +239,7 @@ SELECT
   status,
   payment_method,
   mipaquete_code,
+  campaign_id,
   products
 FROM public.sales
 WHERE order_id LIKE 'ORD-FAC-2025-0%'
