@@ -15,9 +15,10 @@ Cantidad: [0]  ← El 0 no se veía bien
 
 ### 1. Modal Más Ancho
 **Antes:** `max-w-4xl` (896px)  
-**Ahora:** `max-w-6xl` (1152px)
+**Ahora:** `max-w-7xl` (1280px)
 
-**Resultado:** 256px más de ancho = **28% más espacio** para ver todo
+**Resultado:** 384px más de ancho = **43% más espacio** para ver todo  
+**Espacio lateral extra:** ~6.4cm adicionales en total (~3.2cm por lado)
 
 ---
 
@@ -171,7 +172,7 @@ CANTIDAD *
 <DialogContent className="max-w-4xl">  // 896px
 
 // AHORA
-<DialogContent className="max-w-6xl">  // 1152px
+<DialogContent className="max-w-7xl">  // 1280px (~3.2cm más por lado)
 ```
 
 ---
@@ -180,7 +181,8 @@ CANTIDAD *
 
 ### Todo es más grande y visible:
 
-✅ **Modal:** 1152px de ancho (28% más grande)  
+✅ **Modal:** 1280px de ancho (43% más grande)  
+✅ **Espacio extra:** ~6.4cm adicionales (~3.2cm por lado)  
 ✅ **Campo cantidad:** 16.67% del grid (doble del anterior)  
 ✅ **Altura inputs:** 44px (22% más alto)  
 ✅ **Texto cantidad:** 18px negrita (50% más grande)  
@@ -279,7 +281,7 @@ CANTIDAD *
 ## 📦 ARCHIVOS MODIFICADOS
 
 ✅ `components/create-invoice-dialog.tsx`
-- Modal ampliado: `max-w-6xl`
+- Modal ampliado: `max-w-7xl` (1280px, +6.4cm total)
 - Campo cantidad: `col-span-2`, `h-11`, `text-lg`, `font-bold`
 - Todos los inputs: `h-11` altura uniforme
 - Labels: `text-[11px]` `font-bold`
