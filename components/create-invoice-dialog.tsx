@@ -373,7 +373,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
       const { url: evidenciaUrl } = await uploadResponse.json()
 
-    try {
+      // 2. Determinar estado inicial
       let initialStatus = "PENDIENTE PAGO"
       if (formData.payment_method === "efectivo" || formData.payment_method === "transferencia") {
         initialStatus = "PAGADO"
@@ -386,7 +386,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
         status: initialStatus,
       })
 
-      // 2. Crear factura con URL de evidencia
+      // 3. Crear factura con URL de evidencia
       const response = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
