@@ -605,122 +605,186 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
       {/* Diálogo para crear nuevo producto */}
       <Dialog open={showCreateProductDialog} onOpenChange={setShowCreateProductDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-amber-600">
+            <DialogTitle className="text-2xl font-bold text-amber-600">
               Crear Nuevo Producto en Inventario
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Alerta de autorización */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
                 ⚠️ <strong>Solo administradores pueden crear productos.</strong> Ingrese el código de autorización para continuar.
               </p>
             </div>
 
+            {/* Código de autorización */}
             <div className="space-y-2">
-              <Label htmlFor="auth_code" className="text-sm font-semibold">
+              <Label htmlFor="auth_code" className="text-base font-semibold text-gray-900">
                 Código de Autorización *
               </Label>
               <Input
                 id="auth_code"
                 type="password"
-                placeholder="Ingrese código de administrador"
+                placeholder="••••"
                 value={authCode}
                 onChange={(e) => setAuthCode(e.target.value)}
-                className="text-center text-lg tracking-widest"
+                className="text-center text-2xl tracking-widest font-bold h-14"
+                maxLength={4}
               />
-              <p className="text-xs text-gray-500">Código requerido: Solo para administradores</p>
+              {authCode === "1430" ? (
+                <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-semibold">✓ Bienvenido Administrador</span>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">Ingrese el código de 4 dígitos</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-              <div>
-                <Label htmlFor="new_sku" className="text-sm font-semibold">
-                  SKU / Referencia *
-                </Label>
-                <Input
-                  id="new_sku"
-                  value={newProduct.sku}
-                  onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                  placeholder="Ej: ORO-ANI-001"
-                  disabled
-                  className="mt-1 bg-gray-100"
-                />
-              </div>
+            {/* Campos del producto - Solo visibles si el código es correcto */}
+            {authCode === "1430" && (
+              <div className="space-y-5 pt-4 border-t-2 border-amber-200">
+                <h3 className="text-lg font-semibold text-gray-900">Datos del Producto</h3>
 
-              <div>
-                <Label htmlFor="new_category" className="text-sm font-semibold">
-                  Categoría
-                </Label>
-                <Input
-                  id="new_category"
-                  value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                  placeholder="Ej: Joyería"
-                  className="mt-1"
-                />
-              </div>
+                {/* Fila 1: SKU y Categoría */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="new_sku" className="text-sm font-semibold text-gray-900">
+                      SKU / Referencia *
+                    </Label>
+                    <Input
+                      id="new_sku"
+                      value={newProduct.sku}
+                      onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                      placeholder="Ej: ORO-ANI-001"
+                      disabled
+                      className="mt-1 bg-gray-100 font-mono text-sm h-11"
+                    />
+                  </div>
 
-              <div className="col-span-2">
-                <Label htmlFor="new_name" className="text-sm font-semibold">
-                  Nombre del Producto *
-                </Label>
-                <Input
-                  id="new_name"
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  placeholder="Ej: Anillo de Oro 18K"
-                  className="mt-1"
-                />
-              </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="new_category" className="text-sm font-semibold text-gray-900">
+                      Categoría
+                    </Label>
+                    <Input
+                      id="new_category"
+                      value={newProduct.category}
+                      onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                      placeholder="Ej: Joyería"
+                      className="mt-1 h-11"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <Label htmlFor="new_cost" className="text-sm font-semibold">
-                  Costo
-                </Label>
-                <Input
-                  id="new_cost"
-                  type="number"
-                  min="0"
-                  value={newProduct.cost}
-                  onChange={(e) => setNewProduct({ ...newProduct, cost: Number(e.target.value) })}
-                  placeholder="0"
-                  className="mt-1"
-                />
-              </div>
+                {/* Fila 2: Nombre del Producto */}
+                <div>
+                  <Label htmlFor="new_name" className="text-sm font-semibold text-gray-900">
+                    Nombre del Producto *
+                  </Label>
+                  <Input
+                    id="new_name"
+                    value={newProduct.name}
+                    onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                    placeholder="Ej: Anillo de Oro 18K con Diamantes"
+                    className="mt-1 h-11 text-base"
+                  />
+                </div>
 
-              <div>
-                <Label htmlFor="new_price" className="text-sm font-semibold">
-                  Precio de Venta *
-                </Label>
-                <Input
-                  id="new_price"
-                  type="number"
-                  min="0"
-                  value={newProduct.price}
-                  onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
-                  placeholder="0"
-                  className="mt-1"
-                />
-              </div>
+                {/* Fila 3: Costo, Precio y Stock */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="new_cost" className="text-sm font-semibold text-gray-900">
+                      Costo Unitario
+                    </Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-3 text-gray-500 font-semibold">$</span>
+                      <Input
+                        id="new_cost"
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={newProduct.cost}
+                        onChange={(e) => setNewProduct({ ...newProduct, cost: Number(e.target.value) })}
+                        placeholder="0"
+                        className="pl-7 h-11 text-base font-semibold"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Ej: 5000000</p>
+                  </div>
 
-              <div>
-                <Label htmlFor="new_stock" className="text-sm font-semibold">
-                  Stock Inicial
-                </Label>
-                <Input
-                  id="new_stock"
-                  type="number"
-                  min="0"
-                  value={newProduct.stock}
-                  onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
-                  placeholder="0"
-                  className="mt-1"
-                />
-              </div>
-            </div>
+                  <div>
+                    <Label htmlFor="new_price" className="text-sm font-semibold text-gray-900">
+                      Precio de Venta *
+                    </Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-3 text-amber-600 font-bold text-lg">$</span>
+                      <Input
+                        id="new_price"
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={newProduct.price}
+                        onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
+                        placeholder="0"
+                        className="pl-8 h-11 text-base font-bold text-amber-600 border-amber-300 focus:border-amber-500"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Ej: 10000000</p>
+                  </div>
 
+                  <div>
+                    <Label htmlFor="new_stock" className="text-sm font-semibold text-gray-900">
+                      Stock Inicial
+                    </Label>
+                    <Input
+                      id="new_stock"
+                      type="number"
+                      min="0"
+                      value={newProduct.stock}
+                      onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
+                      placeholder="0"
+                      className="mt-1 h-11 text-base font-semibold"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Unidades</p>
+                  </div>
+                </div>
+
+                {/* Vista previa de valores */}
+                {newProduct.price > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-amber-900 mb-2">Vista Previa:</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Costo:</span>
+                        <p className="font-bold text-gray-900">
+                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.cost)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Precio Venta:</span>
+                        <p className="font-bold text-amber-600 text-lg">
+                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Utilidad:</span>
+                        <p className="font-bold text-green-600">
+                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price - newProduct.cost)}
+                          {newProduct.cost > 0 && ` (${Math.round(((newProduct.price - newProduct.cost) / newProduct.cost) * 100)}%)`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Botones */}
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
                 type="button"
@@ -729,6 +793,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                   setShowCreateProductDialog(false)
                   setAuthCode("")
                   setNewProductIndex(null)
+                  setNewProduct({ sku: "", name: "", price: 0, cost: 0, stock: 0, category: "" })
                 }}
               >
                 Cancelar
@@ -736,10 +801,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
               <Button
                 type="button"
                 onClick={handleCreateProduct}
-                className="bg-amber-500 hover:bg-amber-600"
-                disabled={!newProduct.name || !newProduct.sku || authCode !== "1430"}
+                className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6"
+                disabled={authCode !== "1430" || !newProduct.name || !newProduct.sku || newProduct.price <= 0}
               >
-                Crear Producto
+                {authCode !== "1430" ? "Ingrese Código Primero" : "Crear Producto"}
               </Button>
             </div>
           </div>
