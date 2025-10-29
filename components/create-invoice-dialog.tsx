@@ -612,10 +612,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             <div className="space-y-4">
               {items.map((item, index) => (
                 <div key={index} className="space-y-3 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 shadow-sm">
-                  <div className="grid grid-cols-12 gap-4 items-end">
+                  <div className="grid grid-cols-12 gap-4 items-center">
                     {/* Referencia/SKU */}
-                    <div className="col-span-2">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
+                    <div className="col-span-2 flex flex-col justify-center">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block">
                         Ref/SKU *
                       </Label>
                       <div className="relative">
@@ -631,16 +631,16 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                             }
                           }}
                           required
-                          className="pr-8 text-sm h-11 font-mono font-semibold border-2 focus:border-amber-400"
+                          className="pr-8 text-sm h-12 font-mono font-semibold border-2 focus:border-amber-400"
                         />
-                        <Search className="absolute right-2.5 top-3 h-4 w-4 text-gray-400" />
+                        <Search className="absolute right-2.5 top-3.5 h-4 w-4 text-gray-400" />
                       </div>
-                      <p className="text-[10px] text-gray-500 mt-1">Enter para buscar</p>
+                      <p className="text-[10px] text-gray-500 mt-1.5">Enter para buscar</p>
                     </div>
 
                     {/* Nombre del Producto */}
-                    <div className="col-span-4">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
+                    <div className="col-span-4 flex flex-col justify-center">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block">
                         Nombre del Producto *
                       </Label>
                       <Input
@@ -648,13 +648,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         value={item.description}
                         onChange={(e) => handleItemChange(index, "description", e.target.value)}
                         required
-                        className="text-sm h-11 border-2 focus:border-amber-400 font-medium"
+                        className="text-sm h-12 border-2 focus:border-amber-400 font-medium"
                       />
                     </div>
 
-                    {/* Cantidad - MÁS GRANDE */}
-                    <div className="col-span-2">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
+                    {/* Cantidad - CENTRADO Y GRANDE */}
+                    <div className="col-span-2 flex flex-col justify-center">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block text-center">
                         Cantidad *
                       </Label>
                       <Input
@@ -664,17 +664,17 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         value={item.quantity || 1}
                         onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value) || 1)}
                         required
-                        className="text-center text-lg h-11 font-bold text-gray-900 border-2 focus:border-blue-400 bg-white"
+                        className="text-center text-lg h-12 font-bold text-gray-900 border-2 focus:border-blue-400 bg-white"
                       />
                     </div>
 
-                    {/* Precio Unitario - AMPLIO Y VISIBLE */}
-                    <div className="col-span-3">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
+                    {/* Precio Unitario - AMPLIO Y CENTRADO */}
+                    <div className="col-span-3 flex flex-col justify-center">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block">
                         Precio Unitario *
                       </Label>
                       <div className="relative">
-                        <span className="absolute left-3 top-3 text-gray-600 text-sm font-bold">$</span>
+                        <span className="absolute left-3 top-3.5 text-gray-600 text-sm font-bold">$</span>
                         <Input
                           type="text"
                           placeholder="155.000"
@@ -684,20 +684,20 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                             handleItemChange(index, "unit_price", Number(numericValue))
                           }}
                           required
-                          className="pl-7 pr-3 text-base h-11 font-bold text-amber-700 text-right border-2 focus:border-amber-400 bg-white"
+                          className="pl-7 pr-3 text-base h-12 font-bold text-amber-700 text-right border-2 focus:border-amber-400 bg-white"
                         />
                       </div>
                     </div>
 
-                    {/* Botón Eliminar */}
+                    {/* Botón Eliminar - CENTRADO */}
                     {items.length > 1 && (
-                      <div className="col-span-1 flex items-end">
+                      <div className="col-span-1 flex flex-col justify-center pt-6">
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveItem(index)}
-                          className="h-11 w-11 p-0 text-red-600 hover:text-white hover:bg-red-500 border-2 border-red-200 hover:border-red-500 rounded-lg transition-all"
+                          className="h-12 w-12 p-0 text-red-600 hover:text-white hover:bg-red-500 border-2 border-red-200 hover:border-red-500 rounded-lg transition-all"
                           title="Eliminar item"
                         >
                           <Trash2 className="h-5 w-5" />
