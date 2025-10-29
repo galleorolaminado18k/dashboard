@@ -1,16 +1,40 @@
+                  <div>
+                    <Label htmlFor="new_max_stock" className="text-sm font-semibold text-gray-900">
+                      Stock Máximo
+                    </Label>
+                    <Input
+                      id="new_max_stock"
+                      type="number"
+                      min="0"
+                      value={newProduct.max_stock}
+                      onChange={(e) => setNewProduct({ ...newProduct, max_stock: Number(e.target.value) })}
+                      placeholder="0"
+                      className="mt-1 h-11 text-base"
+                    />
+                  </div>
+                </div>
+
+                {/* Vista previa de valores */}
+                {newProduct.price_retail > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-amber-900 mb-2">Vista Previa de Utilidades:</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
 "use client"
-
-import type React from "react"
-
+                        <span className="text-gray-600">Utilidad Detal:</span>
+                        <p className="font-bold text-green-600">
+                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price_retail - newProduct.cost)}
+                          {newProduct.cost > 0 && ` (${Math.round(((newProduct.price_retail - newProduct.cost) / newProduct.cost) * 100)}%)`}
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, Search } from "lucide-react"
-
+                      {newProduct.price_wholesale > 0 && (
+                        <div>
+                          <span className="text-gray-600">Utilidad Mayor:</span>
+                          <p className="font-bold text-green-600">
+                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price_wholesale - newProduct.cost)}
+                            {newProduct.cost > 0 && ` (${Math.round(((newProduct.price_wholesale - newProduct.cost) / newProduct.cost) * 100)}%)`}
+                          </p>
+                        </div>
+                      )}
 interface CreateInvoiceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -35,7 +59,7 @@ interface Sale {
 interface InventoryProduct {
   id: string
   sku: string
-  name: string
+                disabled={authCode !== "1430" || !newProduct.name || !newProduct.sku || newProduct.price_retail <= 0}
   price: number
   cost: number
   stock: number
@@ -53,10 +77,19 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   const [newProduct, setNewProduct] = useState({
     sku: "",
     name: "",
-    price: 0,
+    description: "",
+    category: "CADENAS",
     cost: 0,
+    price_retail: 0,
+    price_wholesale: 0,
     stock: 0,
-    category: ""
+    stock_warranty: 0,
+    min_stock: 0,
+    max_stock: 0,
+    status: "active",
+    tamano: "",
+    grosor: "",
+    medida_mm: ""
   })
   const [formData, setFormData] = useState({
     client_name: "",
@@ -108,26 +141,39 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   }
 
   const handleReferenceSearch = (index: number, reference: string) => {
-    // Actualizar la referencia en el item
+    // Solo actualizar el valor en el estado
     handleItemChange(index, "reference", reference)
+  }
 
-    // Buscar el producto en el inventario
-    const product = inventoryProducts.find(p => p.sku === reference)
+  const handleReferenceBlurOrEnter = (index: number, reference: string) => {
+    // Buscar el producto en el inventario cuando se termina de escribir
+    if (!reference.trim()) return
+
+    const product = inventoryProducts.find(p => p.sku.toLowerCase() === reference.toLowerCase())
 
     if (product) {
       // Si se encuentra, autocompletar nombre y precio
       handleItemChange(index, "description", product.name)
       handleItemChange(index, "unit_price", product.price)
-    } else if (reference.trim() !== "") {
-      // Si no se encuentra y hay una referencia, preparar para crear producto
+    } else {
+      // Si no se encuentra, preparar para crear producto
       setNewProductIndex(index)
       setNewProduct({
         sku: reference,
         name: "",
-        price: 0,
+        description: "",
+        category: "CADENAS",
         cost: 0,
+        price_retail: 0,
+        price_wholesale: 0,
         stock: 0,
-        category: ""
+        stock_warranty: 0,
+        min_stock: 0,
+        max_stock: 0,
+        status: "active",
+        tamano: "",
+        grosor: "",
+        medida_mm: ""
       })
       setShowCreateProductDialog(true)
     }
@@ -139,20 +185,40 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       return
     }
 
+    // Validaciones
+    if (!newProduct.name.trim()) {
+      alert("⚠️ El nombre del producto es obligatorio")
+      return
+    }
+
+    if (newProduct.price_retail <= 0) {
+      alert("⚠️ El precio de venta debe ser mayor a 0")
+      return
+    }
+
+    // Validar campos de medidas según categoría
+    const categoriesWithTamanoGrosor = ['CADENAS', 'PULSERAS', 'TOBILLERAS']
+    const categoriesWithMedidaMM = ['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'ANILLOS', 'CANDONGAS', 'HERRAJES']
+
+    if (categoriesWithTamanoGrosor.includes(newProduct.category)) {
+      if (!newProduct.tamano.trim() || !newProduct.grosor.trim()) {
+        alert(`⚠️ Los campos Tamaño y Grosor son obligatorios para ${newProduct.category}`)
+        return
+      }
+    }
+
+    if (categoriesWithMedidaMM.includes(newProduct.category)) {
+      if (!newProduct.medida_mm.trim()) {
+        alert(`⚠️ El campo Medida (MM) es obligatorio para ${newProduct.category}`)
+        return
+      }
+    }
+
     try {
       const response = await fetch("/api/inventory/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sku: newProduct.sku,
-          name: newProduct.name,
-          price_retail: newProduct.price,
-          price: newProduct.price, // Para compatibilidad
-          cost: newProduct.cost,
-          stock: newProduct.stock,
-          category: newProduct.category,
-          status: "active"
-        })
+        body: JSON.stringify(newProduct)
       })
 
       if (response.ok) {
@@ -164,13 +230,30 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
         // Autocompletar el item actual
         if (newProductIndex !== null) {
           handleItemChange(newProductIndex, "description", newProduct.name)
-          handleItemChange(newProductIndex, "unit_price", newProduct.price)
+          handleItemChange(newProductIndex, "unit_price", newProduct.price_retail)
         }
 
-        // Cerrar diálogo
+        // Cerrar diálogo y resetear
         setShowCreateProductDialog(false)
         setAuthCode("")
         setNewProductIndex(null)
+        setNewProduct({
+          sku: "",
+          name: "",
+          description: "",
+          category: "CADENAS",
+          cost: 0,
+          price_retail: 0,
+          price_wholesale: 0,
+          stock: 0,
+          stock_warranty: 0,
+          min_stock: 0,
+          max_stock: 0,
+          status: "active",
+          tamano: "",
+          grosor: "",
+          medida_mm: ""
+        })
 
         alert("✅ Producto creado exitosamente")
       } else {
@@ -464,11 +547,19 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                           placeholder="Ej: ORO-ANI-001"
                           value={item.reference}
                           onChange={(e) => handleReferenceSearch(index, e.target.value)}
+                          onBlur={(e) => handleReferenceBlurOrEnter(index, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleReferenceBlurOrEnter(index, item.reference)
+                            }
+                          }}
                           required
                           className="pr-8"
                         />
                         <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
                       </div>
+                      <p className="text-xs text-gray-500 mt-1">Presiona Enter para buscar</p>
                     </div>
 
                     {/* Nombre del Producto - Grande */}
@@ -660,8 +751,6 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     <Input
                       id="new_sku"
                       value={newProduct.sku}
-                      onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                      placeholder="Ej: ORO-ANI-001"
                       disabled
                       className="mt-1 bg-gray-100 font-mono text-sm h-11"
                     />
@@ -669,15 +758,25 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
                   <div className="col-span-2">
                     <Label htmlFor="new_category" className="text-sm font-semibold text-gray-900">
-                      Categoría
+                      Categoría *
                     </Label>
-                    <Input
+                    <select
                       id="new_category"
                       value={newProduct.category}
                       onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                      placeholder="Ej: Joyería"
-                      className="mt-1 h-11"
-                    />
+                      className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    >
+                      <option value="CADENAS">CADENAS</option>
+                      <option value="ARETES">ARETES</option>
+                      <option value="DIJES">DIJES</option>
+                      <option value="PULSERAS">PULSERAS</option>
+                      <option value="TOBILLERAS">TOBILLERAS</option>
+                      <option value="MANILLAS">MANILLAS</option>
+                      <option value="BALINES">BALINES</option>
+                      <option value="ANILLOS">ANILLOS</option>
+                      <option value="CANDONGAS">CANDONGAS</option>
+                      <option value="HERRAJES">HERRAJES</option>
+                    </select>
                   </div>
                 </div>
 
@@ -690,12 +789,73 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     id="new_name"
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                    placeholder="Ej: Anillo de Oro 18K con Diamantes"
+                    placeholder="Ej: Cadena de Oro 18K"
                     className="mt-1 h-11 text-base"
                   />
                 </div>
 
-                {/* Fila 3: Costo, Precio y Stock */}
+                {/* Fila 3: Descripción */}
+                <div>
+                  <Label htmlFor="new_description" className="text-sm font-semibold text-gray-900">
+                    Descripción
+                  </Label>
+                  <Input
+                    id="new_description"
+                    value={newProduct.description}
+                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                    placeholder="Descripción detallada del producto"
+                    className="mt-1 h-11"
+                  />
+                </div>
+
+                {/* Fila 4: Medidas según categoría */}
+                {(newProduct.category === 'CADENAS' || newProduct.category === 'PULSERAS' || newProduct.category === 'TOBILLERAS') && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div>
+                      <Label htmlFor="new_tamano" className="text-sm font-semibold text-blue-900">
+                        Tamaño * (ej: 40cm, 18", 50cm)
+                      </Label>
+                      <Input
+                        id="new_tamano"
+                        value={newProduct.tamano}
+                        onChange={(e) => setNewProduct({ ...newProduct, tamano: e.target.value })}
+                        placeholder="Ej: 50cm"
+                        className="mt-1 h-11"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="new_grosor" className="text-sm font-semibold text-blue-900">
+                        Grosor * (ej: 2mm, 3mm, fino, mediano, grueso)
+                      </Label>
+                      <Input
+                        id="new_grosor"
+                        value={newProduct.grosor}
+                        onChange={(e) => setNewProduct({ ...newProduct, grosor: e.target.value })}
+                        placeholder="Ej: 3mm"
+                        className="mt-1 h-11"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {(newProduct.category === 'ARETES' || newProduct.category === 'DIJES' || newProduct.category === 'MANILLAS' ||
+                  newProduct.category === 'BALINES' || newProduct.category === 'ANILLOS' || newProduct.category === 'CANDONGAS' ||
+                  newProduct.category === 'HERRAJES') && (
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <Label htmlFor="new_medida_mm" className="text-sm font-semibold text-purple-900">
+                      Medida en MM * (ej: 5mm, 8mm, 10mm)
+                    </Label>
+                    <Input
+                      id="new_medida_mm"
+                      value={newProduct.medida_mm}
+                      onChange={(e) => setNewProduct({ ...newProduct, medida_mm: e.target.value })}
+                      placeholder="Ej: 8mm"
+                      className="mt-1 h-11"
+                    />
+                  </div>
+                )}
+
+                {/* Fila 5: Costos y Precios */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="new_cost" className="text-sm font-semibold text-gray-900">
@@ -714,29 +874,52 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         className="pl-7 h-11 text-base font-semibold"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Ej: 5000000</p>
+                    <p className="text-xs text-gray-500 mt-1">Costo de producción</p>
                   </div>
 
                   <div>
-                    <Label htmlFor="new_price" className="text-sm font-semibold text-gray-900">
-                      Precio de Venta *
+                    <Label htmlFor="new_price_retail" className="text-sm font-semibold text-gray-900">
+                      Precio Detal *
                     </Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-3 text-amber-600 font-bold text-lg">$</span>
                       <Input
-                        id="new_price"
+                        id="new_price_retail"
                         type="number"
                         min="0"
                         step="1000"
-                        value={newProduct.price}
-                        onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
+                        value={newProduct.price_retail}
+                        onChange={(e) => setNewProduct({ ...newProduct, price_retail: Number(e.target.value) })}
                         placeholder="0"
                         className="pl-8 h-11 text-base font-bold text-amber-600 border-amber-300 focus:border-amber-500"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Ej: 10000000</p>
+                    <p className="text-xs text-gray-500 mt-1">Precio al público</p>
                   </div>
 
+                  <div>
+                    <Label htmlFor="new_price_wholesale" className="text-sm font-semibold text-gray-900">
+                      Precio Mayor
+                    </Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-3 text-green-600 font-semibold">$</span>
+                      <Input
+                        id="new_price_wholesale"
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={newProduct.price_wholesale}
+                        onChange={(e) => setNewProduct({ ...newProduct, price_wholesale: Number(e.target.value) })}
+                        placeholder="0"
+                        className="pl-7 h-11 text-base font-semibold text-green-600"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Precio mayorista</p>
+                  </div>
+                </div>
+
+                {/* Fila 6: Stock */}
+                <div className="grid grid-cols-4 gap-4">
                   <div>
                     <Label htmlFor="new_stock" className="text-sm font-semibold text-gray-900">
                       Stock Inicial
@@ -750,21 +933,38 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                       placeholder="0"
                       className="mt-1 h-11 text-base font-semibold"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Unidades</p>
                   </div>
-                </div>
 
-                {/* Vista previa de valores */}
-                {newProduct.price > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-amber-900 mb-2">Vista Previa:</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-600">Costo:</span>
-                        <p className="font-bold text-gray-900">
-                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.cost)}
-                        </p>
-                      </div>
+                  <div>
+                    <Label htmlFor="new_stock_warranty" className="text-sm font-semibold text-gray-900">
+                      Stock Garantía
+                    </Label>
+                    <Input
+                      id="new_stock_warranty"
+                      type="number"
+                      min="0"
+                      value={newProduct.stock_warranty}
+                      onChange={(e) => setNewProduct({ ...newProduct, stock_warranty: Number(e.target.value) })}
+                      placeholder="0"
+                      className="mt-1 h-11 text-base"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="new_min_stock" className="text-sm font-semibold text-gray-900">
+                      Stock Mínimo
+                    </Label>
+                    <Input
+                      id="new_min_stock"
+                      type="number"
+                      min="0"
+                      value={newProduct.min_stock}
+                      onChange={(e) => setNewProduct({ ...newProduct, min_stock: Number(e.target.value) })}
+                      placeholder="0"
+                      className="mt-1 h-11 text-base"
+                    />
+                  </div>
+
                       <div>
                         <span className="text-gray-600">Precio Venta:</span>
                         <p className="font-bold text-amber-600 text-lg">
