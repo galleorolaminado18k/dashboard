@@ -212,11 +212,6 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       })
 
       if (response.ok) {
-        const data = await response.json()
-        
-        // Actualizar lista de productos
-        await fetchInventoryProducts()
-        
         // Autocompletar el item actual
         if (newProductIndex !== null) {
           handleItemChange(newProductIndex, "description", newProduct.name)
@@ -306,6 +301,43 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validaciones antes de enviar
+    if (!formData.client_name.trim()) {
+      alert("⚠️ El nombre del cliente es obligatorio")
+      return
+    }
+
+    if (!formData.ciudad.trim()) {
+      alert("⚠️ La ciudad es obligatoria")
+      return
+    }
+
+    if (!formData.barrio.trim()) {
+      alert("⚠️ El barrio es obligatorio")
+      return
+    }
+
+    if (!formData.guia.trim()) {
+      alert("⚠️ El número de guía es obligatorio")
+      return
+    }
+
+    if (!formData.transportadora) {
+      alert("⚠️ La transportadora es obligatoria")
+      return
+    }
+
+    if (items.length === 0 || !items[0].description) {
+      alert("⚠️ Debe agregar al menos un producto")
+      return
+    }
+
+    if (items.some(item => !item.unit_price || item.unit_price <= 0)) {
+      alert("⚠️ Todos los productos deben tener un precio válido")
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -313,6 +345,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       if (formData.payment_method === "efectivo" || formData.payment_method === "transferencia") {
         initialStatus = "PAGADO"
       }
+
+      console.log("[Factura] Enviando datos:", {
+        ...formData,
+        items,
+        tax_rate: 19,
+        status: initialStatus,
+      })
 
       const response = await fetch("/api/invoices", {
         method: "POST",
@@ -326,7 +365,11 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
         }),
       })
 
+      const data = await response.json()
+      console.log("[Factura] Respuesta:", data)
+
       if (response.ok) {
+        alert("✅ Factura creada exitosamente")
         onSuccess()
         onOpenChange(false)
         setFormData({
@@ -347,9 +390,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
         })
         setItems([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
         setSelectedSale("")
+      } else {
+        alert(`❌ Error al crear factura: ${data.error || "Error desconocido"}`)
+        console.error("[Factura] Error:", data)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("[v0] Error creating invoice:", error)
+      alert(`❌ Error al crear factura: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -529,12 +576,12 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
               {items.map((item, index) => (
                 <div key={index} className="space-y-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="grid grid-cols-12 gap-3">
-                    {/* Referencia/SKU - Mediano */}
-                    <div className="col-span-3">
-                      <Label className="text-xs font-semibold text-gray-700">Referencia/SKU *</Label>
+                    {/* Referencia/SKU - Más pequeño */}
+                    <div className="col-span-2">
+                      <Label className="text-xs font-semibold text-gray-700">Ref/SKU *</Label>
                       <div className="relative mt-1">
                         <Input
-                          placeholder="Ej: ORO-ANI-001"
+                          placeholder="04-24"
                           value={item.reference}
                           onChange={(e) => handleReferenceSearch(index, e.target.value)}
                           onBlur={(e) => handleReferenceBlurOrEnter(index, e.target.value)}
@@ -545,15 +592,15 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                             }
                           }}
                           required
-                          className="pr-8"
+                          className="pr-8 text-sm"
                         />
                         <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Presiona Enter para buscar</p>
+                      <p className="text-xs text-gray-500 mt-1">Enter↵</p>
                     </div>
 
-                    {/* Nombre del Producto - Grande */}
-                    <div className="col-span-5">
+                    {/* Nombre del Producto - Más grande */}
+                    <div className="col-span-6">
                       <Label className="text-xs font-semibold text-gray-700">Nombre del Producto *</Label>
                       <Input
                         placeholder="Ej: Anillo de Oro 18K"
@@ -565,8 +612,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     </div>
 
                     {/* Cantidad */}
-                    <div className="col-span-2">
-                      <Label className="text-xs font-semibold text-gray-700">Cantidad *</Label>
+                    <div className="col-span-1">
+                      <Label className="text-xs font-semibold text-gray-700">Cant. *</Label>
                       <Input
                         type="number"
                         placeholder="1"
@@ -574,22 +621,26 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
                         required
-                        className="mt-1"
+                        className="mt-1 text-center"
                       />
                     </div>
 
-                    {/* Precio Unitario */}
-                    <div className="col-span-2">
-                      <Label className="text-xs font-semibold text-gray-700">Precio Unit. *</Label>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        min="0"
-                        value={item.unit_price}
-                        onChange={(e) => handleItemChange(index, "unit_price", Number(e.target.value))}
-                        required
-                        className="mt-1"
-                      />
+                    {/* Precio Unitario - MÁS GRANDE */}
+                    <div className="col-span-3">
+                      <Label className="text-xs font-semibold text-gray-700">Precio Unitario *</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-2 top-2.5 text-gray-500 text-sm">$</span>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          min="0"
+                          step="1000"
+                          value={item.unit_price}
+                          onChange={(e) => handleItemChange(index, "unit_price", Number(e.target.value))}
+                          required
+                          className="pl-6 text-base font-semibold"
+                        />
+                      </div>
                     </div>
                   </div>
 
