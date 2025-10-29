@@ -37,6 +37,8 @@ interface InventoryProduct {
   sku: string
   name: string
   price: number
+  price_retail: number
+  price_wholesale: number
   cost: number
   stock: number
   category?: string
@@ -130,7 +132,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     if (product) {
       // Si se encuentra, autocompletar nombre y precio
       handleItemChange(index, "description", product.name)
-      handleItemChange(index, "unit_price", product.price)
+      // Usar price_retail si existe, sino price_wholesale, sino price (legacy)
+      const precio = product.price_retail || product.price_wholesale || product.price || 0
+      handleItemChange(index, "unit_price", precio)
     } else {
       // Si no se encuentra, preparar para crear producto
       setNewProductIndex(index)
@@ -167,14 +171,24 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       return
     }
 
-    if (newProduct.price_retail <= 0) {
-      alert("⚠️ El precio de venta debe ser mayor a 0")
-      return
+    // Para BALINES/BALINERIA solo se valida precio mayor
+    const isBalineria = newProduct.category === 'BALINES' || newProduct.category === 'BALINERIA'
+
+    if (isBalineria) {
+      if (newProduct.price_wholesale <= 0) {
+        alert("⚠️ El precio mayor debe ser mayor a 0 para BALINES/BALINERIA")
+        return
+      }
+    } else {
+      if (newProduct.price_retail <= 0) {
+        alert("⚠️ El precio detal debe ser mayor a 0")
+        return
+      }
     }
 
     // Validar campos de medidas según categoría
     const categoriesWithTamanoGrosor = ['CADENAS', 'PULSERAS', 'TOBILLERAS']
-    const categoriesWithMedidaMM = ['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'ANILLOS', 'CANDONGAS', 'HERRAJES']
+    const categoriesWithMedidaMM = ['ARETES', 'DIJES', 'MANILLAS', 'BALINES', 'BALINERIA', 'ANILLOS', 'CANDONGAS', 'HERRAJES']
 
     if (categoriesWithTamanoGrosor.includes(newProduct.category)) {
       if (!newProduct.tamano.trim() || !newProduct.grosor.trim()) {
@@ -620,31 +634,39 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Detalles de Pago</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="due_date">Fecha de Vencimiento</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  className="mt-1"
-                />
-              </div>
-              <div>
+              {/* Solo mostrar fecha de vencimiento para contraentrega (crédito) */}
+              {formData.payment_method === 'contraentrega' && (
+                <div>
+                  <Label htmlFor="due_date">Fecha de Vencimiento *</Label>
+                  <Input
+                    id="due_date"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    required
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Fecha límite de pago</p>
+                </div>
+              )}
+              <div className={formData.payment_method === 'contraentrega' ? '' : 'col-span-2'}>
                 <Label htmlFor="payment_method">Método de Pago</Label>
                 <Select
                   value={formData.payment_method}
-                  onValueChange={(value) => setFormData({ ...formData, payment_method: value })}
+                  onValueChange={(value) => setFormData({ ...formData, payment_method: value, due_date: value === 'contraentrega' ? formData.due_date : '' })}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Seleccionar método" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="efectivo">Efectivo</SelectItem>
-                    <SelectItem value="transferencia">Transferencia</SelectItem>
+                    <SelectItem value="efectivo">Efectivo (Pago Inmediato)</SelectItem>
+                    <SelectItem value="transferencia">Transferencia (Pago Inmediato)</SelectItem>
                     <SelectItem value="contraentrega">Contraentrega (Crédito)</SelectItem>
                   </SelectContent>
                 </Select>
+                {formData.payment_method && (formData.payment_method === 'efectivo' || formData.payment_method === 'transferencia') && (
+                  <p className="text-xs text-green-600 mt-1">✓ Pago inmediato - No requiere fecha de vencimiento</p>
+                )}
               </div>
               <div className="col-span-2">
                 <Label htmlFor="notes">Notas</Label>
@@ -749,6 +771,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                       <option value="TOBILLERAS">TOBILLERAS</option>
                       <option value="MANILLAS">MANILLAS</option>
                       <option value="BALINES">BALINES</option>
+                      <option value="BALINERIA">BALINERIA</option>
                       <option value="ANILLOS">ANILLOS</option>
                       <option value="CANDONGAS">CANDONGAS</option>
                       <option value="HERRAJES">HERRAJES</option>
@@ -815,8 +838,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 )}
 
                 {(newProduct.category === 'ARETES' || newProduct.category === 'DIJES' || newProduct.category === 'MANILLAS' || 
-                  newProduct.category === 'BALINES' || newProduct.category === 'ANILLOS' || newProduct.category === 'CANDONGAS' || 
-                  newProduct.category === 'HERRAJES') && (
+                  newProduct.category === 'BALINES' || newProduct.category === 'BALINERIA' || newProduct.category === 'ANILLOS' ||
+                  newProduct.category === 'CANDONGAS' || newProduct.category === 'HERRAJES') && (
                   <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                     <Label htmlFor="new_medida_mm" className="text-sm font-semibold text-purple-900">
                       Medida en MM * (ej: 5mm, 8mm, 10mm)
@@ -832,7 +855,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 )}
 
                 {/* Fila 5: Costos y Precios */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className={`grid gap-4 ${newProduct.category === 'BALINES' || newProduct.category === 'BALINERIA' ? 'grid-cols-2' : 'grid-cols-3'}`}>
                   <div>
                     <Label htmlFor="new_cost" className="text-sm font-semibold text-gray-900">
                       Costo Unitario
@@ -853,29 +876,32 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     <p className="text-xs text-gray-500 mt-1">Costo de producción</p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="new_price_retail" className="text-sm font-semibold text-gray-900">
-                      Precio Detal *
-                    </Label>
-                    <div className="relative mt-1">
-                      <span className="absolute left-3 top-3 text-amber-600 font-bold text-lg">$</span>
-                      <Input
-                        id="new_price_retail"
-                        type="number"
-                        min="0"
-                        step="1000"
-                        value={newProduct.price_retail}
-                        onChange={(e) => setNewProduct({ ...newProduct, price_retail: Number(e.target.value) })}
-                        placeholder="0"
-                        className="pl-8 h-11 text-base font-bold text-amber-600 border-amber-300 focus:border-amber-500"
-                      />
+                  {/* Precio Detal - Solo si NO es BALINES/BALINERIA */}
+                  {newProduct.category !== 'BALINES' && newProduct.category !== 'BALINERIA' && (
+                    <div>
+                      <Label htmlFor="new_price_retail" className="text-sm font-semibold text-gray-900">
+                        Precio Detal *
+                      </Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-3 text-amber-600 font-bold text-lg">$</span>
+                        <Input
+                          id="new_price_retail"
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={newProduct.price_retail}
+                          onChange={(e) => setNewProduct({ ...newProduct, price_retail: Number(e.target.value) })}
+                          placeholder="0"
+                          className="pl-8 h-11 text-base font-bold text-amber-600 border-amber-300 focus:border-amber-500"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Precio al público</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Precio al público</p>
-                  </div>
+                  )}
 
                   <div>
                     <Label htmlFor="new_price_wholesale" className="text-sm font-semibold text-gray-900">
-                      Precio Mayor
+                      Precio Mayor {(newProduct.category === 'BALINES' || newProduct.category === 'BALINERIA') && '*'}
                     </Label>
                     <div className="relative mt-1">
                       <span className="absolute left-3 top-3 text-green-600 font-semibold">$</span>
@@ -890,7 +916,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         className="pl-7 h-11 text-base font-semibold text-green-600"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Precio mayorista</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(newProduct.category === 'BALINES' || newProduct.category === 'BALINERIA') ? 'Único precio de venta' : 'Precio mayorista'}
+                    </p>
                   </div>
                 </div>
 
@@ -1018,7 +1046,14 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 type="button"
                 onClick={handleCreateProduct}
                 className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6"
-                disabled={authCode !== "1430" || !newProduct.name || !newProduct.sku || newProduct.price_retail <= 0}
+                disabled={
+                  authCode !== "1430" ||
+                  !newProduct.name ||
+                  !newProduct.sku ||
+                  ((newProduct.category === 'BALINES' || newProduct.category === 'BALINERIA')
+                    ? newProduct.price_wholesale <= 0
+                    : newProduct.price_retail <= 0)
+                }
               >
                 {authCode !== "1430" ? "Ingrese Código Primero" : "Crear Producto"}
               </Button>
