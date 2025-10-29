@@ -85,6 +85,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     vendedor: "",
     evidencia: "",
   })
+  const [evidenciaFile, setEvidenciaFile] = useState<File | null>(null)
+  const [uploadingEvidencia, setUploadingEvidencia] = useState(false)
   const [items, setItems] = useState<InvoiceItem[]>([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
 
   useEffect(() => {
@@ -335,6 +337,11 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       return
     }
 
+    if (!evidenciaFile) {
+      alert("⚠️ La evidencia fotográfica es obligatoria")
+      return
+    }
+
     if (items.length === 0 || !items[0].description) {
       alert("⚠️ Debe agregar al menos un producto")
       return
@@ -346,6 +353,25 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     }
 
     setIsLoading(true)
+
+    try {
+      // 1. Subir evidencia primero
+      const formDataUpload = new FormData()
+      formDataUpload.append("file", evidenciaFile)
+
+      const uploadResponse = await fetch("/api/upload/evidencia", {
+        method: "POST",
+        body: formDataUpload,
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json()
+        alert(`❌ Error al subir evidencia: ${errorData.error}`)
+        setIsLoading(false)
+        return
+      }
+
+      const { url: evidenciaUrl } = await uploadResponse.json()
 
     try {
       let initialStatus = "PENDIENTE PAGO"
@@ -360,11 +386,13 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
         status: initialStatus,
       })
 
+      // 2. Crear factura con URL de evidencia
       const response = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          evidencia: evidenciaUrl,
           items,
           tax_rate: 19,
           status: initialStatus,
@@ -395,6 +423,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           vendedor: "",
           evidencia: "",
         })
+        setEvidenciaFile(null)
         setItems([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
         setSelectedSale("")
       } else {
@@ -587,15 +616,32 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
               </div>
               <div>
                 <Label htmlFor="evidencia" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
-                  Evidencia (URL)
+                  Evidencia Fotográfica *
                 </Label>
-                <Input
-                  id="evidencia"
-                  value={formData.evidencia}
-                  onChange={(e) => setFormData({ ...formData, evidencia: e.target.value })}
-                  placeholder="https://..."
-                  className="text-sm h-11 border-2 focus:border-amber-400"
-                />
+                <div className="flex items-center gap-3">
+                  <Input
+                    id="evidencia"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setEvidenciaFile(file)
+                      }
+                    }}
+                    required
+                    className="text-sm h-11 border-2 focus:border-amber-400"
+                  />
+                  {evidenciaFile && (
+                    <div className="flex items-center gap-2 text-green-600 text-xs font-semibold">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {evidenciaFile.name}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1">Formatos: JPG, PNG, WEBP (máx 5MB)</p>
               </div>
             </div>
           </div>
@@ -612,10 +658,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             <div className="space-y-4">
               {items.map((item, index) => (
                 <div key={index} className="space-y-3 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 shadow-sm">
-                  <div className="grid grid-cols-12 gap-4 items-center">
+                  <div className="grid grid-cols-12 gap-4 items-start">
                     {/* Referencia/SKU */}
-                    <div className="col-span-2 flex flex-col justify-center">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block">
+                    <div className="col-span-2">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block h-[18px]">
                         Ref/SKU *
                       </Label>
                       <div className="relative">
@@ -635,12 +681,11 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         />
                         <Search className="absolute right-2.5 top-3.5 h-4 w-4 text-gray-400" />
                       </div>
-                      <p className="text-[10px] text-gray-500 mt-1.5">Enter para buscar</p>
                     </div>
 
                     {/* Nombre del Producto */}
-                    <div className="col-span-4 flex flex-col justify-center">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block">
+                    <div className="col-span-4">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block h-[18px]">
                         Nombre del Producto *
                       </Label>
                       <Input
@@ -653,8 +698,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     </div>
 
                     {/* Cantidad - CENTRADO Y GRANDE */}
-                    <div className="col-span-2 flex flex-col justify-center">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block text-center">
+                    <div className="col-span-2">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block text-center h-[18px]">
                         Cantidad *
                       </Label>
                       <Input
@@ -668,9 +713,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                       />
                     </div>
 
-                    {/* Precio Unitario - AMPLIO Y CENTRADO */}
-                    <div className="col-span-3 flex flex-col justify-center">
-                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block">
+                    {/* Precio Unitario - AMPLIO Y ALINEADO */}
+                    <div className="col-span-3">
+                      <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block h-[18px]">
                         Precio Unitario *
                       </Label>
                       <div className="relative">
@@ -689,9 +734,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                       </div>
                     </div>
 
-                    {/* Botón Eliminar - CENTRADO */}
+                    {/* Botón Eliminar - ALINEADO */}
                     {items.length > 1 && (
-                      <div className="col-span-1 flex flex-col justify-center pt-6">
+                      <div className="col-span-1">
+                        <div className="h-[18px] mb-2"></div>
                         <Button
                           type="button"
                           variant="ghost"
