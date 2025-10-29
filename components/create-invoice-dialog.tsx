@@ -965,19 +965,43 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                     />
                   </div>
 
+                  <div>
+                    <Label htmlFor="new_max_stock" className="text-sm font-semibold text-gray-900">
+                      Stock Máximo
+                    </Label>
+                    <Input
+                      id="new_max_stock"
+                      type="number"
+                      min="0"
+                      value={newProduct.max_stock}
+                      onChange={(e) => setNewProduct({ ...newProduct, max_stock: Number(e.target.value) })}
+                      placeholder="0"
+                      className="mt-1 h-11 text-base"
+                    />
+                  </div>
+                </div>
+
+                {/* Vista previa de valores */}
+                {newProduct.price_retail > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-amber-900 mb-2">Vista Previa de Utilidades:</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Precio Venta:</span>
-                        <p className="font-bold text-amber-600 text-lg">
-                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Utilidad:</span>
+                        <span className="text-gray-600">Utilidad Detal:</span>
                         <p className="font-bold text-green-600">
-                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price - newProduct.cost)}
-                          {newProduct.cost > 0 && ` (${Math.round(((newProduct.price - newProduct.cost) / newProduct.cost) * 100)}%)`}
+                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price_retail - newProduct.cost)}
+                          {newProduct.cost > 0 && ` (${Math.round(((newProduct.price_retail - newProduct.cost) / newProduct.cost) * 100)}%)`}
                         </p>
                       </div>
+                      {newProduct.price_wholesale > 0 && (
+                        <div>
+                          <span className="text-gray-600">Utilidad Mayor:</span>
+                          <p className="font-bold text-green-600">
+                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price_wholesale - newProduct.cost)}
+                            {newProduct.cost > 0 && ` (${Math.round(((newProduct.price_wholesale - newProduct.cost) / newProduct.cost) * 100)}%)`}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -993,7 +1017,23 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                   setShowCreateProductDialog(false)
                   setAuthCode("")
                   setNewProductIndex(null)
-                  setNewProduct({ sku: "", name: "", price: 0, cost: 0, stock: 0, category: "" })
+                  setNewProduct({
+                    sku: "",
+                    name: "",
+                    description: "",
+                    category: "CADENAS",
+                    cost: 0,
+                    price_retail: 0,
+                    price_wholesale: 0,
+                    stock: 0,
+                    stock_warranty: 0,
+                    min_stock: 0,
+                    max_stock: 0,
+                    status: "active",
+                    tamano: "",
+                    grosor: "",
+                    medida_mm: ""
+                  })
                 }}
               >
                 Cancelar
@@ -1002,7 +1042,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 type="button"
                 onClick={handleCreateProduct}
                 className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-6"
-                disabled={authCode !== "1430" || !newProduct.name || !newProduct.sku || newProduct.price <= 0}
+                disabled={authCode !== "1430" || !newProduct.name || !newProduct.sku || newProduct.price_retail <= 0}
               >
                 {authCode !== "1430" ? "Ingrese Código Primero" : "Crear Producto"}
               </Button>
