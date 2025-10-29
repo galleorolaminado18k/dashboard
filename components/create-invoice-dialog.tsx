@@ -127,17 +127,39 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
   const handleReferenceBlurOrEnter = (index: number, reference: string) => {
     // Buscar el producto en el inventario cuando se termina de escribir
-    if (!reference.trim()) return
-    
-    const product = inventoryProducts.find(p => p.sku.toLowerCase() === reference.toLowerCase())
-    
+    if (!reference.trim()) {
+      console.log("[SKU Search] Referencia vacía")
+      return
+    }
+
+    console.log("[SKU Search] Buscando:", reference)
+    console.log("[SKU Search] Productos disponibles:", inventoryProducts.length)
+
+    // Buscar producto (normalizar espacios y mayúsculas/minúsculas)
+    const refNormalized = reference.trim().toLowerCase()
+    const product = inventoryProducts.find(p => {
+      const skuNormalized = (p.sku || '').trim().toLowerCase()
+      console.log(`[SKU Search] Comparando: "${skuNormalized}" === "${refNormalized}"`, skuNormalized === refNormalized)
+      return skuNormalized === refNormalized
+    })
+
     if (product) {
-      // Si se encuentra, autocompletar nombre y precio
+      console.log("[SKU Search] ✅ Producto encontrado:", product.name)
+
+      // Autocompletar nombre
       handleItemChange(index, "description", product.name)
-      // Usar price_retail si existe, sino price_wholesale, sino price (legacy)
+
+      // Determinar precio (prioridad: retail > wholesale > legacy)
       const precio = product.price_retail || product.price_wholesale || product.price || 0
+      console.log("[SKU Search] Precio autocompletado:", precio)
+
       handleItemChange(index, "unit_price", precio)
+
+      // Mostrar confirmación visual
+      alert(`✅ Producto encontrado: ${product.name} - $${precio.toLocaleString('es-CO')}`)
     } else {
+      console.log("[SKU Search] ❌ Producto no encontrado, abriendo diálogo de creación")
+
       // Si no se encuentra, preparar para crear producto
       setNewProductIndex(index)
       setNewProduct({
