@@ -212,12 +212,19 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       })
 
       if (response.ok) {
-        // Autocompletar el item actual
+        const createdProduct = await response.json()
+
+        // Autocompletar el item actual con los datos correctos
         if (newProductIndex !== null) {
           handleItemChange(newProductIndex, "description", newProduct.name)
-          handleItemChange(newProductIndex, "unit_price", newProduct.price_retail)
+          // Usar precio detal si existe, sino precio mayor
+          const precio = isBalineria ? newProduct.price_wholesale : newProduct.price_retail
+          handleItemChange(newProductIndex, "unit_price", precio)
         }
-        
+
+        // Recargar productos del inventario
+        await fetchInventoryProducts()
+
         // Cerrar diálogo y resetear
         setShowCreateProductDialog(false)
         setAuthCode("")
@@ -240,7 +247,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           medida_mm: ""
         })
         
-        alert("✅ Producto creado exitosamente")
+        alert("✅ Producto creado y agregado a la factura exitosamente")
       } else {
         const errorData = await response.json()
         alert(`❌ Error al crear producto: ${errorData.error || "Error desconocido"}`)
@@ -431,104 +438,127 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             </div>
           )}
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Información del Cliente</h3>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold text-gray-900">Información del Cliente</h3>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="client_name">Nombre del Cliente *</Label>
+                <Label htmlFor="client_name" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Nombre del Cliente *
+                </Label>
                 <Input
                   id="client_name"
                   value={formData.client_name}
                   onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
                   required
-                  className="mt-1"
+                  placeholder="Nombre completo"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div>
-                <Label htmlFor="client_nit">NIT / Cédula</Label>
+                <Label htmlFor="client_nit" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  NIT / Cédula
+                </Label>
                 <Input
                   id="client_nit"
                   value={formData.client_nit}
                   onChange={(e) => setFormData({ ...formData, client_nit: e.target.value })}
-                  className="mt-1"
+                  placeholder="1234567890"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div>
-                <Label htmlFor="client_email">Email</Label>
+                <Label htmlFor="client_email" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Email
+                </Label>
                 <Input
                   id="client_email"
                   type="email"
                   value={formData.client_email}
                   onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
-                  className="mt-1"
+                  placeholder="cliente@email.com"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div>
-                <Label htmlFor="client_phone">Teléfono</Label>
+                <Label htmlFor="client_phone" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Teléfono
+                </Label>
                 <Input
                   id="client_phone"
                   value={formData.client_phone}
                   onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
-                  className="mt-1"
+                  placeholder="+57 300 1234567"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div className="col-span-2">
-                <Label htmlFor="client_address">Dirección</Label>
+                <Label htmlFor="client_address" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Dirección
+                </Label>
                 <Input
                   id="client_address"
                   value={formData.client_address}
                   onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
-                  className="mt-1"
+                  placeholder="Calle 1 # 2-3, Barrio Centro"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div>
-                <Label htmlFor="ciudad">Ciudad *</Label>
+                <Label htmlFor="ciudad" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Ciudad *
+                </Label>
                 <Input
                   id="ciudad"
                   value={formData.ciudad}
                   onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
                   required
                   placeholder="Ej: Cúcuta"
-                  className="mt-1"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div>
-                <Label htmlFor="barrio">Barrio *</Label>
+                <Label htmlFor="barrio" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Barrio *
+                </Label>
                 <Input
                   id="barrio"
                   value={formData.barrio}
                   onChange={(e) => setFormData({ ...formData, barrio: e.target.value })}
                   required
                   placeholder="Ej: Centro"
-                  className="mt-1"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Información de Envío</h3>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold text-gray-900">Información de Envío</h3>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="guia">Número de Guía *</Label>
+                <Label htmlFor="guia" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Número de Guía *
+                </Label>
                 <Input
                   id="guia"
                   value={formData.guia}
                   onChange={(e) => setFormData({ ...formData, guia: e.target.value })}
                   required
-                  placeholder="Ej: GUIA-2025-001"
-                  className="mt-1"
+                  placeholder="Ej: 58048080554"
+                  className="mt-1 text-xs h-9 font-mono"
                 />
               </div>
               <div>
-                <Label htmlFor="transportadora">Transportadora *</Label>
+                <Label htmlFor="transportadora" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Transportadora *
+                </Label>
                 <Select
                   value={formData.transportadora}
                   onValueChange={(value) => setFormData({ ...formData, transportadora: value })}
                   required
                 >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Seleccionar transportadora" />
+                  <SelectTrigger className="mt-1 h-9 text-xs">
+                    <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Servientrega">Servientrega</SelectItem>
@@ -541,23 +571,27 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 </Select>
               </div>
               <div>
-                <Label htmlFor="vendedor">Vendedor</Label>
+                <Label htmlFor="vendedor" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Vendedor
+                </Label>
                 <Input
                   id="vendedor"
                   value={formData.vendedor}
                   onChange={(e) => setFormData({ ...formData, vendedor: e.target.value })}
                   placeholder="Nombre del vendedor"
-                  className="mt-1"
+                  className="mt-1 text-xs h-9"
                 />
               </div>
               <div>
-                <Label htmlFor="evidencia">Evidencia (URL)</Label>
+                <Label htmlFor="evidencia" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Evidencia (URL)
+                </Label>
                 <Input
                   id="evidencia"
                   value={formData.evidencia}
                   onChange={(e) => setFormData({ ...formData, evidencia: e.target.value })}
-                  placeholder="URL de evidencia de entrega"
-                  className="mt-1"
+                  placeholder="https://..."
+                  className="mt-1 text-xs h-9"
                 />
               </div>
             </div>
@@ -574,11 +608,11 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
             <div className="space-y-3">
               {items.map((item, index) => (
-                <div key={index} className="space-y-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="grid grid-cols-12 gap-3">
-                    {/* Referencia/SKU - Más pequeño */}
+                <div key={index} className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    {/* Referencia/SKU */}
                     <div className="col-span-2">
-                      <Label className="text-xs font-semibold text-gray-700">Ref/SKU *</Label>
+                      <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Ref/SKU *</Label>
                       <div className="relative mt-1">
                         <Input
                           placeholder="04-24"
@@ -592,28 +626,28 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                             }
                           }}
                           required
-                          className="pr-8 text-sm"
+                          className="pr-7 text-xs h-9 font-mono"
                         />
-                        <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
+                        <Search className="absolute right-2 top-2 h-3.5 w-3.5 text-gray-400" />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">Enter↵</p>
+                      <p className="text-[9px] text-gray-500 mt-0.5">Enter para buscar</p>
                     </div>
 
-                    {/* Nombre del Producto - Más grande */}
-                    <div className="col-span-6">
-                      <Label className="text-xs font-semibold text-gray-700">Nombre del Producto *</Label>
+                    {/* Nombre del Producto */}
+                    <div className="col-span-5">
+                      <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Nombre del Producto *</Label>
                       <Input
-                        placeholder="Ej: Anillo de Oro 18K"
+                        placeholder="Ej: Cadena de Oro 18K"
                         value={item.description}
                         onChange={(e) => handleItemChange(index, "description", e.target.value)}
                         required
-                        className="mt-1"
+                        className="mt-1 text-xs h-9"
                       />
                     </div>
 
                     {/* Cantidad */}
                     <div className="col-span-1">
-                      <Label className="text-xs font-semibold text-gray-700">Cant. *</Label>
+                      <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Cant. *</Label>
                       <Input
                         type="number"
                         placeholder="1"
@@ -621,45 +655,54 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
                         required
-                        className="mt-1 text-center"
+                        className="mt-1 text-center text-xs h-9 font-semibold"
                       />
                     </div>
 
-                    {/* Precio Unitario - MÁS GRANDE */}
+                    {/* Precio Unitario - MUCHO MÁS GRANDE */}
                     <div className="col-span-3">
-                      <Label className="text-xs font-semibold text-gray-700">Precio Unitario *</Label>
+                      <Label className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">Precio Unitario *</Label>
                       <div className="relative mt-1">
-                        <span className="absolute left-2 top-2.5 text-gray-500 text-sm">$</span>
+                        <span className="absolute left-2.5 top-2 text-gray-500 text-xs font-semibold">$</span>
                         <Input
-                          type="number"
-                          placeholder="0"
-                          min="0"
-                          step="1000"
-                          value={item.unit_price}
-                          onChange={(e) => handleItemChange(index, "unit_price", Number(e.target.value))}
+                          type="text"
+                          placeholder="155.000"
+                          value={item.unit_price > 0 ? item.unit_price.toLocaleString('es-CO') : ''}
+                          onChange={(e) => {
+                            const numericValue = e.target.value.replace(/\D/g, '')
+                            handleItemChange(index, "unit_price", Number(numericValue))
+                          }}
                           required
-                          className="pl-6 text-base font-semibold"
+                          className="pl-6 pr-2 text-sm h-9 font-bold text-amber-700 text-right"
                         />
                       </div>
                     </div>
+
+                    {/* Botón Eliminar */}
+                    {items.length > 1 && (
+                      <div className="col-span-1 flex items-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveItem(index)}
+                          className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title="Eliminar item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-semibold">Subtotal:</span> {formatCurrency(item.quantity * item.unit_price)}
+                  {/* Subtotal */}
+                  <div className="flex items-center justify-end pt-2 border-t border-gray-200">
+                    <div className="text-xs text-gray-600">
+                      <span className="font-semibold">Subtotal:</span>{" "}
+                      <span className="text-sm font-bold text-amber-600">
+                        {formatCurrency(item.quantity * item.unit_price)}
+                      </span>
                     </div>
-                    {items.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveItem(index)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Eliminar
-                      </Button>
-                    )}
                   </div>
                 </div>
               ))}
@@ -682,31 +725,35 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Detalles de Pago</h3>
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold text-gray-900">Detalles de Pago</h3>
+            <div className="grid grid-cols-2 gap-3">
               {/* Solo mostrar fecha de vencimiento para contraentrega (crédito) */}
               {formData.payment_method === 'contraentrega' && (
                 <div>
-                  <Label htmlFor="due_date">Fecha de Vencimiento *</Label>
+                  <Label htmlFor="due_date" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                    Fecha de Vencimiento *
+                  </Label>
                   <Input
                     id="due_date"
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                     required
-                    className="mt-1"
+                    className="mt-1 text-xs h-9"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Fecha límite de pago</p>
+                  <p className="text-[9px] text-gray-500 mt-0.5">Fecha límite de pago</p>
                 </div>
               )}
               <div className={formData.payment_method === 'contraentrega' ? '' : 'col-span-2'}>
-                <Label htmlFor="payment_method">Método de Pago</Label>
+                <Label htmlFor="payment_method" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Método de Pago
+                </Label>
                 <Select
                   value={formData.payment_method}
                   onValueChange={(value) => setFormData({ ...formData, payment_method: value, due_date: value === 'contraentrega' ? formData.due_date : '' })}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 h-9 text-xs">
                     <SelectValue placeholder="Seleccionar método" />
                   </SelectTrigger>
                   <SelectContent>
@@ -716,17 +763,20 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                   </SelectContent>
                 </Select>
                 {formData.payment_method && (formData.payment_method === 'efectivo' || formData.payment_method === 'transferencia') && (
-                  <p className="text-xs text-green-600 mt-1">✓ Pago inmediato - No requiere fecha de vencimiento</p>
+                  <p className="text-[9px] text-green-600 mt-0.5">✓ Pago inmediato - No requiere fecha de vencimiento</p>
                 )}
               </div>
               <div className="col-span-2">
-                <Label htmlFor="notes">Notas</Label>
+                <Label htmlFor="notes" className="text-[10px] font-semibold text-gray-700 uppercase tracking-wide">
+                  Notas
+                </Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="mt-1"
-                  rows={3}
+                  className="mt-1 text-xs min-h-[60px]"
+                  rows={2}
+                  placeholder="Observaciones adicionales..."
                 />
               </div>
             </div>
