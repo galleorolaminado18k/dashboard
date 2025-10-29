@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Search } from "lucide-react"
 
 interface CreateInvoiceDialogProps {
   open: boolean
@@ -32,10 +32,32 @@ interface Sale {
   invoice_number: string | null
 }
 
+interface InventoryProduct {
+  id: string
+  sku: string
+  name: string
+  price: number
+  cost: number
+  stock: number
+  category?: string
+}
+
 export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInvoiceDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [salesWithoutInvoice, setSalesWithoutInvoice] = useState<Sale[]>([])
   const [selectedSale, setSelectedSale] = useState<string>("")
+  const [inventoryProducts, setInventoryProducts] = useState<InventoryProduct[]>([])
+  const [showCreateProductDialog, setShowCreateProductDialog] = useState(false)
+  const [newProductIndex, setNewProductIndex] = useState<number | null>(null)
+  const [authCode, setAuthCode] = useState("")
+  const [newProduct, setNewProduct] = useState({
+    sku: "",
+    name: "",
+    price: 0,
+    cost: 0,
+    stock: 0,
+    category: ""
+  })
   const [formData, setFormData] = useState({
     client_name: "",
     client_nit: "",
@@ -57,6 +79,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   useEffect(() => {
     if (open) {
       fetchSalesWithoutInvoice()
+      fetchInventoryProducts()
     }
   }, [open])
 
@@ -69,6 +92,93 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       }
     } catch (error) {
       console.error("[v0] Error fetching sales:", error)
+    }
+  }
+
+  const fetchInventoryProducts = async () => {
+    try {
+      const response = await fetch("/api/inventory")
+      if (response.ok) {
+        const data = await response.json()
+        setInventoryProducts(data.products || [])
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching inventory:", error)
+    }
+  }
+
+  const handleReferenceSearch = (index: number, reference: string) => {
+    // Actualizar la referencia en el item
+    handleItemChange(index, "reference", reference)
+
+    // Buscar el producto en el inventario
+    const product = inventoryProducts.find(p => p.sku === reference)
+
+    if (product) {
+      // Si se encuentra, autocompletar nombre y precio
+      handleItemChange(index, "description", product.name)
+      handleItemChange(index, "unit_price", product.price)
+    } else if (reference.trim() !== "") {
+      // Si no se encuentra y hay una referencia, preparar para crear producto
+      setNewProductIndex(index)
+      setNewProduct({
+        sku: reference,
+        name: "",
+        price: 0,
+        cost: 0,
+        stock: 0,
+        category: ""
+      })
+      setShowCreateProductDialog(true)
+    }
+  }
+
+  const handleCreateProduct = async () => {
+    if (authCode !== "1430") {
+      alert("❌ Código de autorización incorrecto. Solo administradores pueden crear productos.")
+      return
+    }
+
+    try {
+      const response = await fetch("/api/inventory/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sku: newProduct.sku,
+          name: newProduct.name,
+          price_retail: newProduct.price,
+          price: newProduct.price, // Para compatibilidad
+          cost: newProduct.cost,
+          stock: newProduct.stock,
+          category: newProduct.category,
+          status: "active"
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+
+        // Actualizar lista de productos
+        await fetchInventoryProducts()
+
+        // Autocompletar el item actual
+        if (newProductIndex !== null) {
+          handleItemChange(newProductIndex, "description", newProduct.name)
+          handleItemChange(newProductIndex, "unit_price", newProduct.price)
+        }
+
+        // Cerrar diálogo
+        setShowCreateProductDialog(false)
+        setAuthCode("")
+        setNewProductIndex(null)
+
+        alert("✅ Producto creado exitosamente")
+      } else {
+        const errorData = await response.json()
+        alert(`❌ Error al crear producto: ${errorData.error || "Error desconocido"}`)
+      }
+    } catch (error: any) {
+      alert(`❌ Error al crear producto: ${error.message}`)
     }
   }
 
@@ -344,56 +454,81 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
             <div className="space-y-3">
               {items.map((item, index) => (
-                <div key={index} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-[3]">
-                    <Input
-                      placeholder="Nombre del producto (Ej: BALINERIA)"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                      required
-                    />
+                <div key={index} className="space-y-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="grid grid-cols-12 gap-3">
+                    {/* Referencia/SKU - Mediano */}
+                    <div className="col-span-3">
+                      <Label className="text-xs font-semibold text-gray-700">Referencia/SKU *</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          placeholder="Ej: ORO-ANI-001"
+                          value={item.reference}
+                          onChange={(e) => handleReferenceSearch(index, e.target.value)}
+                          required
+                          className="pr-8"
+                        />
+                        <Search className="absolute right-2 top-2.5 h-4 w-4 text-gray-400" />
+                      </div>
+                    </div>
+
+                    {/* Nombre del Producto - Grande */}
+                    <div className="col-span-5">
+                      <Label className="text-xs font-semibold text-gray-700">Nombre del Producto *</Label>
+                      <Input
+                        placeholder="Ej: Anillo de Oro 18K"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, "description", e.target.value)}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+
+                    {/* Cantidad */}
+                    <div className="col-span-2">
+                      <Label className="text-xs font-semibold text-gray-700">Cantidad *</Label>
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
+
+                    {/* Precio Unitario */}
+                    <div className="col-span-2">
+                      <Label className="text-xs font-semibold text-gray-700">Precio Unit. *</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        min="0"
+                        value={item.unit_price}
+                        onChange={(e) => handleItemChange(index, "unit_price", Number(e.target.value))}
+                        required
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Referencia"
-                      value={item.reference}
-                      onChange={(e) => handleItemChange(index, "reference", e.target.value)}
-                    />
+
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <div className="text-sm text-gray-600">
+                      <span className="font-semibold">Subtotal:</span> {formatCurrency(item.quantity * item.unit_price)}
+                    </div>
+                    {items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveItem(index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Eliminar
+                      </Button>
+                    )}
                   </div>
-                  <div className="w-20">
-                    <Input
-                      type="number"
-                      placeholder="Cant."
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
-                      required
-                    />
-                  </div>
-                  <div className="w-32">
-                    <Input
-                      type="number"
-                      placeholder="Precio"
-                      min="0"
-                      value={item.unit_price}
-                      onChange={(e) => handleItemChange(index, "unit_price", Number(e.target.value))}
-                      required
-                    />
-                  </div>
-                  <div className="w-32 flex items-center justify-end font-semibold text-sm">
-                    {formatCurrency(item.quantity * item.unit_price)}
-                  </div>
-                  {items.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveItem(index)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               ))}
             </div>
@@ -467,6 +602,149 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           </div>
         </form>
       </DialogContent>
+
+      {/* Diálogo para crear nuevo producto */}
+      <Dialog open={showCreateProductDialog} onOpenChange={setShowCreateProductDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-amber-600">
+              Crear Nuevo Producto en Inventario
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                ⚠️ <strong>Solo administradores pueden crear productos.</strong> Ingrese el código de autorización para continuar.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="auth_code" className="text-sm font-semibold">
+                Código de Autorización *
+              </Label>
+              <Input
+                id="auth_code"
+                type="password"
+                placeholder="Ingrese código de administrador"
+                value={authCode}
+                onChange={(e) => setAuthCode(e.target.value)}
+                className="text-center text-lg tracking-widest"
+              />
+              <p className="text-xs text-gray-500">Código requerido: Solo para administradores</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <Label htmlFor="new_sku" className="text-sm font-semibold">
+                  SKU / Referencia *
+                </Label>
+                <Input
+                  id="new_sku"
+                  value={newProduct.sku}
+                  onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                  placeholder="Ej: ORO-ANI-001"
+                  disabled
+                  className="mt-1 bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new_category" className="text-sm font-semibold">
+                  Categoría
+                </Label>
+                <Input
+                  id="new_category"
+                  value={newProduct.category}
+                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                  placeholder="Ej: Joyería"
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label htmlFor="new_name" className="text-sm font-semibold">
+                  Nombre del Producto *
+                </Label>
+                <Input
+                  id="new_name"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  placeholder="Ej: Anillo de Oro 18K"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new_cost" className="text-sm font-semibold">
+                  Costo
+                </Label>
+                <Input
+                  id="new_cost"
+                  type="number"
+                  min="0"
+                  value={newProduct.cost}
+                  onChange={(e) => setNewProduct({ ...newProduct, cost: Number(e.target.value) })}
+                  placeholder="0"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new_price" className="text-sm font-semibold">
+                  Precio de Venta *
+                </Label>
+                <Input
+                  id="new_price"
+                  type="number"
+                  min="0"
+                  value={newProduct.price}
+                  onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
+                  placeholder="0"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="new_stock" className="text-sm font-semibold">
+                  Stock Inicial
+                </Label>
+                <Input
+                  id="new_stock"
+                  type="number"
+                  min="0"
+                  value={newProduct.stock}
+                  onChange={(e) => setNewProduct({ ...newProduct, stock: Number(e.target.value) })}
+                  placeholder="0"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowCreateProductDialog(false)
+                  setAuthCode("")
+                  setNewProductIndex(null)
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleCreateProduct}
+                className="bg-amber-500 hover:bg-amber-600"
+                disabled={!newProduct.name || !newProduct.sku || authCode !== "1430"}
+              >
+                Crear Producto
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

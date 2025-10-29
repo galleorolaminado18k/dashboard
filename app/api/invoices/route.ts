@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
     const items = body.items.map((item: any) => ({
       invoice_id: invoice.invoice_number,
       description: item.description,
+      reference: item.reference || null,
       quantity: item.quantity,
       unit_price: item.unit_price,
       total: item.quantity * item.unit_price,
