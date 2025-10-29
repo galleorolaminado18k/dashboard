@@ -411,12 +411,12 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] w-[1400px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-amber-600">Nueva Factura</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {salesWithoutInvoice.length > 0 && (
             <div className="space-y-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <Label htmlFor="sale_select">Vincular con Venta Existente (Opcional)</Label>
@@ -438,9 +438,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-900">Información del Cliente</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="client_name" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
                   Nombre del Cliente *
@@ -532,9 +532,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-900">Información de Envío</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="guia" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
                   Número de Guía *
@@ -606,10 +606,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
               </Button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {items.map((item, index) => (
-                <div key={index} className="space-y-3 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 shadow-sm">
-                  <div className="grid grid-cols-12 gap-3 items-end">
+                <div key={index} className="space-y-3 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-200 shadow-sm">
+                  <div className="grid grid-cols-12 gap-4 items-end">
                     {/* Referencia/SKU */}
                     <div className="col-span-2">
                       <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
@@ -733,9 +733,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <h3 className="text-lg font-bold text-gray-900">Detalles de Pago</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               {/* Solo mostrar fecha de vencimiento para contraentrega (crédito) */}
               {formData.payment_method === 'contraentrega' && (
                 <div>
