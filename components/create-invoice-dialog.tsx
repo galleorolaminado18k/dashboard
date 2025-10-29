@@ -411,7 +411,10 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[1400px] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="!max-w-[95vw] !w-[1500px] max-h-[90vh] overflow-y-auto"
+        style={{ width: '1500px', maxWidth: '95vw' }}
+      >
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-amber-600">Nueva Factura</DialogTitle>
         </DialogHeader>
