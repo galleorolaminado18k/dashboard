@@ -1,40 +1,16 @@
-                  <div>
-                    <Label htmlFor="new_max_stock" className="text-sm font-semibold text-gray-900">
-                      Stock Máximo
-                    </Label>
-                    <Input
-                      id="new_max_stock"
-                      type="number"
-                      min="0"
-                      value={newProduct.max_stock}
-                      onChange={(e) => setNewProduct({ ...newProduct, max_stock: Number(e.target.value) })}
-                      placeholder="0"
-                      className="mt-1 h-11 text-base"
-                    />
-                  </div>
-                </div>
-
-                {/* Vista previa de valores */}
-                {newProduct.price_retail > 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-amber-900 mb-2">Vista Previa de Utilidades:</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
 "use client"
-                        <span className="text-gray-600">Utilidad Detal:</span>
-                        <p className="font-bold text-green-600">
-                          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price_retail - newProduct.cost)}
-                          {newProduct.cost > 0 && ` (${Math.round(((newProduct.price_retail - newProduct.cost) / newProduct.cost) * 100)}%)`}
+
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-                      {newProduct.price_wholesale > 0 && (
-                        <div>
-                          <span className="text-gray-600">Utilidad Mayor:</span>
-                          <p className="font-bold text-green-600">
-                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(newProduct.price_wholesale - newProduct.cost)}
-                            {newProduct.cost > 0 && ` (${Math.round(((newProduct.price_wholesale - newProduct.cost) / newProduct.cost) * 100)}%)`}
-                          </p>
-                        </div>
-                      )}
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Trash2, Search } from "lucide-react"
+
 interface CreateInvoiceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -59,7 +35,7 @@ interface Sale {
 interface InventoryProduct {
   id: string
   sku: string
-                disabled={authCode !== "1430" || !newProduct.name || !newProduct.sku || newProduct.price_retail <= 0}
+  name: string
   price: number
   cost: number
   stock: number
@@ -148,9 +124,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   const handleReferenceBlurOrEnter = (index: number, reference: string) => {
     // Buscar el producto en el inventario cuando se termina de escribir
     if (!reference.trim()) return
-
+    
     const product = inventoryProducts.find(p => p.sku.toLowerCase() === reference.toLowerCase())
-
+    
     if (product) {
       // Si se encuentra, autocompletar nombre y precio
       handleItemChange(index, "description", product.name)
@@ -223,16 +199,16 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
       if (response.ok) {
         const data = await response.json()
-
+        
         // Actualizar lista de productos
         await fetchInventoryProducts()
-
+        
         // Autocompletar el item actual
         if (newProductIndex !== null) {
           handleItemChange(newProductIndex, "description", newProduct.name)
           handleItemChange(newProductIndex, "unit_price", newProduct.price_retail)
         }
-
+        
         // Cerrar diálogo y resetear
         setShowCreateProductDialog(false)
         setAuthCode("")
@@ -254,7 +230,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           grosor: "",
           medida_mm: ""
         })
-
+        
         alert("✅ Producto creado exitosamente")
       } else {
         const errorData = await response.json()
@@ -741,7 +717,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
             {authCode === "1430" && (
               <div className="space-y-5 pt-4 border-t-2 border-amber-200">
                 <h3 className="text-lg font-semibold text-gray-900">Datos del Producto</h3>
-
+                
                 {/* Fila 1: SKU y Categoría */}
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -838,8 +814,8 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                   </div>
                 )}
 
-                {(newProduct.category === 'ARETES' || newProduct.category === 'DIJES' || newProduct.category === 'MANILLAS' ||
-                  newProduct.category === 'BALINES' || newProduct.category === 'ANILLOS' || newProduct.category === 'CANDONGAS' ||
+                {(newProduct.category === 'ARETES' || newProduct.category === 'DIJES' || newProduct.category === 'MANILLAS' || 
+                  newProduct.category === 'BALINES' || newProduct.category === 'ANILLOS' || newProduct.category === 'CANDONGAS' || 
                   newProduct.category === 'HERRAJES') && (
                   <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                     <Label htmlFor="new_medida_mm" className="text-sm font-semibold text-purple-900">
@@ -1053,3 +1029,4 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     </Dialog>
   )
 }
+
