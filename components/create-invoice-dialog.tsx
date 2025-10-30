@@ -126,37 +126,69 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     handleItemChange(index, "reference", reference)
   }
 
-  const handleReferenceBlurOrEnter = (index: number, reference: string) => {
+  const handleReferenceBlurOrEnter = async (index: number, reference: string) => {
     // Buscar el producto en el inventario cuando se termina de escribir
     if (!reference.trim()) {
       console.log("[SKU Search] Referencia vacía")
       return
     }
 
-    console.log("[SKU Search] Buscando:", reference)
-    console.log("[SKU Search] Productos disponibles:", inventoryProducts.length)
+    console.log("=".repeat(60))
+    console.log("[SKU Search] 🔍 INICIANDO BÚSQUEDA")
+    console.log("[SKU Search] Referencia ingresada:", reference)
+    console.log("[SKU Search] Productos en memoria:", inventoryProducts.length)
+
+    // Si no hay productos, forzar recarga
+    if (inventoryProducts.length === 0) {
+      console.log("[SKU Search] ⚠️ NO HAY PRODUCTOS - RECARGANDO...")
+      await fetchInventoryProducts()
+      console.log("[SKU Search] Productos después de recargar:", inventoryProducts.length)
+    }
+
+    // Mostrar primeros 5 SKUs disponibles para debug
+    console.log("[SKU Search] Primeros SKUs disponibles:",
+      inventoryProducts.slice(0, 5).map(p => p.sku)
+    )
 
     // Buscar producto (normalizar espacios y mayúsculas/minúsculas)
     const refNormalized = reference.trim().toLowerCase()
+    console.log("[SKU Search] Referencia normalizada:", `"${refNormalized}"`)
+
     const product = inventoryProducts.find(p => {
       const skuNormalized = (p.sku || '').trim().toLowerCase()
-      console.log(`[SKU Search] Comparando: "${skuNormalized}" === "${refNormalized}"`, skuNormalized === refNormalized)
-      return skuNormalized === refNormalized
+      const matches = skuNormalized === refNormalized
+      if (matches) {
+        console.log(`[SKU Search] ✅ MATCH ENCONTRADO: "${skuNormalized}" === "${refNormalized}"`)
+      }
+      return matches
     })
 
     if (product) {
-      console.log("[SKU Search] ✅ Producto encontrado:", product.name)
-
-      // Autocompletar nombre SILENCIOSAMENTE (sin alert)
-      handleItemChange(index, "description", product.name)
+      console.log("[SKU Search] 🎉 PRODUCTO ENCONTRADO:")
+      console.log("  - SKU:", product.sku)
+      console.log("  - Nombre:", product.name)
+      console.log("  - Precio Detal:", product.price_retail)
+      console.log("  - Precio Mayor:", product.price_wholesale)
 
       // Determinar precio (prioridad: retail > wholesale > legacy)
       const precio = product.price_retail || product.price_wholesale || product.price || 0
-      console.log("[SKU Search] Precio autocompletado:", precio)
+      console.log("  - Precio seleccionado:", precio)
 
-      handleItemChange(index, "unit_price", precio)
+      // FORZAR autocompletado con setTimeout para asegurar que se renderiza
+      setTimeout(() => {
+        handleItemChange(index, "description", product.name)
+        handleItemChange(index, "unit_price", precio)
+        console.log("[SKU Search] ✅ Campos actualizados en el DOM")
+      }, 100)
+
+      console.log("=".repeat(60))
     } else {
-      console.log("[SKU Search] ❌ Producto no encontrado, abriendo diálogo de creación")
+      console.log("[SKU Search] ❌ PRODUCTO NO ENCONTRADO")
+      console.log("[SKU Search] Todos los SKUs disponibles:")
+      inventoryProducts.forEach(p => {
+        console.log(`  - ${p.sku}`)
+      })
+      console.log("=".repeat(60))
 
       // Si no se encuentra, preparar para crear producto
       setNewProductIndex(index)
@@ -306,21 +338,21 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   }
 
   const calculateSubtotal = () => {
+    // Subtotal = productos sin IVA + envío
     const totalWithIVA = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-    // El envío se agrega sin IVA al subtotal
     return (totalWithIVA / 1.19) + shippingCost
   }
 
   const calculateTax = () => {
+    // IVA solo sobre productos
     const totalWithIVA = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
     const subtotal = totalWithIVA / 1.19
-    // El IVA solo se calcula sobre productos, NO sobre envío
     return totalWithIVA - subtotal
   }
 
   const calculateTotal = () => {
+    // Total = productos con IVA + envío
     const productsTotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-    // Total = productos + envío (el envío ya está sin IVA)
     return productsTotal + shippingCost
   }
 
@@ -741,13 +773,26 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                       <Label className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-2 block h-[18px]">
                         Nombre del Producto *
                       </Label>
-                      <Input
-                        placeholder="Ej: Cadena de Oro 18K"
-                        value={item.description}
-                        onChange={(e) => handleItemChange(index, "description", e.target.value)}
-                        required
-                        className="text-sm h-12 border-2 focus:border-amber-400 font-medium"
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder="Ej: Cadena de Oro 18K"
+                          value={item.description}
+                          onChange={(e) => handleItemChange(index, "description", e.target.value)}
+                          required
+                          className={`text-sm h-12 border-2 focus:border-amber-400 font-medium ${
+                            item.description && item.unit_price > 0 
+                              ? 'bg-green-50 border-green-400' 
+                              : ''
+                          }`}
+                        />
+                        {item.description && item.unit_price > 0 && (
+                          <div className="absolute right-2 top-3.5 text-green-600">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Cantidad - CENTRADO Y GRANDE */}
@@ -820,26 +865,18 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-700">Productos (sin IVA):</span>
-                <span className="font-semibold">{formatCurrency(items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0) / 1.19)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-700">Envío:</span>
-                <span className="font-semibold text-blue-600">{formatCurrency(shippingCost)}</span>
-              </div>
-              <div className="flex justify-between text-sm border-t border-amber-300 pt-2">
                 <span className="text-gray-700">Subtotal (sin IVA):</span>
                 <span className="font-semibold">{formatCurrency(calculateSubtotal())}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-700">IVA (19% sobre productos):</span>
+                <span className="text-gray-700">IVA (19%):</span>
                 <span className="font-semibold">{formatCurrency(calculateTax())}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold border-t-2 border-amber-400 pt-2">
+              <div className="flex justify-between text-lg font-bold border-t-2 border-amber-400 pt-2 mt-2">
                 <span className="text-gray-900">Total a Pagar:</span>
                 <span className="text-amber-600">{formatCurrency(calculateTotal())}</span>
               </div>
-              <p className="text-[10px] text-gray-600 mt-2">* Los precios de productos incluyen IVA. El envío NO tiene IVA.</p>
+              <p className="text-[10px] text-gray-600 mt-2">* Los precios incluyen IVA. El envío está incluido en el subtotal.</p>
             </div>
           </div>
 
