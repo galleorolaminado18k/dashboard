@@ -174,13 +174,21 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       const precio = product.price_retail || product.price_wholesale || product.price || 0
       console.log("  - Precio seleccionado:", precio)
 
-      // FORZAR autocompletado con setTimeout para asegurar que se renderiza
-      setTimeout(() => {
-        handleItemChange(index, "description", product.name)
-        handleItemChange(index, "unit_price", precio)
-        console.log("[SKU Search] ✅ Campos actualizados en el DOM")
-      }, 100)
+      // FORZAR actualización directa del estado
+      console.log("[SKU Search] 🔄 Actualizando estado de items...")
 
+      setItems(prevItems => {
+        const newItems = [...prevItems]
+        newItems[index] = {
+          ...newItems[index],
+          description: product.name,
+          unit_price: precio
+        }
+        console.log("[SKU Search] ✅ Estado actualizado:", newItems[index])
+        return newItems
+      })
+
+      console.log("[SKU Search] ✅ Autocompletado ejecutado")
       console.log("=".repeat(60))
     } else {
       console.log("[SKU Search] ❌ PRODUCTO NO ENCONTRADO")
