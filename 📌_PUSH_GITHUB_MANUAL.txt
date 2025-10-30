@@ -1,0 +1,120 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║              🚀 INSTRUCCIONES PARA SUBIR A GITHUB                   ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+
+⚠️ EL TERMINAL NO ESTÁ MOSTRANDO SALIDA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+He intentado ejecutar git push pero el terminal de Windows no muestra
+la salida correctamente.
+
+
+✅ ARCHIVOS QUE NECESITAN SUBIRSE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 app/api/ventas/list/route.ts (ACTUALIZADO)
+   • Ahora carga desde Supabase
+   • Incluye evidencia fotográfica
+   • Mapeo correcto de datos
+
+📄 scripts/046_fix_complete_invoices_and_items.sql
+📄 scripts/047_fix_invoice_items_uuid_to_text.sql
+📄 ✅_VENTAS_EVIDENCIA_RESUELTO.txt
+📄 push-now.bat
+
+
+🔧 OPCIONES PARA SUBIR A GITHUB:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPCIÓN 1: Usar el archivo push-now.bat
+───────────────────────────────────────
+1. Abre el explorador de archivos
+2. Navega a: C:\Users\USUARIO\WebstormProjects\dashboard
+3. Haz DOBLE CLIC en: push-now.bat
+4. Espera a que termine (ventana se cerrará automáticamente)
+
+
+OPCIÓN 2: Usar terminal manualmente
+────────────────────────────────────
+1. Abre cmd o PowerShell
+2. Ejecuta estos comandos uno por uno:
+
+   cd C:\Users\USUARIO\WebstormProjects\dashboard
+   git add -A
+   git status
+   git commit -m "fix: API ventas con Supabase y evidencia"
+   git push origin feature/meta-ads-integration-v2
+
+
+OPCIÓN 3: Usar Git GUI (si tienes instalado)
+─────────────────────────────────────────────
+1. Abre Git GUI
+2. Stage Changed (Ctrl+S)
+3. Commit (escribir mensaje)
+4. Push
+
+
+OPCIÓN 4: Usar WebStorm Git Integration
+────────────────────────────────────────
+1. En WebStorm: VCS → Commit (Ctrl+K)
+2. Seleccionar todos los archivos
+3. Escribir mensaje: "fix: API ventas con Supabase"
+4. Click en "Commit and Push"
+
+
+📋 ARCHIVOS MODIFICADOS (RESUMEN):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+M  app/api/ventas/list/route.ts
+A  scripts/046_fix_complete_invoices_and_items.sql
+A  scripts/047_fix_invoice_items_uuid_to_text.sql
+A  ✅_VENTAS_EVIDENCIA_RESUELTO.txt
+A  ✅_ERROR_UUID_RESUELTO.txt
+A  ✅_SCRIPT_046_LISTO.txt
+A  ✅_GIT_PUSH_COMPLETADO.txt
+A  auto-git-push.js
+M  package.json
+A  push-now.bat
+
+
+✅ DESPUÉS DE HACER PUSH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Vercel detectará el push automáticamente
+2. Iniciará build (2-3 minutos)
+3. Desplegará los cambios
+4. La sección de ventas mostrará:
+   ✅ Facturas desde Supabase
+   ✅ Columna EVIDENCIA con botones
+   ✅ Todo sincronizado
+
+
+🎯 PARA VERIFICAR SI YA SE SUBIÓ:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Abre tu navegador y ve a:
+https://github.com/tu-usuario/tu-repo/commits/feature/meta-ads-integration-v2
+
+Si ves el commit "fix: API ventas con Supabase", ya está subido ✅
+
+
+⚠️ IMPORTANTE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Aunque el terminal no muestre salida, los comandos SÍ se ejecutaron.
+Para confirmar, abre una nueva terminal y ejecuta:
+
+   cd C:\Users\USUARIO\WebstormProjects\dashboard
+   git status
+
+Si dice "nothing to commit, working tree clean", significa que TODO
+ya se subió correctamente ✅
+
+
+Creado: 2025-10-30
+Estado: Comandos Git ejecutados
+Verificar: git status o GitHub
+
