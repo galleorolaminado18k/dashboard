@@ -706,29 +706,6 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 <p className="text-[10px] text-gray-500 mt-1">Formatos: JPG, PNG, WEBP (máx 5MB)</p>
               </div>
             </div>
-
-            {/* Costo de Envío */}
-            <div>
-              <Label htmlFor="shipping_cost" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
-                Costo de Envío *
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-600 text-sm font-bold">$</span>
-                <Input
-                  id="shipping_cost"
-                  type="text"
-                  value={shippingCost > 0 ? shippingCost.toLocaleString('es-CO') : ''}
-                  onChange={(e) => {
-                    const numericValue = e.target.value.replace(/\D/g, '')
-                    setShippingCost(Number(numericValue))
-                  }}
-                  required
-                  placeholder="15.000"
-                  className="pl-7 pr-3 text-base h-11 font-bold text-blue-700 text-right border-2 focus:border-blue-400 bg-white"
-                />
-              </div>
-              <p className="text-[10px] text-gray-500 mt-1">Este valor se agrega al subtotal SIN IVA</p>
-            </div>
           </div>
 
           <div className="space-y-4">
@@ -861,6 +838,29 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Costo de Envío - Después de items, antes de totales */}
+            <div className="mt-6">
+              <Label htmlFor="shipping_cost" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
+                Costo de Envío *
+              </Label>
+              <div className="relative max-w-xs">
+                <span className="absolute left-3 top-3 text-gray-600 text-sm font-bold">$</span>
+                <Input
+                  id="shipping_cost"
+                  type="text"
+                  value={shippingCost > 0 ? shippingCost.toLocaleString('es-CO') : ''}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    setShippingCost(Number(numericValue))
+                  }}
+                  required
+                  placeholder="15.000"
+                  className="pl-7 pr-3 text-base h-11 font-bold text-blue-700 text-right border-2 focus:border-blue-400 bg-white"
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 mt-1">Este valor se agrega al subtotal SIN IVA</p>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
