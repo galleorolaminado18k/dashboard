@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Auto-commit: Este hook se ejecuta antes de cada commit
+echo "🔄 Pre-commit hook ejecutándose..."
+

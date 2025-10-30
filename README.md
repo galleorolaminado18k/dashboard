@@ -28,3 +28,33 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+---
+
+## 🚀 Auto-Push to GitHub
+
+Este proyecto incluye un sistema de auto-push para subir cambios automáticamente a GitHub.
+
+### Uso Rápido:
+
+**Opción 1: Push Manual**
+```bash
+# Doble clic en:
+auto-push.bat
+```
+
+**Opción 2: Auto-Push Continuo (cada 5 minutos)**
+```bash
+# Doble clic en:
+start-git-watcher.bat
+```
+
+### Documentación:
+- 📄 [Guía Rápida](./COMO_SUBIR_GITHUB.md)
+- 📄 [Documentación Completa](./AUTO_PUSH_GITHUB.md)
+
+### Archivos Importantes:
+- `auto-push.bat` - Script de push manual
+- `start-git-watcher.bat` - Watcher automático
+- `scripts/044_fix_client_email_column.sql` - Fix columna email opcional
+

@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Auto Push Git",
+      "type": "shell",
+      "command": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"${workspaceFolder}\\auto-push.ps1\"",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "new"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    },
+    {
+      "label": "Git Push on Save",
+      "type": "shell",
+      "command": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"${workspaceFolder}\\auto-push.ps1\"",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared",
+        "showReuseMessage": false
+      }
+    }
+  ]
+}
+

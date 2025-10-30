@@ -1,0 +1,132 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              🚀 AUTO-PUSH A GITHUB                          ║
+║              SISTEMA CONFIGURADO Y LISTO                    ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────┐
+│  PASO 1: SUBIR CAMBIOS ACTUALES (INCLUYE FIX DEL EMAIL)    │
+└──────────────────────────────────────────────────────────────┘
+
+   👉 Haz doble clic en:  auto-push.bat
+
+   Espera 10-20 segundos a que termine.
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  PASO 2: EJECUTAR SQL EN SUPABASE                           │
+└──────────────────────────────────────────────────────────────┘
+
+   1. Abre: scripts/044_fix_client_email_column.sql
+   2. Copia TODO el contenido (Ctrl+A, Ctrl+C)
+   3. Ve a: https://supabase.com → Tu proyecto → SQL Editor
+   4. Pega y ejecuta (Run o Ctrl+Enter)
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  PASO 3: ESPERAR DESPLIEGUE EN VERCEL (2-3 MINUTOS)        │
+└──────────────────────────────────────────────────────────────┘
+
+   Ve a: https://vercel.com/tu-proyecto/deployments
+
+   Espera el check verde ✅
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  PASO 4: PROBAR SOLUCIÓN                                     │
+└──────────────────────────────────────────────────────────────┘
+
+   1. Ve a tu dashboard
+   2. Facturación → Nueva Factura
+   3. DEJA EL EMAIL VACÍO
+   4. Completa los demás campos
+   5. Crear Factura
+
+   ✅ Debería funcionar sin errores
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              PARA EL FUTURO                                 ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────┐
+│  CADA VEZ QUE TRABAJES EN EL PROYECTO:                      │
+└──────────────────────────────────────────────────────────────┘
+
+   OPCIÓN A (Manual - Más Control):
+   ─────────────────────────────────
+   Cuando termines cambios:
+   👉 Doble clic en: auto-push.bat
+
+
+   OPCIÓN B (Automático - Sin Pensar):
+   ────────────────────────────────────
+   Al abrir el proyecto:
+   👉 Doble clic en: start-git-watcher.bat
+   👉 Minimiza la ventana (NO cerrar)
+   👉 Trabaja normalmente
+   👉 Se sube automáticamente cada 5 minutos
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              ✅ ARCHIVOS LISTOS PARA USAR                   ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+   📁 Archivos de ejecución:
+   ─────────────────────────
+   🔵 auto-push.bat              ← Push manual
+   🔵 start-git-watcher.bat      ← Auto-push continuo
+
+   📁 Documentación:
+   ─────────────────
+   📄 COMO_SUBIR_GITHUB.md       ← Guía rápida
+   📄 AUTO_PUSH_GITHUB.md        ← Guía completa
+   📄 INSTRUCCIONES_FIX_EMAIL.md ← Fix del email
+
+   📁 Scripts PowerShell:
+   ──────────────────────
+   📜 auto-push.ps1              ← Lógica principal
+   📜 git-watcher.ps1            ← Watcher automático
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              🆘 SI ALGO NO FUNCIONA                         ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+   Problema: Script no ejecuta
+   ───────────────────────────
+   → Clic derecho en auto-push.bat
+   → "Ejecutar como administrador"
+
+
+   Problema: PowerShell bloqueado
+   ──────────────────────────────
+   → Abrir PowerShell como administrador
+   → Ejecutar:
+     Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+
+   Problema: Git pide contraseña
+   ─────────────────────────────
+   → Ejecutar en terminal:
+     git config --global credential.helper wincred
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              🎉 ¡TODO LISTO!                                ║
+║                                                              ║
+║              Empieza con el PASO 1 arriba                   ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+Creado: 2025-01-29
+Propósito: Simplificar Git para siempre
+
