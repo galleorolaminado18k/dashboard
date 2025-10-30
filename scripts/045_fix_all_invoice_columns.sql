@@ -191,7 +191,36 @@ ON public.invoices(issue_date);
 CREATE INDEX IF NOT EXISTS idx_invoices_status
 ON public.invoices(status);
 
--- 9. Mostrar resumen de columnas
+-- 9. Configurar políticas de seguridad RLS (Row Level Security)
+-- IMPORTANTE: Habilitar RLS pero permitir todas las operaciones
+
+-- Habilitar RLS en la tabla
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+
+-- Eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.invoices;
+DROP POLICY IF EXISTS "Enable insert access for all users" ON public.invoices;
+DROP POLICY IF EXISTS "Enable update access for all users" ON public.invoices;
+DROP POLICY IF EXISTS "Enable delete access for all users" ON public.invoices;
+
+-- Crear políticas permisivas para todas las operaciones
+CREATE POLICY "Enable read access for all users"
+ON public.invoices FOR SELECT
+USING (true);
+
+CREATE POLICY "Enable insert access for all users"
+ON public.invoices FOR INSERT
+WITH CHECK (true);
+
+CREATE POLICY "Enable update access for all users"
+ON public.invoices FOR UPDATE
+USING (true);
+
+CREATE POLICY "Enable delete access for all users"
+ON public.invoices FOR DELETE
+USING (true);
+
+-- 10. Mostrar resumen de columnas
 SELECT
     column_name,
     data_type,
