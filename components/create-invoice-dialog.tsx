@@ -87,6 +87,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   })
   const [evidenciaFile, setEvidenciaFile] = useState<File | null>(null)
   const [uploadingEvidencia, setUploadingEvidencia] = useState(false)
+  const [shippingCost, setShippingCost] = useState<number>(0)
   const [items, setItems] = useState<InvoiceItem[]>([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
     if (product) {
       console.log("[SKU Search] ✅ Producto encontrado:", product.name)
 
-      // Autocompletar nombre
+      // Autocompletar nombre SILENCIOSAMENTE (sin alert)
       handleItemChange(index, "description", product.name)
 
       // Determinar precio (prioridad: retail > wholesale > legacy)
@@ -154,9 +155,6 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
       console.log("[SKU Search] Precio autocompletado:", precio)
 
       handleItemChange(index, "unit_price", precio)
-
-      // Mostrar confirmación visual
-      alert(`✅ Producto encontrado: ${product.name} - $${precio.toLocaleString('es-CO')}`)
     } else {
       console.log("[SKU Search] ❌ Producto no encontrado, abriendo diálogo de creación")
 
@@ -309,17 +307,21 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
   const calculateSubtotal = () => {
     const totalWithIVA = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-    return totalWithIVA / 1.19
+    // El envío se agrega sin IVA al subtotal
+    return (totalWithIVA / 1.19) + shippingCost
   }
 
   const calculateTax = () => {
     const totalWithIVA = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
     const subtotal = totalWithIVA / 1.19
+    // El IVA solo se calcula sobre productos, NO sobre envío
     return totalWithIVA - subtotal
   }
 
   const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+    const productsTotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+    // Total = productos + envío (el envío ya está sin IVA)
+    return productsTotal + shippingCost
   }
 
   const formatCurrency = (amount: number) => {
@@ -361,6 +363,11 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
     if (!evidenciaFile) {
       alert("⚠️ La evidencia fotográfica es obligatoria")
+      return
+    }
+
+    if (shippingCost <= 0) {
+      alert("⚠️ El costo de envío es obligatorio y debe ser mayor a 0")
       return
     }
 
@@ -446,6 +453,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           evidencia: "",
         })
         setEvidenciaFile(null)
+        setShippingCost(0)
         setItems([{ description: "", reference: "", quantity: 1, unit_price: 0 }])
         setSelectedSale("")
       } else {
@@ -666,6 +674,29 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
                 <p className="text-[10px] text-gray-500 mt-1">Formatos: JPG, PNG, WEBP (máx 5MB)</p>
               </div>
             </div>
+
+            {/* Costo de Envío */}
+            <div>
+              <Label htmlFor="shipping_cost" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
+                Costo de Envío *
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-gray-600 text-sm font-bold">$</span>
+                <Input
+                  id="shipping_cost"
+                  type="text"
+                  value={shippingCost > 0 ? shippingCost.toLocaleString('es-CO') : ''}
+                  onChange={(e) => {
+                    const numericValue = e.target.value.replace(/\D/g, '')
+                    setShippingCost(Number(numericValue))
+                  }}
+                  required
+                  placeholder="15.000"
+                  className="pl-7 pr-3 text-base h-11 font-bold text-blue-700 text-right border-2 focus:border-blue-400 bg-white"
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 mt-1">Este valor se agrega al subtotal SIN IVA</p>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -789,18 +820,26 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
+                <span className="text-gray-700">Productos (sin IVA):</span>
+                <span className="font-semibold">{formatCurrency(items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0) / 1.19)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-700">Envío:</span>
+                <span className="font-semibold text-blue-600">{formatCurrency(shippingCost)}</span>
+              </div>
+              <div className="flex justify-between text-sm border-t border-amber-300 pt-2">
                 <span className="text-gray-700">Subtotal (sin IVA):</span>
                 <span className="font-semibold">{formatCurrency(calculateSubtotal())}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-700">IVA (19%):</span>
+                <span className="text-gray-700">IVA (19% sobre productos):</span>
                 <span className="font-semibold">{formatCurrency(calculateTax())}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold border-t border-amber-300 pt-2">
-                <span className="text-gray-900">Total:</span>
+              <div className="flex justify-between text-lg font-bold border-t-2 border-amber-400 pt-2">
+                <span className="text-gray-900">Total a Pagar:</span>
                 <span className="text-amber-600">{formatCurrency(calculateTotal())}</span>
               </div>
-              <p className="text-xs text-gray-600 mt-2">* Los precios de los productos ya incluyen IVA</p>
+              <p className="text-[10px] text-gray-600 mt-2">* Los precios de productos incluyen IVA. El envío NO tiene IVA.</p>
             </div>
           </div>
 

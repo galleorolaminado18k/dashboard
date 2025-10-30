@@ -9,10 +9,16 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('invoices', 'invoices', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Política: Permitir subida autenticada
-CREATE POLICY "Allow authenticated uploads"
+-- Primero eliminar políticas existentes si existen
+DROP POLICY IF EXISTS "Allow authenticated uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public read" ON storage.objects;
+DROP POLICY IF EXISTS "Allow delete own files" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public uploads" ON storage.objects;
+
+-- Política: Permitir subida PÚBLICA (sin autenticación)
+CREATE POLICY "Allow public uploads"
 ON storage.objects FOR INSERT
-TO authenticated
+TO public
 WITH CHECK (bucket_id = 'invoices');
 
 -- Política: Permitir lectura pública
@@ -21,10 +27,10 @@ ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'invoices');
 
--- Política: Permitir eliminar propios archivos
-CREATE POLICY "Allow delete own files"
+-- Política: Permitir eliminar cualquier archivo (público)
+CREATE POLICY "Allow public delete"
 ON storage.objects FOR DELETE
-TO authenticated
+TO public
 USING (bucket_id = 'invoices');
 
 -- Mensaje final

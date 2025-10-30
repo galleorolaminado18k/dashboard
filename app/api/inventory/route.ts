@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/client"
+import { createServerClient } from "@/lib/supabase/server"
 
 export async function GET() {
-  const supabase = createClient()
+  const supabase = await createServerClient()
 
   try {
     // Obtener productos del inventario desde Supabase
