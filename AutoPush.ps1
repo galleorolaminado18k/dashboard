@@ -9,10 +9,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Host "[1/5] Agregando archivos..." -ForegroundColor Yellow
-git add components\create-invoice-dialog.tsx
-git add docs\MEJORAS_FACTURACION_BALINES_FECHA.md
-git add docs\FIX_CAMPOS_PRECIO_NOMBRE.md
-git add ESTADO_AUTO_PUSH.md
+git add scripts\043_add_invoice_shipping_columns.sql
 git add AutoPush.ps1
 Write-Host "✓ Archivos agregados" -ForegroundColor Green
 
@@ -23,7 +20,7 @@ Write-Host "✓ Estado verificado" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "[3/5] Creando commit..." -ForegroundColor Yellow
-git commit -m "fix: Agregar validaciones y alertas al crear factura - Validar campos requeridos antes de enviar - Mostrar alertas de exito y error - Agregar logs para debugging - Campos optimizados (ref 2col, nombre 6col, precio 3col)"
+git commit -m "feat: Agregar script de migración 043 para columnas de envío en facturas - Agregar campos de ubicación (ciudad, barrio) - Agregar campos de envío (guia, transportadora, vendedor) - Agregar campo de evidencia fotográfica - Incluir índices para mejorar búsquedas"
 Write-Host "✓ Commit creado" -ForegroundColor Green
 
 Write-Host ""
