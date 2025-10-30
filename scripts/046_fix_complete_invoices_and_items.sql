@@ -211,7 +211,6 @@ CREATE POLICY "Enable delete access for all users"
 ON public.invoices FOR DELETE
 USING (true);
 
-RAISE NOTICE '✅ Políticas RLS creadas para invoices';
 
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -244,7 +243,6 @@ CREATE POLICY "Enable delete access for all users"
 ON public.invoice_items FOR DELETE
 USING (true);
 
-RAISE NOTICE '✅ Políticas RLS creadas para invoice_items';
 
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -261,7 +259,6 @@ CREATE INDEX IF NOT EXISTS idx_invoices_client_name ON public.invoices(client_na
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON public.invoice_items(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_description ON public.invoice_items(description);
 
-RAISE NOTICE '✅ Índices creados';
 
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -324,22 +321,25 @@ ORDER BY tablename, policyname;
 
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- FIN DEL SCRIPT
+-- FIN DEL SCRIPT - Mensaje de confirmación
 -- ═══════════════════════════════════════════════════════════════════════════════
 
-RAISE NOTICE '';
-RAISE NOTICE '════════════════════════════════════════════════════════════';
-RAISE NOTICE '✅ SCRIPT COMPLETADO EXITOSAMENTE';
-RAISE NOTICE '════════════════════════════════════════════════════════════';
-RAISE NOTICE '';
-RAISE NOTICE 'Tablas verificadas y actualizadas:';
-RAISE NOTICE '  ✅ invoices (con todas las columnas y RLS)';
-RAISE NOTICE '  ✅ invoice_items (con todas las columnas y RLS)';
-RAISE NOTICE '';
-RAISE NOTICE 'Siguiente paso:';
-RAISE NOTICE '  1. Refrescar schema cache en Supabase';
-RAISE NOTICE '  2. Esperar despliegue de Vercel';
-RAISE NOTICE '  3. Probar crear factura';
-RAISE NOTICE '';
-RAISE NOTICE '════════════════════════════════════════════════════════════';
+DO $$
+BEGIN
+    RAISE NOTICE '';
+    RAISE NOTICE '════════════════════════════════════════════════════════════';
+    RAISE NOTICE '✅ SCRIPT COMPLETADO EXITOSAMENTE';
+    RAISE NOTICE '════════════════════════════════════════════════════════════';
+    RAISE NOTICE '';
+    RAISE NOTICE 'Tablas verificadas y actualizadas:';
+    RAISE NOTICE '  ✅ invoices (con todas las columnas y RLS)';
+    RAISE NOTICE '  ✅ invoice_items (con todas las columnas y RLS)';
+    RAISE NOTICE '';
+    RAISE NOTICE 'Siguiente paso:';
+    RAISE NOTICE '  1. Refrescar schema cache en Supabase';
+    RAISE NOTICE '  2. Esperar despliegue de Vercel';
+    RAISE NOTICE '  3. Probar crear factura';
+    RAISE NOTICE '';
+    RAISE NOTICE '════════════════════════════════════════════════════════════';
+END $$;
 
