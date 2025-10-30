@@ -177,7 +177,30 @@ END $$;
 -- 2.2 Hacer reference nullable (es opcional)
 ALTER TABLE public.invoice_items ALTER COLUMN reference DROP NOT NULL;
 
--- 2.3 Asegurar que description tenga un default si está vacío
+-- 2.2 Hacer reference nullable (es opcional)
+ALTER TABLE public.invoice_items ALTER COLUMN reference DROP NOT NULL;
+
+-- 2.3 Verificar y corregir tipo de dato de invoice_id
+-- CRÍTICO: invoice_id debe ser TEXT para referenciar invoice_number (que es TEXT)
+DO $$
+BEGIN
+    -- Verificar el tipo actual de invoice_id
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'invoice_items'
+        AND column_name = 'invoice_id'
+        AND data_type = 'uuid'
+    ) THEN
+        -- Si es UUID, tenemos que recrear la tabla porque no se puede cambiar de UUID a TEXT directamente
+        RAISE NOTICE '⚠️ ADVERTENCIA: invoice_id es UUID, debe ser TEXT';
+        RAISE NOTICE '⚠️ Se requiere migración manual o recreación de la tabla';
+    ELSE
+        RAISE NOTICE '✓ invoice_id tiene el tipo correcto (TEXT)';
+    END IF;
+END $$;
+
+-- 2.4 Asegurar que description tenga un default si está vacío
 UPDATE public.invoice_items SET description = 'Producto sin descripción' WHERE description IS NULL OR description = '';
 
 
