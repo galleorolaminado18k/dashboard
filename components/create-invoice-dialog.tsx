@@ -570,14 +570,14 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
               </div>
               <div>
                 <Label htmlFor="client_email" className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5 block">
-                  Email
+                  Email <span className="text-gray-500 font-normal">(Opcional)</span>
                 </Label>
                 <Input
                   id="client_email"
                   type="email"
                   value={formData.client_email}
                   onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
-                  placeholder="cliente@email.com"
+                  placeholder="cliente@email.com (opcional)"
                   className="text-sm h-11 border-2 focus:border-amber-400"
                 />
               </div>

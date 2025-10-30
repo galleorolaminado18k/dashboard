@@ -61,31 +61,36 @@ export async function POST(request: NextRequest) {
     const taxAmount = (subtotal * taxRate) / 100
     const total = subtotal + taxAmount
 
+    // Preparar datos de la factura (excluir campos vacíos opcionales)
+    const invoiceData: any = {
+      invoice_number: invoiceNumber,
+      client_name: body.client_name,
+      ciudad: body.ciudad,
+      barrio: body.barrio,
+      issue_date: body.issue_date || new Date().toISOString(),
+      subtotal,
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
+      total,
+      status: body.status || "PENDIENTE PAGO",
+      guia: body.guia,
+      transportadora: body.transportadora,
+      vendedor: body.vendedor || 'Sistema',
+      evidencia: body.evidencia,
+    }
+
+    // Agregar campos opcionales solo si tienen valor
+    if (body.client_nit) invoiceData.client_nit = body.client_nit
+    if (body.client_email) invoiceData.client_email = body.client_email
+    if (body.client_phone) invoiceData.client_phone = body.client_phone
+    if (body.client_address) invoiceData.client_address = body.client_address
+    if (body.due_date) invoiceData.due_date = body.due_date
+    if (body.payment_method) invoiceData.payment_method = body.payment_method
+    if (body.notes) invoiceData.notes = body.notes
+
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
-      .insert({
-        invoice_number: invoiceNumber,
-        client_name: body.client_name,
-        client_nit: body.client_nit,
-        client_email: body.client_email,
-        client_phone: body.client_phone,
-        client_address: body.client_address,
-        ciudad: body.ciudad,
-        barrio: body.barrio,
-        issue_date: body.issue_date || new Date().toISOString(),
-        due_date: body.due_date,
-        subtotal,
-        tax_rate: taxRate,
-        tax_amount: taxAmount,
-        total,
-        status: body.status || "PENDIENTE PAGO",
-        payment_method: body.payment_method,
-        notes: body.notes,
-        guia: body.guia,
-        transportadora: body.transportadora,
-        vendedor: body.vendedor || 'Sistema',
-        evidencia: body.evidencia,
-      })
+      .insert(invoiceData)
       .select()
       .single()
 
