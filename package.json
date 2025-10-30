@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "start": "next start",
     "git:auto": "powershell -ExecutionPolicy Bypass -File scripts/auto-commit.ps1",
-    "git:push": "git add . && git commit -m \"Auto-commit: Actualización automática\" && git push"
+    "git:push": "git add . && git commit -m \"Auto-commit: Actualización automática\" && git push",
+    "push": "node auto-git-push.js",
+    "autopush": "node auto-git-push.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
