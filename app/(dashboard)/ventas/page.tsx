@@ -157,7 +157,6 @@ export default function VentasPage() {
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">ID</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">CLIENTE</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">FECHA</th>
-                <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">PRODUCTOS</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">TOTAL</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">ESTADO</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">MÉTODO</th>
@@ -176,8 +175,12 @@ export default function VentasPage() {
                   <td className="px-2 py-2 text-xs whitespace-nowrap">
                     {new Date(v.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}
                   </td>
-                  <td className="px-2 py-2 text-xs max-w-[150px] truncate">{v.producto}</td>
-                  <td className="px-2 py-2 tabular-nums text-xs font-semibold">$ {v.total.toLocaleString("es-CO")}</td>
+                  <td className="px-2 py-2 text-xs font-semibold whitespace-nowrap">
+                    <span className="inline-flex items-baseline gap-0.5">
+                      <span className="text-[10px] text-neutral-500">$</span>
+                      <span className="tabular-nums">{v.total.toLocaleString("es-CO")}</span>
+                    </span>
+                  </td>
                   <td className="px-2 py-2">
                     <BadgeEstado estado={v.estado} metodo={v.metodo} />
                   </td>
