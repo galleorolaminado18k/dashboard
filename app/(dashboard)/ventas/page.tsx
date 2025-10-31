@@ -110,27 +110,30 @@ export default function VentasPage() {
         </div>
       </section>
 
-      <section className="px-6 lg:px-10 mt-6 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-4">
+      <section className="px-6 lg:px-10 mt-6 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-7 gap-3">
         {[
-          { label: "VENTA TOTAL", value: `$ ${resumen.total.toLocaleString("es-CO")}` },
-          { label: "TRANSFERENCIA", value: `$ ${resumen.tTransfer.toLocaleString("es-CO")}` },
-          { label: "EFECTIVO", value: `$ ${resumen.tEfectivo.toLocaleString("es-CO")}` },
-          { label: "DEVOLUCIONES", value: `$ ${resumen.devols.toLocaleString("es-CO")}` },
-          { label: "TICKET PROMEDIO", value: `$ ${resumen.ticket.toLocaleString("es-CO")}` },
-          { label: "PAGADO MIPAQUETE", value: `$ ${resumen.pagadoMipaquete.toLocaleString("es-CO")}` },
-          { label: "PENDIENTE MIPAQUETE", value: `$ ${resumen.pendienteMipaquete.toLocaleString("es-CO")}` },
+          { label: "VENTA TOTAL", value: resumen.total },
+          { label: "TRANSFERENCIA", value: resumen.tTransfer },
+          { label: "EFECTIVO", value: resumen.tEfectivo },
+          { label: "DEVOLUCIONES", value: resumen.devols },
+          { label: "TICKET PROMEDIO", value: resumen.ticket },
+          { label: "PAGADO MIPAQUETE", value: resumen.pagadoMipaquete },
+          { label: "PENDIENTE MIPAQUETE", value: resumen.pendienteMipaquete },
         ].map((k, i) => (
           <div
             key={i}
-            className="rounded-2xl border border-white/70 bg-white/95 backdrop-blur-md shadow-[0_12px_36px_rgba(0,0,0,.06)] p-4"
+            className="rounded-2xl border border-white/70 bg-white/95 backdrop-blur-md shadow-[0_12px_36px_rgba(0,0,0,.06)] p-3"
             style={{
               backgroundImage: `linear-gradient(to bottom, #fff, ${GOLD}, #fff)`,
               backgroundSize: "100% 600%",
               backgroundPosition: "50% 100%",
             }}
           >
-            <div className="text-xs text-neutral-500">{k.label}</div>
-            <div className="text-2xl font-semibold mt-1">{k.value}</div>
+            <div className="text-[9px] text-neutral-500 font-medium uppercase tracking-wide">{k.label}</div>
+            <div className="mt-1.5 flex items-baseline gap-0.5">
+              <span className="text-xs font-semibold text-neutral-600">$</span>
+              <span className="text-lg font-bold">{k.value.toLocaleString("es-CO")}</span>
+            </div>
           </div>
         ))}
       </section>
