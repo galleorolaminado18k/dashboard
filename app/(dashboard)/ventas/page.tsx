@@ -43,6 +43,9 @@ export default function VentasPage() {
   // Estado para modal de evidencia
   const [evidenciaModal, setEvidenciaModal] = useState<{ url: string; venta: Venta } | null>(null)
 
+  // Estado para modal de factura
+  const [facturaModal, setFacturaModal] = useState<{ numero: string; venta: Venta } | null>(null)
+
   // KPIs
   const resumen = useMemo(() => {
     const total = ventas.reduce((s, v) => s + v.total, 0)
@@ -102,7 +105,7 @@ export default function VentasPage() {
 
   function verFactura(v: Venta) {
     if (!v.factura) return alert("Sin factura.")
-    window.open(`/facturacion/${v.factura}`, "_blank")
+    setFacturaModal({ numero: v.factura, venta: v })
   }
 
   return (
@@ -373,7 +376,191 @@ export default function VentasPage() {
         </div>
       )}
 
+      {/* Modal de Factura */}
+      {facturaModal && <FacturaModal facturaNumero={facturaModal.numero} venta={facturaModal.venta} onClose={() => setFacturaModal(null)} />}
+
       <input ref={fileRef} type="file" hidden onChange={onPickFile} />
+    </div>
+  )
+}
+
+// Componente para mostrar la factura en modal
+function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string; venta: Venta; onClose: () => void }) {
+  const { data } = useSWR<{ ok: boolean; facturas: any[] }>("/api/facturacion/list", fetcher)
+  const fac = data?.facturas?.find((f) => f.numero === facturaNumero)
+
+  if (!fac) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+        <div className="bg-white rounded-2xl p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <p className="text-sm">Cargando factura...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const GOLD = "rgba(216,189,128,.3)"
+  const goldBtn = "border-[rgba(216,189,128,.6)] hover:bg-[rgba(216,189,128,.08)]"
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div
+        className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 shrink-0">
+          <div>
+            <h3 className="text-lg font-semibold">Factura {facturaNumero}</h3>
+            <p className="text-sm text-neutral-500">
+              {venta.cliente} - {venta.id}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 hover:bg-neutral-100 transition-colors"
+            title="Cerrar"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Contenido de la factura */}
+        <div className="flex-1 overflow-y-auto p-8 bg-neutral-50">
+          <div className="max-w-[600px] mx-auto bg-white rounded-xl shadow-lg p-8 text-sm">
+            {/* Encabezado empresa */}
+            <div className="text-center border-b-2 border-dashed border-neutral-300 pb-4 mb-4">
+              <div className="text-2xl font-bold text-[rgba(216,189,128,1)]">GALLE</div>
+              <div className="text-xs mt-1">COMERCIALIZADORA GALLE18K</div>
+              <div className="text-xs">ORO LAMINADO Y ACCESORIOS SAS</div>
+              <div className="text-xs mt-1">NIT: 900.123.456-7</div>
+              <div className="text-xs">Tel: +57 300 123 4567</div>
+            </div>
+
+            {/* Información de la factura */}
+            <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
+              <div>
+                <div className="font-semibold">FACTURA:</div>
+                <div>{fac.numero}</div>
+              </div>
+              <div>
+                <div className="font-semibold">FECHA:</div>
+                <div>{fac.emision}</div>
+              </div>
+              <div>
+                <div className="font-semibold">MÉTODO:</div>
+                <div>{fac.metodo}</div>
+              </div>
+              <div>
+                <div className="font-semibold">ESTADO:</div>
+                <div>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      fac.estado === "Pagado"
+                        ? "bg-emerald-100 text-emerald-900"
+                        : "bg-amber-100 text-amber-900"
+                    }`}
+                  >
+                    {fac.estado}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Información del cliente */}
+            <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
+              <div className="font-semibold text-xs mb-2">DATOS DEL CLIENTE</div>
+              <div className="text-xs space-y-1">
+                <div>
+                  <span className="font-semibold">Nombre:</span> {fac.cliente.nombre}
+                </div>
+                {fac.cliente.nit && (
+                  <div>
+                    <span className="font-semibold">NIT:</span> {fac.cliente.nit}
+                  </div>
+                )}
+                {fac.cliente.ciudad && (
+                  <div>
+                    <span className="font-semibold">Ciudad:</span> {fac.cliente.ciudad}
+                  </div>
+                )}
+                {fac.cliente.telefono && (
+                  <div>
+                    <span className="font-semibold">Teléfono:</span> {fac.cliente.telefono}
+                  </div>
+                )}
+                {fac.cliente.direccion && (
+                  <div>
+                    <span className="font-semibold">Dirección:</span> {fac.cliente.direccion}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-neutral-300">
+                    <th className="text-left py-2">DESCRIPCIÓN</th>
+                    <th className="text-center py-2">CANT</th>
+                    <th className="text-center py-2">IVA</th>
+                    <th className="text-right py-2">TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fac.items.map((it: any, i: number) => (
+                    <tr key={i} className="border-b border-neutral-200">
+                      <td className="py-2">{it.descripcion}</td>
+                      <td className="text-center py-2">{it.und}</td>
+                      <td className="text-center py-2">{it.ivaPct}%</td>
+                      <td className="text-right py-2 font-semibold">
+                        $ {it.precioNeto.toLocaleString("es-CO")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totales */}
+            <div className="border-t-2 border-dashed border-neutral-300 pt-4 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span>SUBTOTAL:</span>
+                <span className="font-semibold">$ {fac.subtotal.toLocaleString("es-CO")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>IVA:</span>
+                <span className="font-semibold">$ {fac.iva.toLocaleString("es-CO")}</span>
+              </div>
+              <div className="flex justify-between text-base font-bold border-t border-neutral-300 pt-2">
+                <span>TOTAL:</span>
+                <span>$ {fac.total.toLocaleString("es-CO")}</span>
+              </div>
+            </div>
+
+            {/* Pie */}
+            <div className="text-center mt-6 text-xs text-neutral-600 border-t-2 border-dashed border-neutral-300 pt-4">
+              ¡Gracias por su compra!
+            </div>
+          </div>
+        </div>
+
+        {/* Footer con acciones */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200 shrink-0">
+          <button
+            onClick={() => window.open(`/facturacion/${facturaNumero}/pos`, "_blank")}
+            className={`rounded-full h-9 px-4 border ${goldBtn}`}
+          >
+            Imprimir
+          </button>
+          <button onClick={onClose} className={`rounded-full h-9 px-4 border ${goldBtn}`}>
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
