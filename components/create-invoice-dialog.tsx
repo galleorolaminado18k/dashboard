@@ -465,6 +465,7 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
           ...formData,
           evidencia: evidenciaUrl,
           items,
+          shipping_cost: shippingCost,
           tax_rate: 19,
           status: initialStatus,
           sale_id: selectedSale || undefined,

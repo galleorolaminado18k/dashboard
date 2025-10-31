@@ -527,18 +527,43 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
 
             {/* Totales */}
             <div className="border-t-2 border-dashed border-neutral-300 pt-4 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span>SUBTOTAL:</span>
-                <span className="font-semibold">$ {fac.subtotal.toLocaleString("es-CO")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>IVA:</span>
-                <span className="font-semibold">$ {fac.iva.toLocaleString("es-CO")}</span>
-              </div>
-              <div className="flex justify-between text-base font-bold border-t border-neutral-300 pt-2">
-                <span>TOTAL:</span>
-                <span>$ {fac.total.toLocaleString("es-CO")}</span>
-              </div>
+              {(() => {
+                // Calcular totales correctamente
+                // Los productos ya incluyen IVA, entonces:
+                const totalProductosConIVA = fac.items.reduce((sum: number, it: any) => sum + it.precioNeto, 0)
+                const subtotalProductos = totalProductosConIVA / 1.19 // Subtotal sin IVA
+                const ivaProductos = totalProductosConIVA - subtotalProductos // IVA de los productos
+                const costoEnvio = fac.costo_envio || 0 // Envío sin IVA
+                const subtotalFinal = subtotalProductos + costoEnvio // Subtotal + Envío (sin IVA)
+                const totalFinal = totalProductosConIVA + costoEnvio // Total con IVA + Envío
+
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <span>SUBTOTAL PRODUCTOS (sin IVA):</span>
+                      <span className="font-semibold">$ {Math.round(subtotalProductos).toLocaleString("es-CO")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>IVA (19%):</span>
+                      <span className="font-semibold">$ {Math.round(ivaProductos).toLocaleString("es-CO")}</span>
+                    </div>
+                    {costoEnvio > 0 && (
+                      <div className="flex justify-between">
+                        <span>COSTO ENVÍO:</span>
+                        <span className="font-semibold">$ {costoEnvio.toLocaleString("es-CO")}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-neutral-300 pt-2">
+                      <span>SUBTOTAL FINAL:</span>
+                      <span className="font-semibold">$ {Math.round(subtotalFinal).toLocaleString("es-CO")}</span>
+                    </div>
+                    <div className="flex justify-between text-base font-bold border-t-2 border-neutral-300 pt-2 mt-2">
+                      <span>TOTAL A PAGAR:</span>
+                      <span>$ {Math.round(totalFinal).toLocaleString("es-CO")}</span>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
 
             {/* Pie */}

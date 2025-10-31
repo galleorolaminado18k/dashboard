@@ -55,11 +55,25 @@ export async function POST(request: NextRequest) {
 
     const invoiceNumber = invoiceNumberData
 
-    // Calcular totales
-    const subtotal = body.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
+    // Calcular totales correctamente
+    // Los precios de productos YA incluyen IVA
+    const totalProductosConIVA = body.items.reduce((sum: number, item: any) => sum + item.quantity * item.unit_price, 0)
     const taxRate = body.tax_rate || 19
-    const taxAmount = (subtotal * taxRate) / 100
-    const total = subtotal + taxAmount
+
+    // Subtotal de productos sin IVA
+    const subtotalProductos = totalProductosConIVA / 1.19
+
+    // IVA de los productos
+    const taxAmount = totalProductosConIVA - subtotalProductos
+
+    // Costo de envío (sin IVA)
+    const shippingCost = body.shipping_cost || 0
+
+    // Subtotal final = subtotal productos + envío
+    const subtotal = subtotalProductos + shippingCost
+
+    // Total = productos con IVA + envío
+    const total = totalProductosConIVA + shippingCost
 
     // Preparar datos de la factura (excluir campos vacíos opcionales)
     const invoiceData: any = {
@@ -68,10 +82,11 @@ export async function POST(request: NextRequest) {
       ciudad: body.ciudad,
       barrio: body.barrio,
       issue_date: body.issue_date || new Date().toISOString(),
-      subtotal,
+      subtotal: Math.round(subtotal),
       tax_rate: taxRate,
-      tax_amount: taxAmount,
-      total,
+      tax_amount: Math.round(taxAmount),
+      shipping_cost: shippingCost,
+      total: Math.round(total),
       status: body.status || "PENDIENTE PAGO",
       guia: body.guia,
       transportadora: body.transportadora,
