@@ -176,7 +176,7 @@ export default function VentasPage() {
               <tr>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">ID</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">CLIENTE</th>
-                <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">FECHA</th>
+                <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">FECHA DE VENTA</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">TOTAL</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">ESTADO</th>
                 <th className="text-left px-2 py-2 text-[10px] font-semibold uppercase tracking-wider">MÉTODO</th>
