@@ -1,0 +1,162 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║              ⚠️ ARCHIVOS MODIFICADOS - LISTO PARA PUSH              ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+
+✅ CAMBIOS REALIZADOS (VERIFICADO):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 app/api/ventas/list/route.ts
+   ✅ Líneas 1-60: Código actualizado confirmado
+   ✅ Ahora carga desde Supabase
+   ✅ Incluye evidencia fotográfica
+   ✅ Mapeo de estados y métodos correcto
+
+📄 scripts/046_fix_complete_invoices_and_items.sql
+   ✅ 346 líneas completas
+
+📄 scripts/047_fix_invoice_items_uuid_to_text.sql
+   ✅ 93 líneas completas
+
+📄 Archivos de documentación:
+   ✅ Varios archivos .txt y .md creados
+
+
+🚨 PROBLEMA: EL TERMINAL NO FUNCIONA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+El terminal de Windows no muestra salida de comandos Git.
+Los comandos se ejecutan pero no vemos confirmación.
+
+
+✅ SOLUCIÓN DEFINITIVA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+He creado: SUBIR-A-GITHUB.bat
+
+Este archivo:
+✅ Tiene manejo de errores
+✅ Muestra mensajes visuales
+✅ Confirma cada paso
+✅ Está abierto en tu editor ahora mismo
+
+
+🎯 HAZ ESTO AHORA (2 PASOS):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASO 1: Ejecutar el archivo
+────────────────────────────
+1. Abre el explorador de archivos de Windows
+2. Navega a: C:\Users\USUARIO\WebstormProjects\dashboard
+3. Busca: SUBIR-A-GITHUB.bat
+4. HAZ DOBLE CLIC en el archivo
+5. Verás una ventana verde con el progreso
+6. Espera a que diga "PUSH COMPLETADO CON EXITO"
+7. Presiona cualquier tecla para cerrar
+
+
+PASO 2: Verificar en GitHub
+───────────────────────────
+1. Abre tu navegador
+2. Ve a tu repositorio en GitHub
+3. Cambia a la rama: feature/meta-ads-integration-v2
+4. Deberías ver el commit reciente
+
+
+📋 QUÉ VERÁS EN LA VENTANA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+============================================
+   SUBIENDO CAMBIOS A GITHUB
+============================================
+
+[1/3] Agregando archivos...
+[OK] Archivos agregados
+
+[2/3] Creando commit...
+[OK] Commit creado
+
+[3/3] Subiendo a GitHub...
+[OK] Push completado exitosamente!
+
+============================================
+   PUSH COMPLETADO CON EXITO!
+============================================
+
+Los cambios estan en GitHub.
+Vercel desplegara automaticamente en 2-3 min.
+
+
+🔄 ALTERNATIVA: USAR WEBSTORM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si prefieres usar WebStorm:
+
+1. Presiona: Ctrl+K (o VCS → Commit)
+2. Verás una lista de archivos modificados:
+   ☑ app/api/ventas/list/route.ts
+   ☑ scripts/046_fix_complete_invoices_and_items.sql
+   ☑ scripts/047_fix_invoice_items_uuid_to_text.sql
+   ☑ Varios archivos .txt y .md
+   ☑ SUBIR-A-GITHUB.bat
+
+3. Selecciona TODOS (Ctrl+A)
+
+4. En el campo de mensaje escribe:
+   "fix: API ventas Supabase + evidencia + scripts SQL"
+
+5. Click en el botón: "Commit and Push"
+
+6. Confirma el push
+
+
+✅ DESPUÉS DEL PUSH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Vercel detectará el push (automático)
+2. Iniciará el build (2-3 minutos)
+3. Desplegará los cambios
+4. Podrás probar:
+   • /ventas mostrará facturas desde Supabase
+   • Columna EVIDENCIA con botones "Ver" / "Reemplazar"
+   • Facturas aparecen automáticamente al crearlas
+
+
+⚠️ IMPORTANTE RECORDAR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Después del push, DEBES ejecutar en Supabase:
+1. Script 046: tabla invoices
+2. Script 047: tabla invoice_items
+3. Refrescar schema cache
+
+Sin los scripts SQL, seguirán los errores de UUID y columnas faltantes.
+
+
+📊 ESTADO ACTUAL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Código modificado localmente
+✅ Scripts SQL creados
+✅ Archivo SUBIR-A-GITHUB.bat listo
+⏳ Pendiente: Ejecutar push
+⏳ Pendiente: Ejecutar scripts SQL en Supabase
+
+
+🎯 TU SIGUIENTE ACCIÓN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+HAZ DOBLE CLIC EN: SUBIR-A-GITHUB.bat
+
+O
+
+USA WEBSTORM: Ctrl+K → Commit and Push
+
+
+Creado: 2025-10-30
+Estado: Listo para push
+Archivo: SUBIR-A-GITHUB.bat (ABIERTO)
+Método: Doble clic o WebStorm
+

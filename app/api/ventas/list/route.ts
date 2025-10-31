@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/client"
 
+// API actualizado para cargar ventas desde Supabase en lugar de memoria
 export async function GET() {
   const supabase = createClient()
 

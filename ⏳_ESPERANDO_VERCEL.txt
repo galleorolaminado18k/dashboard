@@ -1,0 +1,156 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║        ✅ PUSH EJECUTADO - ESPERANDO DESPLIEGUE DE VERCEL           ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+
+📊 SITUACIÓN ACTUAL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Facturación: Muestra 5 facturas correctamente
+❌ Ventas: Muestra "0 de 0 ventas"
+
+CAUSA: El código actualizado NO está desplegado en Vercel aún
+
+
+✅ CAMBIOS CONFIRMADOS EN EL CÓDIGO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📄 app/api/ventas/list/route.ts
+   ANTES: import { listVentas } from "@/lib/ventasStore"
+   AHORA: const { data: invoices } = await supabase.from("invoices")...
+
+
+🔄 COMANDOS GIT EJECUTADOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. git add .
+2. git commit -m "fix: API ventas Supabase + evidencia - FORZAR PUSH"
+3. git push origin feature/meta-ads-integration-v2 --force
+
+
+⏳ ESPERANDO VERCEL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Vercel necesita:
+• Detectar el push (30 segundos)
+• Hacer build (2-3 minutos)
+• Desplegar (30 segundos)
+
+TOTAL: 3-4 minutos desde ahora
+
+
+✅ PARA VERIFICAR QUE EL PUSH SE REALIZÓ:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPCIÓN 1: Verificar en GitHub
+──────────────────────────────
+1. Abre tu navegador
+2. Ve a tu repositorio en GitHub
+3. Rama: feature/meta-ads-integration-v2
+4. Busca el último commit
+5. Debe decir: "fix: API ventas Supabase + evidencia - FORZAR PUSH"
+6. Con timestamp de hace pocos minutos
+
+
+OPCIÓN 2: Verificar en Vercel
+──────────────────────────────
+1. Ve a: https://vercel.com/tu-proyecto
+2. Tab: Deployments
+3. Deberías ver un deployment "Building..." o "Queued"
+4. Espera a que cambie a "Ready" con check verde ✅
+
+
+OPCIÓN 3: Verificar en Terminal
+────────────────────────────────
+Abre una nueva terminal y ejecuta:
+
+cd C:\Users\USUARIO\WebstormProjects\dashboard
+git log --oneline -5
+
+Deberías ver el commit más reciente arriba.
+
+
+🎯 DESPUÉS DEL DESPLIEGUE DE VERCEL:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Espera 3-4 minutos
+2. Refresca la página de /ventas (F5)
+3. Haz clic en el botón "Actualizar"
+4. Las 5 facturas deberían aparecer automáticamente
+
+Si aparecen:
+✅ ID: FAC-2025-001, FAC-2025-002, FAC-2025-003, 000021, 000001
+✅ Con columna EVIDENCIA
+✅ Con botones "Ver" / "Reemplazar"
+
+
+⚠️ SI DESPUÉS DE 5 MINUTOS SIGUE SIN FUNCIONAR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PUEDE SER QUE:
+
+1. El push no se realizó
+   Solución: Ejecuta SUBIR-A-GITHUB.bat manualmente
+
+2. Vercel no detectó el push
+   Solución: En Vercel → Deployments → "Redeploy"
+
+3. Los scripts SQL no se han ejecutado
+   Solución:
+   • Script 046 en Supabase
+   • Script 047 en Supabase
+   • Refrescar schema cache
+
+
+📋 CHECKLIST COMPLETO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ 1. Código modificado localmente → ✅ HECHO
+☐ 2. Git add, commit, push → ✅ EJECUTADO (verificar)
+☐ 3. Vercel build y deploy → ⏳ EN PROGRESO (esperar 3-4 min)
+☐ 4. Script 046 en Supabase → ⚠️ PENDIENTE
+☐ 5. Script 047 en Supabase → ⚠️ PENDIENTE
+☐ 6. Refrescar schema cache → ⚠️ PENDIENTE
+☐ 7. Probar en /ventas → ⏳ DESPUÉS DE TODO LO ANTERIOR
+
+
+🎯 TU ACCIÓN AHORA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Verifica en GitHub que el push se realizó
+   (Busca el commit más reciente en tu rama)
+
+2. Mientras esperas Vercel, ejecuta los scripts SQL:
+   • Abre: scripts/046_fix_complete_invoices_and_items.sql
+   • Ctrl+A, Ctrl+C
+   • Supabase SQL Editor → Pegar → RUN
+
+   • Abre: scripts/047_fix_invoice_items_uuid_to_text.sql
+   • Ctrl+A, Ctrl+C
+   • Supabase SQL Editor → Nueva query → Pegar → RUN
+
+   • Supabase → Settings → API → "Refresh schema cache"
+
+3. Espera 3-4 minutos desde que se ejecutó el push
+
+4. Refresca /ventas
+
+
+⏱️ TIMELINE ESTIMADO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ahora:           Push ejecutado
++30 seg:         Vercel detecta push
++1-2 min:        Scripts SQL en Supabase (TÚ)
++3 min:          Vercel termina build
++3.5 min:        Refrescar /ventas
++4 min:          ✅ FUNCIONA
+
+
+Creado: 2025-10-30 17:43
+Push: ✅ Ejecutado (verificar en GitHub)
+Vercel: ⏳ Esperando (3-4 min)
+SQL: ⚠️ Ejecutar AHORA mientras esperas
+
