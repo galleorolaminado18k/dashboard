@@ -222,7 +222,9 @@ export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInv
   }
 
   const handleCreateProduct = async () => {
-    if (authCode !== "1430") {
+    const { validateSecurityCode } = require("@/lib/security-codes")
+
+    if (!validateSecurityCode("addProductsToInvoice", authCode)) {
       alert("❌ Código de autorización incorrecto. Solo administradores pueden crear productos.")
       return
     }

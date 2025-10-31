@@ -375,6 +375,25 @@ export default function ConfiguracionPage() {
     language: "es",
   })
 
+  // Códigos de seguridad
+  const [securityCodes, setSecurityCodes] = useState({
+    replaceEvidence: "1430",
+    addProductsToInvoice: "1430",
+  })
+
+  // Cargar códigos de seguridad desde localStorage
+  useEffect(() => {
+    const { getSecurityCodes } = require("@/lib/security-codes")
+    setSecurityCodes(getSecurityCodes())
+  }, [])
+
+  // Guardar códigos de seguridad
+  const saveSecurityCodesHandler = () => {
+    const { saveSecurityCodes } = require("@/lib/security-codes")
+    saveSecurityCodes(securityCodes)
+    alert("✅ Códigos de seguridad guardados exitosamente")
+  }
+
   const sections = [
     { id: "general", name: "General", icon: Settings },
     { id: "usuarios", name: "Usuarios & Roles", icon: Users },
@@ -1497,6 +1516,64 @@ export default function ConfiguracionPage() {
                       <Button variant="outline" className="w-full bg-transparent">
                         Cerrar todas las sesiones activas
                       </Button>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <h3 className="mb-4 font-semibold text-gray-900">Códigos de Seguridad</h3>
+                      <p className="mb-4 text-sm text-gray-600">
+                        Configura códigos de acceso para acciones sensibles del sistema
+                      </p>
+                      <div className="space-y-4">
+                        <div className="rounded-xl bg-gray-50 p-4">
+                          <Label htmlFor="code-replace-evidence" className="font-medium text-gray-900">
+                            Código para Reemplazar Evidencia
+                          </Label>
+                          <p className="mt-1 text-xs text-gray-600">
+                            Se solicitará este código al intentar reemplazar evidencia fotográfica en ventas
+                          </p>
+                          <Input
+                            id="code-replace-evidence"
+                            className="mt-3"
+                            type="password"
+                            value={securityCodes.replaceEvidence}
+                            onChange={(e) => {
+                              setSecurityCodes({ ...securityCodes, replaceEvidence: e.target.value })
+                              setHasChanges(true)
+                            }}
+                            placeholder="Código de 4 dígitos"
+                          />
+                        </div>
+
+                        <div className="rounded-xl bg-gray-50 p-4">
+                          <Label htmlFor="code-add-products" className="font-medium text-gray-900">
+                            Código para Agregar Productos en Factura
+                          </Label>
+                          <p className="mt-1 text-xs text-gray-600">
+                            Se solicitará este código al agregar productos directamente desde el formulario de facturación
+                          </p>
+                          <Input
+                            id="code-add-products"
+                            className="mt-3"
+                            type="password"
+                            value={securityCodes.addProductsToInvoice}
+                            onChange={(e) => {
+                              setSecurityCodes({ ...securityCodes, addProductsToInvoice: e.target.value })
+                              setHasChanges(true)
+                            }}
+                            placeholder="Código de 4 dígitos"
+                          />
+                        </div>
+
+                        <Button
+                          onClick={saveSecurityCodesHandler}
+                          className="w-full bg-[#C8A96A] hover:bg-[#B8996A]"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          Guardar Códigos de Seguridad
+                        </Button>
+                      </div>
                     </div>
 
                     <Separator />

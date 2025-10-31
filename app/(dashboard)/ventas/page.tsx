@@ -58,10 +58,27 @@ export default function VentasPage() {
   // Reemplazar evidencia
   const fileRef = useRef<HTMLInputElement>(null)
   const [ventaParaEvid, setVentaParaEvid] = useState<Venta | null>(null)
+  const [showCodeDialog, setShowCodeDialog] = useState(false)
+  const [securityCode, setSecurityCode] = useState("")
+
   function triggerUpload(v: Venta) {
     setVentaParaEvid(v)
-    fileRef.current?.click()
+    setShowCodeDialog(true)
   }
+
+  function validateCodeAndUpload() {
+    const { validateSecurityCode } = require("@/lib/security-codes")
+
+    if (validateSecurityCode("replaceEvidence", securityCode)) {
+      setShowCodeDialog(false)
+      setSecurityCode("")
+      fileRef.current?.click()
+    } else {
+      alert("❌ Código de seguridad incorrecto")
+      setSecurityCode("")
+    }
+  }
+
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !ventaParaEvid) return
@@ -236,6 +253,73 @@ export default function VentasPage() {
           </div>
         </div>
       </section>
+
+      {/* Modal de Código de Seguridad */}
+      {showCodeDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => {
+            setShowCodeDialog(false)
+            setSecurityCode("")
+            setVentaParaEvid(null)
+          }}
+        >
+          <div
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Código de Seguridad</h3>
+              <button
+                onClick={() => {
+                  setShowCodeDialog(false)
+                  setSecurityCode("")
+                  setVentaParaEvid(null)
+                }}
+                className="rounded-full p-2 hover:bg-neutral-100 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-neutral-600 mb-4">
+              Para reemplazar evidencia, ingresa el código de seguridad configurado
+            </p>
+            <input
+              type="password"
+              value={securityCode}
+              onChange={(e) => setSecurityCode(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  validateCodeAndUpload()
+                }
+              }}
+              className="w-full h-12 rounded-lg border border-neutral-200 px-4 outline-none focus:border-[rgba(216,189,128,.6)] focus:ring-1 focus:ring-[rgba(216,189,128,.3)]"
+              placeholder="Código de seguridad"
+              autoFocus
+            />
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => {
+                  setShowCodeDialog(false)
+                  setSecurityCode("")
+                  setVentaParaEvid(null)
+                }}
+                className={`flex-1 rounded-full h-10 px-4 border ${goldBtn}`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={validateCodeAndUpload}
+                className="flex-1 rounded-full h-10 px-4 bg-[rgba(216,189,128,.9)] hover:bg-[rgba(216,189,128,1)] text-white font-medium transition-colors"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Evidencia */}
       {evidenciaModal && (
