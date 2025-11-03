@@ -309,35 +309,25 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
             </div>
 
             {/* Información de la factura */}
-            <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
-              <div>
+            <div className="grid grid-cols-3 gap-4 mb-4 text-[10px]">
+              <div className="text-center">
                 <div className="font-semibold">FACTURA:</div>
                 <div>{invoice.invoice_number}</div>
               </div>
-              <div>
+              <div className="text-center">
                 <div className="font-semibold">FECHA:</div>
                 <div>{formatDate(invoice.issue_date)}</div>
               </div>
-              <div>
+              <div className="text-center">
                 <div className="font-semibold">MÉTODO:</div>
                 <div>{invoice.payment_method || 'Contraentrega'}</div>
-              </div>
-              <div>
-                <div className="font-semibold">ESTADO:</div>
-                <div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                    invoice.status === 'PAGADO' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
-                  }`}>
-                    {invoice.status}
-                  </span>
-                </div>
               </div>
             </div>
 
             {/* Información del cliente */}
             <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
-              <div className="font-semibold text-xs mb-2">DATOS DEL CLIENTE</div>
-              <div className="text-xs space-y-1">
+              <div className="font-semibold text-[9px] mb-2 text-center">DATOS DEL CLIENTE</div>
+              <div className="text-[9px] space-y-0.5 text-center">
                 <div>
                   <span className="font-semibold">Nombre:</span> {invoice.client_name}
                 </div>
@@ -361,14 +351,14 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
 
             {/* Items - Formato simple y organizado */}
             <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
-              <table className="w-full text-[10px]">
+              <table className="w-full text-[9px]">
                 <thead>
                   <tr className="border-b border-neutral-300">
-                    <th className="text-left py-1.5 text-[9px] font-semibold">SKU</th>
-                    <th className="text-left py-1.5 text-[9px] font-semibold">DESCRIPCIÓN</th>
-                    <th className="text-center py-1.5 text-[9px] font-semibold">CANT</th>
-                    <th className="text-center py-1.5 text-[9px] font-semibold">IVA</th>
-                    <th className="text-right py-1.5 text-[9px] font-semibold">TOTAL</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">SKU</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">DESCRIPCIÓN</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">CANT</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">IVA</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,29 +366,29 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
                     <>
                       {invoice.invoice_items.map((item, index) => (
                         <tr key={index} className="border-b border-neutral-200">
-                          <td className="py-1.5 text-[10px] text-gray-600">{item.reference || '-'}</td>
-                          <td className="py-1.5 text-[10px]">{item.description}</td>
-                          <td className="text-center py-1.5 text-[10px]">{item.quantity}</td>
-                          <td className="text-center py-1.5 text-[10px]">19%</td>
-                          <td className="text-right py-1.5 text-[10px] font-semibold">
+                          <td className="py-1 text-[9px] text-gray-600 text-center">{item.reference || '-'}</td>
+                          <td className="py-1 text-[9px] text-center">{item.description}</td>
+                          <td className="text-center py-1 text-[9px]">{item.quantity}</td>
+                          <td className="text-center py-1 text-[9px]">19%</td>
+                          <td className="text-center py-1 text-[9px] font-semibold">
                             {formatCurrency(item.total)}
                           </td>
                         </tr>
                       ))}
                       {/* Fila de envío - SIEMPRE SE MUESTRA */}
                       <tr className="border-b border-neutral-200 bg-neutral-50">
-                        <td className="py-1.5 text-[10px]">-</td>
-                        <td className="py-1.5 text-[10px] font-semibold">COSTO DE ENVÍO</td>
-                        <td className="text-center py-1.5 text-[10px]">1</td>
-                        <td className="text-center py-1.5 text-[10px]">0%</td>
-                        <td className="text-right py-1.5 text-[10px] font-semibold">
+                        <td className="py-1 text-[9px] text-center">-</td>
+                        <td className="py-1 text-[9px] font-semibold text-center">COSTO DE ENVÍO</td>
+                        <td className="text-center py-1 text-[9px]">1</td>
+                        <td className="text-center py-1 text-[9px]">0%</td>
+                        <td className="text-center py-1 text-[9px] font-semibold">
                           {formatCurrency(invoice.shipping_cost || 0)}
                         </td>
                       </tr>
                     </>
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-gray-500 text-[10px]">
+                      <td colSpan={5} className="py-8 text-center text-gray-500 text-[9px]">
                         No hay items en esta factura
                       </td>
                     </tr>
@@ -408,7 +398,7 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
             </div>
 
             {/* Totales - Formato organizado */}
-            <div className="border-t-2 border-dashed border-neutral-300 pt-4 space-y-2 text-xs mb-6">
+            <div className="border-t-2 border-dashed border-neutral-300 pt-3 space-y-1.5 text-[9px] mb-6">
               {(() => {
                 // Calcular totales correctamente
                 const totalProductosConIVA = invoice.invoice_items?.reduce((sum, item) => sum + item.total, 0) || 0
@@ -446,7 +436,7 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
             </div>
 
             {/* Pie */}
-            <div className="text-center mt-6 text-xs text-neutral-600 border-t-2 border-dashed border-neutral-300 pt-4">
+            <div className="text-center mt-4 text-[9px] text-neutral-600 border-t-2 border-dashed border-neutral-300 pt-3">
               ¡Gracias por su compra!
             </div>
           </div>
