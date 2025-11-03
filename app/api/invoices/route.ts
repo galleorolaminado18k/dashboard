@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Costo de envío (sin IVA)
     const shippingCost = body.shipping_cost || 0
+    console.log("[v0] Creating invoice - shipping_cost from body:", body.shipping_cost, "final shippingCost:", shippingCost)
 
     // Subtotal final = subtotal productos + envío
     const subtotal = subtotalProductos + shippingCost
