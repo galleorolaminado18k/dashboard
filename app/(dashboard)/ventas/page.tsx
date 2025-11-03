@@ -521,17 +521,15 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
                       </td>
                     </tr>
                   ))}
-                  {/* Fila de envío si existe */}
-                  {fac.costo_envio > 0 && (
-                    <tr className="border-b border-neutral-200 bg-neutral-50">
-                      <td className="py-2 font-semibold">COSTO DE ENVÍO</td>
-                      <td className="text-center py-2">1</td>
-                      <td className="text-center py-2">0%</td>
-                      <td className="text-right py-2 font-semibold">
-                        $ {fac.costo_envio.toLocaleString("es-CO")}
-                      </td>
-                    </tr>
-                  )}
+                  {/* Fila de envío - SIEMPRE SE MUESTRA */}
+                  <tr className="border-b border-neutral-200 bg-neutral-50">
+                    <td className="py-2 font-semibold">COSTO DE ENVÍO</td>
+                    <td className="text-center py-2">1</td>
+                    <td className="text-center py-2">0%</td>
+                    <td className="text-right py-2 font-semibold">
+                      $ {(fac.costo_envio || 0).toLocaleString("es-CO")}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

@@ -398,21 +398,19 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
                           </tr>
                         )
                       })}
-                      {/* Línea de envío si existe */}
-                      {invoice.shipping_cost && invoice.shipping_cost > 0 && (
-                        <tr className="bg-neutral-50">
-                          <td className="border border-black px-2 py-2 text-xs">{invoice.invoice_items.length + 1}</td>
-                          <td className="border border-black px-2 py-2 text-xs font-semibold">COSTO DE ENVÍO</td>
-                          <td className="border border-black px-2 py-2 text-center text-xs">1</td>
-                          <td className="border border-black px-2 py-2 text-center text-xs">0%</td>
-                          <td className="border border-black px-2 py-2 text-right text-xs">
-                            {formatCurrency(invoice.shipping_cost)}
-                          </td>
-                          <td className="border border-black px-2 py-2 text-right text-xs font-semibold">
-                            {formatCurrency(invoice.shipping_cost)}
-                          </td>
-                        </tr>
-                      )}
+                      {/* Línea de envío - SIEMPRE SE MUESTRA */}
+                      <tr className="bg-neutral-50">
+                        <td className="border border-black px-2 py-2 text-xs">{invoice.invoice_items.length + 1}</td>
+                        <td className="border border-black px-2 py-2 text-xs font-semibold">COSTO DE ENVÍO</td>
+                        <td className="border border-black px-2 py-2 text-center text-xs">1</td>
+                        <td className="border border-black px-2 py-2 text-center text-xs">0%</td>
+                        <td className="border border-black px-2 py-2 text-right text-xs">
+                          {formatCurrency(invoice.shipping_cost || 0)}
+                        </td>
+                        <td className="border border-black px-2 py-2 text-right text-xs font-semibold">
+                          {formatCurrency(invoice.shipping_cost || 0)}
+                        </td>
+                      </tr>
                       {/* Filas vacías para completar la tabla */}
                       {invoice.invoice_items.length < 7 &&
                         Array.from({ length: 7 - invoice.invoice_items.length }).map((_, i) => (
