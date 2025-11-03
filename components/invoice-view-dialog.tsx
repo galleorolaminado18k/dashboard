@@ -297,143 +297,104 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
             </div>
           </div>
         ) : (
-          <div ref={printRef} className="invoice-container bg-white p-8">
-            {/* Encabezado con logo y tipo de documento */}
-            <div className="border-b-2 border-black pb-4 mb-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-5xl font-black tracking-wider text-gray-900">GALLE</h1>
-                  <div className="mt-3 text-xs leading-relaxed">
-                    <p className="font-bold">COMERCIALIZADORA GALLE18K ORO LAMINADO Y</p>
-                    <p className="font-bold">ACCESORIOS SAS</p>
-                    <p className="mt-2">
-                      <span className="font-semibold">NIT:</span> 901357041-4 RESPONSABLE DE IVA
-                    </p>
-                    <p className="mt-1">VILLA DEL ROSARIO - NORTE DE SANTANDER</p>
-                    <p className="mt-1">
-                      <span className="font-semibold">TELÉFONOS:</span> LINEA DETAL: 300 5551856 LINEA MAYOR: 304
-                      3676388
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold">ORDEN DE VENTA</p>
-                  <p className="text-sm font-bold mt-1">No. {invoice.invoice_number || ""}</p>
-                  <p className="text-sm mt-1"><span className="font-semibold">Fecha de venta:</span> {formatDate(invoice.issue_date)}</p>
-                </div>
-              </div>
+          <div ref={printRef} className="max-w-[600px] mx-auto bg-white rounded-xl shadow-lg p-8 text-sm">
+            {/* Encabezado empresa */}
+            <div className="text-center border-b-2 border-dashed border-neutral-300 pb-4 mb-4">
+              <div className="text-2xl font-bold text-[rgba(216,189,128,1)]">GALLE</div>
+              <div className="text-xs mt-1">COMERCIALIZADORA GALLE18K</div>
+              <div className="text-xs">ORO LAMINADO Y ACCESORIOS SAS</div>
+              <div className="text-xs mt-1">NIT: 901357041-4</div>
+              <div className="text-xs">Tel: 300 5551856</div>
             </div>
 
-            {/* Garantía y políticas */}
-            <div className="text-[9px] leading-tight mb-4 border border-gray-300 p-2">
-              <p className="font-semibold">
-                GARANTÍA 2 AÑOS POR CAMBIO DE COLOR O DEFECTO DE FABRICA. NO APLICA A MODIFICACIONES O DAÑOS A LA PRENDA
-                POR USO
-              </p>
+            {/* Información de la factura */}
+            <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
+              <div>
+                <div className="font-semibold">FACTURA:</div>
+                <div>{invoice.invoice_number}</div>
+              </div>
+              <div>
+                <div className="font-semibold">FECHA:</div>
+                <div>{formatDate(invoice.issue_date)}</div>
+              </div>
+              <div>
+                <div className="font-semibold">MÉTODO:</div>
+                <div>{invoice.payment_method || 'Contraentrega'}</div>
+              </div>
+              <div>
+                <div className="font-semibold">ESTADO:</div>
+                <div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    invoice.status === 'PAGADO' ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100 text-amber-900'
+                  }`}>
+                    {invoice.status}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Información del cliente */}
-            <div className="mb-6 space-y-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex">
-                  <span className="font-bold text-sm w-24">NOMBRE:</span>
-                  <span className="text-sm flex-1 border-b border-gray-400">{invoice.client_name}</span>
+            <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
+              <div className="font-semibold text-xs mb-2">DATOS DEL CLIENTE</div>
+              <div className="text-xs space-y-1">
+                <div>
+                  <span className="font-semibold">Nombre:</span> {invoice.client_name}
                 </div>
-                <div className="flex">
-                  <span className="font-bold text-sm w-24">CELULAR:</span>
-                  <span className="text-sm flex-1 border-b border-gray-400">{invoice.client_phone || ""}</span>
-                </div>
-              </div>
-              <div className="flex">
-                <span className="font-bold text-sm w-24">DIRECCIÓN:</span>
-                <span className="text-sm flex-1 border-b border-gray-400">{invoice.client_address || ""}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex">
-                  <span className="font-bold text-sm w-24">CÉDULA:</span>
-                  <span className="text-sm flex-1 border-b border-gray-400">{invoice.client_nit || ""}</span>
-                </div>
-                <div className="flex">
-                  <span className="font-bold text-sm w-24">CIUDAD:</span>
-                  <span className="text-sm flex-1 border-b border-gray-400"></span>
-                </div>
-              </div>
-              <div className="flex">
-                <span className="font-bold text-sm w-24">ASESORA:</span>
-                <span className="text-sm flex-1 border-b border-gray-400">KARLA GARCIA</span>
+                {invoice.client_nit && (
+                  <div>
+                    <span className="font-semibold">NIT:</span> {invoice.client_nit}
+                  </div>
+                )}
+                {invoice.client_phone && (
+                  <div>
+                    <span className="font-semibold">Teléfono:</span> {invoice.client_phone}
+                  </div>
+                )}
+                {invoice.client_address && (
+                  <div>
+                    <span className="font-semibold">Dirección:</span> {invoice.client_address}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Tabla de productos */}
-            <div className="mb-6">
-              <table className="w-full border-collapse border-2 border-black">
+            {/* Items - Formato simple y organizado */}
+            <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
+              <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-white">
-                    <th className="border border-black px-2 py-2 text-left text-xs font-bold">REF</th>
-                    <th className="border border-black px-2 py-2 text-left text-xs font-bold">DESCRIPCIÓN</th>
-                    <th className="border border-black px-2 py-2 text-center text-xs font-bold">UND</th>
-                    <th className="border border-black px-2 py-2 text-center text-xs font-bold">IVA 19%</th>
-                    <th className="border border-black px-2 py-2 text-right text-xs font-bold">PRECIO BASE</th>
-                    <th className="border border-black px-2 py-2 text-right text-xs font-bold">PRECIO NETO</th>
+                  <tr className="border-b border-neutral-300">
+                    <th className="text-left py-2">DESCRIPCIÓN</th>
+                    <th className="text-center py-2">CANT</th>
+                    <th className="text-center py-2">IVA</th>
+                    <th className="text-right py-2">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoice.invoice_items && Array.isArray(invoice.invoice_items) && invoice.invoice_items.length > 0 ? (
                     <>
-                      {invoice.invoice_items.map((item, index) => {
-                        // El precio YA incluye IVA, entonces:
-                        // Precio sin IVA = Precio total / (1 + tasa_iva)
-                        // IVA = Precio total - Precio sin IVA
-                        const totalConIVA = item.total
-                        const totalSinIVA = totalConIVA / (1 + invoice.tax_rate / 100)
-                        const ivaDelItem = totalConIVA - totalSinIVA
-
-                        return (
-                          <tr key={index}>
-                            <td className="border border-black px-2 py-2 text-xs">{index + 1}</td>
-                            <td className="border border-black px-2 py-2 text-xs">{item.description}</td>
-                            <td className="border border-black px-2 py-2 text-center text-xs">{item.quantity}</td>
-                            <td className="border border-black px-2 py-2 text-center text-xs">
-                              {formatCurrency(ivaDelItem)}
-                            </td>
-                            <td className="border border-black px-2 py-2 text-right text-xs">
-                              {formatCurrency(totalSinIVA / item.quantity)}
-                            </td>
-                            <td className="border border-black px-2 py-2 text-right text-xs font-semibold">
-                              {formatCurrency(item.total)}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                      {/* Línea de envío - SIEMPRE SE MUESTRA */}
-                      <tr className="bg-neutral-50">
-                        <td className="border border-black px-2 py-2 text-xs">{invoice.invoice_items.length + 1}</td>
-                        <td className="border border-black px-2 py-2 text-xs font-semibold">COSTO DE ENVÍO</td>
-                        <td className="border border-black px-2 py-2 text-center text-xs">1</td>
-                        <td className="border border-black px-2 py-2 text-center text-xs">0%</td>
-                        <td className="border border-black px-2 py-2 text-right text-xs">
-                          {formatCurrency(invoice.shipping_cost || 0)}
-                        </td>
-                        <td className="border border-black px-2 py-2 text-right text-xs font-semibold">
+                      {invoice.invoice_items.map((item, index) => (
+                        <tr key={index} className="border-b border-neutral-200">
+                          <td className="py-2">{item.description}</td>
+                          <td className="text-center py-2">{item.quantity}</td>
+                          <td className="text-center py-2">19%</td>
+                          <td className="text-right py-2 font-semibold">
+                            {formatCurrency(item.total)}
+                          </td>
+                        </tr>
+                      ))}
+                      {/* Fila de envío - SIEMPRE SE MUESTRA */}
+                      <tr className="border-b border-neutral-200 bg-neutral-50">
+                        <td className="py-2 font-semibold">COSTO DE ENVÍO</td>
+                        <td className="text-center py-2">1</td>
+                        <td className="text-center py-2">0%</td>
+                        <td className="text-right py-2 font-semibold">
                           {formatCurrency(invoice.shipping_cost || 0)}
                         </td>
                       </tr>
-                      {/* Filas vacías para completar la tabla */}
-                      {invoice.invoice_items.length < 7 &&
-                        Array.from({ length: 7 - invoice.invoice_items.length }).map((_, i) => (
-                          <tr key={`empty-${i}`}>
-                            <td className="border border-black px-2 py-2 text-xs">&nbsp;</td>
-                            <td className="border border-black px-2 py-2 text-xs"></td>
-                            <td className="border border-black px-2 py-2 text-xs text-center">-</td>
-                            <td className="border border-black px-2 py-2 text-xs text-center">$ -</td>
-                            <td className="border border-black px-2 py-2 text-xs text-right">$ -</td>
-                            <td className="border border-black px-2 py-2 text-xs text-right">$ -</td>
-                          </tr>
-                        ))}
                     </>
                   ) : (
                     <tr>
-                      <td colSpan={6} className="border border-black px-2 py-8 text-center text-xs text-gray-500">
+                      <td colSpan={4} className="py-8 text-center text-gray-500">
                         No hay items en esta factura
                       </td>
                     </tr>
@@ -442,104 +403,47 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
               </table>
             </div>
 
-            {/* Totales y forma de pago */}
-            <div className="flex justify-between mb-6">
-              <div className="w-1/2">
-                <div className="border-2 border-black p-2">
-                  <p className="text-xs font-bold">FORMA DE PAGO: CONTRA_ENTREGA.</p>
-                </div>
-              </div>
-              <div className="w-5/12">
-                <div className="space-y-1">
-                  <div className="flex justify-between border-b border-black pb-1">
-                    <span className="text-sm font-bold">SUBTOTAL</span>
-                    <span className="text-sm font-bold">
-                      {formatCurrency(
-                        (() => {
-                          // Calcular subtotal de productos sin IVA
-                          const subtotalProductos = invoice.invoice_items?.reduce((sum, item) => {
-                            // item.total YA incluye IVA, entonces:
-                            // Precio sin IVA = total / (1 + tax_rate/100)
-                            const totalSinIVA = item.total / (1 + invoice.tax_rate / 100)
-                            return sum + totalSinIVA
-                          }, 0) || 0
+            {/* Totales - Formato organizado */}
+            <div className="border-t-2 border-dashed border-neutral-300 pt-4 space-y-2 text-xs mb-6">
+              {(() => {
+                // Calcular totales correctamente
+                const totalProductosConIVA = invoice.invoice_items?.reduce((sum, item) => sum + item.total, 0) || 0
+                const subtotalProductos = totalProductosConIVA / 1.19 // Subtotal sin IVA
+                const ivaProductos = totalProductosConIVA - subtotalProductos // IVA de los productos
+                const costoEnvio = invoice.shipping_cost || 0 // Envío sin IVA
+                const subtotalFinal = subtotalProductos + costoEnvio // Subtotal + Envío (sin IVA)
+                const totalFinal = totalProductosConIVA + costoEnvio // Total con IVA + Envío
 
-                          // Agregar el costo de envío (sin IVA)
-                          const envio = invoice.shipping_cost || 0
-
-                          return subtotalProductos + envio
-                        })()
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-black pb-1">
-                    <span className="text-sm font-bold">IMPUESTOS</span>
-                    <span className="text-sm font-bold">
-                      {formatCurrency(
-                        (() => {
-                          // IVA solo sobre productos, NO sobre envío
-                          // IVA = Total con IVA - Total sin IVA
-                          return invoice.invoice_items?.reduce((sum, item) => {
-                            const totalConIVA = item.total
-                            const totalSinIVA = totalConIVA / (1 + invoice.tax_rate / 100)
-                            const ivaItem = totalConIVA - totalSinIVA
-                            return sum + ivaItem
-                          }, 0) || 0
-                        })()
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b-2 border-black pb-1 pt-1">
-                    <span className="text-sm font-bold">TOTAL NETO</span>
-                    <span className="text-sm font-bold">
-                      {formatCurrency(
-                        (() => {
-                          // Total = Productos con IVA + Envío
-                          const totalProductos = invoice.invoice_items?.reduce((sum, item) => {
-                            return sum + item.total
-                          }, 0) || 0
-
-                          const envio = invoice.shipping_cost || 0
-
-                          return totalProductos + envio
-                        })()
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <span>SUBTOTAL PRODUCTOS (sin IVA):</span>
+                      <span className="font-semibold">{formatCurrency(Math.round(subtotalProductos))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>IVA (19%):</span>
+                      <span className="font-semibold">{formatCurrency(Math.round(ivaProductos))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>COSTO ENVÍO:</span>
+                      <span className="font-semibold">{formatCurrency(costoEnvio)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-neutral-300 pt-2">
+                      <span>SUBTOTAL FINAL:</span>
+                      <span className="font-semibold">{formatCurrency(Math.round(subtotalFinal))}</span>
+                    </div>
+                    <div className="flex justify-between text-base font-bold border-t-2 border-neutral-300 pt-2 mt-2">
+                      <span>TOTAL A PAGAR:</span>
+                      <span>{formatCurrency(Math.round(totalFinal))}</span>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
 
-            {/* Redes sociales */}
-            <div className="text-center mb-4">
-              <p className="text-xs font-semibold">Síguenos en Instagram @galleorolaminado18k</p>
-            </div>
-
-            {/* Firmas */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="text-center">
-                <div className="border-t-2 border-black pt-1 mt-12">
-                  <p className="text-xs font-bold">FIRMA ASESORA</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t-2 border-black pt-1 mt-12">
-                  <p className="text-xs font-bold">FIRMA AUDITOR</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="border-t-2 border-black pt-1 mt-12">
-                  <p className="text-xs font-bold">FIRMA SUPERVISOR</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Nota legal */}
-            <div className="text-[8px] leading-tight text-center border-t border-gray-300 pt-2">
-              <p className="font-semibold">
-                RECUERDA NO APLICAR RETENCIÓN EN LA FUENTE YA QUE SOMOS BENEFICIARIOS SEZE
-              </p>
-              <p className="mt-1">SI DESEAS APLICAR RETENCIÓN EN LA FUENTE COMUNICATE CON TU ASESORA</p>
+            {/* Pie */}
+            <div className="text-center mt-6 text-xs text-neutral-600 border-t-2 border-dashed border-neutral-300 pt-4">
+              ¡Gracias por su compra!
             </div>
           </div>
         )}
