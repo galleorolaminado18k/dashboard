@@ -373,22 +373,31 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
                 <tbody>
                   {invoice.invoice_items && Array.isArray(invoice.invoice_items) && invoice.invoice_items.length > 0 ? (
                     <>
-                      {invoice.invoice_items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="border border-black px-2 py-2 text-xs">{index + 1}</td>
-                          <td className="border border-black px-2 py-2 text-xs">{item.description}</td>
-                          <td className="border border-black px-2 py-2 text-center text-xs">{item.quantity}</td>
-                          <td className="border border-black px-2 py-2 text-center text-xs">
-                            {formatCurrency(item.unit_price * item.quantity * (invoice.tax_rate / 100))}
-                          </td>
-                          <td className="border border-black px-2 py-2 text-right text-xs">
-                            {formatCurrency(item.unit_price)}
-                          </td>
-                          <td className="border border-black px-2 py-2 text-right text-xs font-semibold">
-                            {formatCurrency(item.total)}
-                          </td>
-                        </tr>
-                      ))}
+                      {invoice.invoice_items.map((item, index) => {
+                        // El precio YA incluye IVA, entonces:
+                        // Precio sin IVA = Precio total / (1 + tasa_iva)
+                        // IVA = Precio total - Precio sin IVA
+                        const totalConIVA = item.total
+                        const totalSinIVA = totalConIVA / (1 + invoice.tax_rate / 100)
+                        const ivaDelItem = totalConIVA - totalSinIVA
+
+                        return (
+                          <tr key={index}>
+                            <td className="border border-black px-2 py-2 text-xs">{index + 1}</td>
+                            <td className="border border-black px-2 py-2 text-xs">{item.description}</td>
+                            <td className="border border-black px-2 py-2 text-center text-xs">{item.quantity}</td>
+                            <td className="border border-black px-2 py-2 text-center text-xs">
+                              {formatCurrency(ivaDelItem)}
+                            </td>
+                            <td className="border border-black px-2 py-2 text-right text-xs">
+                              {formatCurrency(totalSinIVA / item.quantity)}
+                            </td>
+                            <td className="border border-black px-2 py-2 text-right text-xs font-semibold">
+                              {formatCurrency(item.total)}
+                            </td>
+                          </tr>
+                        )
+                      })}
                       {/* Línea de envío si existe */}
                       {invoice.shipping_cost && invoice.shipping_cost > 0 && (
                         <tr className="bg-neutral-50">
@@ -444,9 +453,10 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
                         (() => {
                           // Calcular subtotal de productos sin IVA
                           const subtotalProductos = invoice.invoice_items?.reduce((sum, item) => {
-                            // El precio base es el precio con IVA dividido por (1 + tax_rate)
-                            const precioSinIVA = item.unit_price / (1 + invoice.tax_rate / 100)
-                            return sum + (precioSinIVA * item.quantity)
+                            // item.total YA incluye IVA, entonces:
+                            // Precio sin IVA = total / (1 + tax_rate/100)
+                            const totalSinIVA = item.total / (1 + invoice.tax_rate / 100)
+                            return sum + totalSinIVA
                           }, 0) || 0
 
                           // Agregar el costo de envío (sin IVA)
@@ -463,8 +473,11 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
                       {formatCurrency(
                         (() => {
                           // IVA solo sobre productos, NO sobre envío
+                          // IVA = Total con IVA - Total sin IVA
                           return invoice.invoice_items?.reduce((sum, item) => {
-                            const ivaItem = item.unit_price * item.quantity * (invoice.tax_rate / 100)
+                            const totalConIVA = item.total
+                            const totalSinIVA = totalConIVA / (1 + invoice.tax_rate / 100)
+                            const ivaItem = totalConIVA - totalSinIVA
                             return sum + ivaItem
                           }, 0) || 0
                         })()

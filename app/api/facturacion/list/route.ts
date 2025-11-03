@@ -54,6 +54,7 @@ export async function GET() {
         total: Number(inv.total || 0),
         estado: inv.status || 'PENDIENTE PAGO',
         metodo: inv.payment_method || 'Contraentrega',
+        costo_envio: Number(inv.shipping_cost || 0),
         items
       }
     })
