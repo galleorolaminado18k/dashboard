@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Factura no encontrada" }, { status: 404 })
     }
 
-    console.log("[v0] Invoice found:", data.invoice_number, "Items:", data.invoice_items?.length || 0)
+    console.log("[v0] Invoice found:", data.invoice_number, "Items:", data.invoice_items?.length || 0, "Shipping cost:", data.shipping_cost)
 
     // Retornar directamente el objeto de factura para consistencia
     return NextResponse.json(data)

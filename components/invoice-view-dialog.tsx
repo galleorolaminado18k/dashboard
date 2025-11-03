@@ -42,6 +42,13 @@ export function InvoiceViewDialog({ invoice, open, onOpenChange, onRefresh }: In
   const printRef = useRef<HTMLDivElement>(null)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
 
+  // Debug: ver el valor de shipping_cost
+  console.log('[InvoiceViewDialog] Invoice data:', {
+    invoice_number: invoice?.invoice_number,
+    shipping_cost: invoice?.shipping_cost,
+    shipping_cost_type: typeof invoice?.shipping_cost
+  })
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
