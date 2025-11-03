@@ -501,32 +501,35 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
 
             {/* Items */}
             <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
-              <table className="w-full text-xs">
+              <table className="w-full text-[10px]">
                 <thead>
                   <tr className="border-b border-neutral-300">
-                    <th className="text-left py-2">DESCRIPCIÓN</th>
-                    <th className="text-center py-2">CANT</th>
-                    <th className="text-center py-2">IVA</th>
-                    <th className="text-right py-2">TOTAL</th>
+                    <th className="text-left py-1.5 text-[9px] font-semibold">SKU</th>
+                    <th className="text-left py-1.5 text-[9px] font-semibold">DESCRIPCIÓN</th>
+                    <th className="text-center py-1.5 text-[9px] font-semibold">CANT</th>
+                    <th className="text-center py-1.5 text-[9px] font-semibold">IVA</th>
+                    <th className="text-right py-1.5 text-[9px] font-semibold">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fac.items.map((it: any, i: number) => (
                     <tr key={i} className="border-b border-neutral-200">
-                      <td className="py-2">{it.descripcion}</td>
-                      <td className="text-center py-2">{it.und}</td>
-                      <td className="text-center py-2">{it.ivaPct}%</td>
-                      <td className="text-right py-2 font-semibold">
+                      <td className="py-1.5 text-[10px] text-gray-600">{it.ref || '-'}</td>
+                      <td className="py-1.5 text-[10px]">{it.descripcion}</td>
+                      <td className="text-center py-1.5 text-[10px]">{it.und}</td>
+                      <td className="text-center py-1.5 text-[10px]">{it.ivaPct}%</td>
+                      <td className="text-right py-1.5 text-[10px] font-semibold">
                         $ {it.precioNeto.toLocaleString("es-CO")}
                       </td>
                     </tr>
                   ))}
                   {/* Fila de envío - SIEMPRE SE MUESTRA */}
                   <tr className="border-b border-neutral-200 bg-neutral-50">
-                    <td className="py-2 font-semibold">COSTO DE ENVÍO</td>
-                    <td className="text-center py-2">1</td>
-                    <td className="text-center py-2">0%</td>
-                    <td className="text-right py-2 font-semibold">
+                    <td className="py-1.5 text-[10px]">-</td>
+                    <td className="py-1.5 text-[10px] font-semibold">COSTO DE ENVÍO</td>
+                    <td className="text-center py-1.5 text-[10px]">1</td>
+                    <td className="text-center py-1.5 text-[10px]">0%</td>
+                    <td className="text-right py-1.5 text-[10px] font-semibold">
                       $ {(fac.costo_envio || 0).toLocaleString("es-CO")}
                     </td>
                   </tr>
