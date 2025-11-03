@@ -18,11 +18,7 @@ SELECT
     unit_price,
     total
 FROM public.invoice_items
-WHERE invoice_id = (
-    SELECT id
-    FROM public.invoices
-    WHERE invoice_number = '000021'
-);
+WHERE invoice_id = '000021';
 
 -- Ver información completa de la factura
 SELECT
@@ -40,21 +36,14 @@ WHERE invoice_number = '000021';
 -- PASO 2: Agregar el item que falta (Balines #4MM DORADOS)
 -- =====================================================
 
--- Primero, obtener el ID de la factura
+-- Verificar si ya existen items y agregar si no existen
 DO $$
-DECLARE
-    v_invoice_id UUID;
 BEGIN
-    -- Obtener el ID de la factura 000021
-    SELECT id INTO v_invoice_id
-    FROM public.invoices
-    WHERE invoice_number = '000021';
-
-    -- Verificar si ya existen items
+    -- Verificar si ya existen items para la factura 000021
     IF NOT EXISTS (
         SELECT 1
         FROM public.invoice_items
-        WHERE invoice_id = v_invoice_id
+        WHERE invoice_id = '000021'
     ) THEN
         -- Insertar el producto: Balines #4MM DORADOS
         INSERT INTO public.invoice_items (
@@ -64,7 +53,7 @@ BEGIN
             unit_price,
             total
         ) VALUES (
-            v_invoice_id,
+            '000021',  -- invoice_id es TEXT, no UUID
             'Balines #4MM DORADOS',
             1,
             155000,  -- Precio con IVA incluido
@@ -83,14 +72,13 @@ END $$;
 
 SELECT
     ii.id,
-    i.invoice_number,
+    ii.invoice_id,
     ii.description,
     ii.quantity,
     ii.unit_price,
     ii.total
 FROM public.invoice_items ii
-JOIN public.invoices i ON i.id = ii.invoice_id
-WHERE i.invoice_number = '000021';
+WHERE ii.invoice_id = '000021';
 
 -- =====================================================
 -- PASO 4: Ver la factura completa con items
@@ -107,7 +95,7 @@ SELECT
         WHEN EXISTS (
             SELECT 1
             FROM public.invoice_items
-            WHERE invoice_id = i.id
+            WHERE invoice_id = '000021'
         ) THEN '✅ TIENE ITEMS'
         ELSE '❌ SIN ITEMS'
     END as estado_items
