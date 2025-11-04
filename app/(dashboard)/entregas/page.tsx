@@ -440,32 +440,53 @@ export default function EntregasPage() {
                     <td className="px-4 py-3 text-center">
                       <div className="flex justify-center gap-2">
                         {/* Si hay novedad, mostrar botón rojo prioritario */}
-                        {e.mipaqueteStatus?.toLowerCase().includes('novedad') ||
-                         e.mipaqueteStatus?.toLowerCase().includes('cancela') ||
-                         e.mipaqueteStatus?.toLowerCase().includes('rechaza') ? (
-                          <button
-                            onClick={() => setNovedadModal({ open: true, envio: e })}
-                            className="inline-flex items-center gap-2 rounded-full px-4 h-9
-                            border border-red-500 text-white bg-red-600 hover:bg-red-700
-                            shadow-[0_2px_10px_rgba(220,38,38,.3)] transition font-medium"
-                            title="Solucionar novedad"
-                          >
-                            <AlertTriangle className="w-4 h-4" />
-                            Solucionar novedad
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setTrace({ open: true, guia: e.guia })}
-                            className="inline-flex items-center gap-2 rounded-full px-4 h-9
-                            border border-[rgba(216,189,128,.6)] text-[#0B0B0C]
-                            bg-white hover:bg-[rgba(216,189,128,.08)]
-                            shadow-[0_2px_10px_rgba(0,0,0,.04)] transition"
-                            title="Ver tracking"
-                          >
-                            <Route className="w-4 h-4" />
-                            Ver tracking
-                          </button>
-                        )}
+                        {(() => {
+                          const hasNovedad = e.mipaqueteStatus && (
+                            e.mipaqueteStatus.toLowerCase().includes('novedad') ||
+                            e.mipaqueteStatus.toLowerCase().includes('cancela') ||
+                            e.mipaqueteStatus.toLowerCase().includes('rechaza') ||
+                            e.mipaqueteStatus.toLowerCase().includes('usuario') ||
+                            e.estado === 'Retrasado'
+                          )
+
+                          // Debug: mostrar en console
+                          if (e.guia === '58048080554') {
+                            console.log('DEBUG Envío 58048080554:', {
+                              mipaqueteStatus: e.mipaqueteStatus,
+                              estado: e.estado,
+                              hasNovedad
+                            })
+                          }
+
+                          return hasNovedad ? (
+                            <button
+                              onClick={() => {
+                                console.log('Abriendo modal para:', e)
+                                setNovedadModal({ open: true, envio: e })
+                              }}
+                              className="inline-flex items-center gap-2 rounded-lg px-6 py-2 h-10
+                              border-2 border-red-600 text-white bg-red-600 hover:bg-red-700
+                              shadow-lg shadow-red-500/50 transition-all font-bold text-sm
+                              hover:scale-105 animate-pulse"
+                              title="¡URGENTE! Click para solucionar novedad"
+                            >
+                              <AlertTriangle className="w-5 h-5" />
+                              Solucionar novedad
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setTrace({ open: true, guia: e.guia })}
+                              className="inline-flex items-center gap-2 rounded-full px-4 h-9
+                              border border-[rgba(216,189,128,.6)] text-[#0B0B0C]
+                              bg-white hover:bg-[rgba(216,189,128,.08)]
+                              shadow-[0_2px_10px_rgba(0,0,0,.04)] transition"
+                              title="Ver tracking"
+                            >
+                              <Route className="w-4 h-4" />
+                              Ver tracking
+                            </button>
+                          )
+                        })()}
                       </div>
                     </td>
                   </tr>
