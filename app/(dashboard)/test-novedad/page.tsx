@@ -36,6 +36,7 @@ export default function TestNovedadPage() {
     <div className="min-h-screen bg-neutral-50 p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-4">🧪 Página de Prueba - Modal de Novedad</h1>
+        <p className="text-sm text-neutral-500 mb-4">Última actualización: 2025-11-04 | Branch: feature/meta-ads-integration-v2 | Commit: fd4a5f2</p>
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Prueba el Modal de Novedad</h2>
