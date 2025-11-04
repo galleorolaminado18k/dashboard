@@ -520,6 +520,7 @@ export default function EntregasPage() {
       )}
 
       {/* Modal de Novedad — muestra datos del cliente y pedido para contactar */}
+      {/* Version: 2025-11-04-v2 - Force rebuild with complete Actions column */}
       {novedadModal.open && novedadModal.envio && (
         <NovedadModal
           open={novedadModal.open}
