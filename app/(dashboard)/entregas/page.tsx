@@ -407,6 +407,7 @@ export default function EntregasPage() {
                     <th className="text-center px-4 py-3">Despacho</th>
                     <th className="text-center px-4 py-3">Fecha aproximada de entrega</th>
                     <th className="text-center px-4 py-3">Última actualización</th>
+                    <th className="text-center px-4 py-3">Última actualización</th>
                     <th className="text-center px-4 py-3">Acciones</th>
                   </tr>
                 </thead>
