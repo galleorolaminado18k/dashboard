@@ -435,55 +435,36 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
               <div className="text-2xl font-bold text-[rgba(216,189,128,1)]">GALLE</div>
               <div className="text-xs mt-1">COMERCIALIZADORA GALLE18K</div>
               <div className="text-xs">ORO LAMINADO Y ACCESORIOS SAS</div>
-              <div className="text-xs mt-1">NIT: 900.123.456-7</div>
-              <div className="text-xs">Tel: +57 300 123 4567</div>
+              <div className="text-xs mt-1">NIT: 901357041-4</div>
+              <div className="text-xs">Tel: 300 5551856</div>
             </div>
 
             {/* Información de la factura */}
-            <div className="grid grid-cols-2 gap-4 mb-4 text-xs">
-              <div>
+            <div className="grid grid-cols-3 gap-4 mb-4 text-[10px]">
+              <div className="text-center">
                 <div className="font-semibold">FACTURA:</div>
                 <div>{fac.numero}</div>
               </div>
-              <div>
+              <div className="text-center">
                 <div className="font-semibold">FECHA:</div>
                 <div>{fac.emision}</div>
               </div>
-              <div>
+              <div className="text-center">
                 <div className="font-semibold">MÉTODO:</div>
                 <div>{fac.metodo}</div>
-              </div>
-              <div>
-                <div className="font-semibold">ESTADO:</div>
-                <div>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                      fac.estado === "Pagado"
-                        ? "bg-emerald-100 text-emerald-900"
-                        : "bg-amber-100 text-amber-900"
-                    }`}
-                  >
-                    {fac.estado}
-                  </span>
-                </div>
               </div>
             </div>
 
             {/* Información del cliente */}
             <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
-              <div className="font-semibold text-xs mb-2">DATOS DEL CLIENTE</div>
-              <div className="text-xs space-y-1">
+              <div className="font-semibold text-[9px] mb-2 text-center">DATOS DEL CLIENTE</div>
+              <div className="text-[9px] space-y-0.5 text-center">
                 <div>
                   <span className="font-semibold">Nombre:</span> {fac.cliente.nombre}
                 </div>
                 {fac.cliente.nit && (
                   <div>
                     <span className="font-semibold">NIT:</span> {fac.cliente.nit}
-                  </div>
-                )}
-                {fac.cliente.ciudad && (
-                  <div>
-                    <span className="font-semibold">Ciudad:</span> {fac.cliente.ciudad}
                   </div>
                 )}
                 {fac.cliente.telefono && (
@@ -501,32 +482,46 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
 
             {/* Items */}
             <div className="border-t-2 border-dashed border-neutral-300 pt-4 mb-4">
-              <table className="w-full text-xs">
+              <table className="w-full text-[9px]">
                 <thead>
                   <tr className="border-b border-neutral-300">
-                    <th className="text-left py-2">DESCRIPCIÓN</th>
-                    <th className="text-center py-2">CANT</th>
-                    <th className="text-center py-2">IVA</th>
-                    <th className="text-right py-2">TOTAL</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">SKU</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">DESCRIPCIÓN</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">CANT</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">IVA</th>
+                    <th className="text-center py-1 text-[8px] font-semibold">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fac.items.map((it: any, i: number) => (
                     <tr key={i} className="border-b border-neutral-200">
-                      <td className="py-2">{it.descripcion}</td>
-                      <td className="text-center py-2">{it.und}</td>
-                      <td className="text-center py-2">{it.ivaPct}%</td>
-                      <td className="text-right py-2 font-semibold">
+                      <td className="py-1 text-[9px] text-gray-600 text-center">{it.sku || it.reference || '-'}</td>
+                      <td className="py-1 text-[9px] text-center">{it.descripcion}</td>
+                      <td className="text-center py-1 text-[9px]">{it.und}</td>
+                      <td className="text-center py-1 text-[9px]">{it.ivaPct}%</td>
+                      <td className="text-center py-1 text-[9px] font-semibold">
                         $ {it.precioNeto.toLocaleString("es-CO")}
                       </td>
                     </tr>
                   ))}
+                  {/* Fila de envío - SIEMPRE SE MUESTRA */}
+                  {fac.costo_envio !== undefined && (
+                    <tr className="border-b border-neutral-200 bg-neutral-50">
+                      <td className="py-1 text-[9px] text-center">-</td>
+                      <td className="py-1 text-[9px] font-semibold text-center">COSTO DE ENVÍO</td>
+                      <td className="text-center py-1 text-[9px]">1</td>
+                      <td className="text-center py-1 text-[9px]">0%</td>
+                      <td className="text-center py-1 text-[9px] font-semibold">
+                        $ {(fac.costo_envio || 0).toLocaleString("es-CO")}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
             {/* Totales */}
-            <div className="border-t-2 border-dashed border-neutral-300 pt-4 space-y-2 text-xs">
+            <div className="border-t-2 border-dashed border-neutral-300 pt-3 space-y-1.5 text-[9px] mb-6">
               {(() => {
                 // Calcular totales correctamente
                 // Los productos ya incluyen IVA, entonces:
@@ -553,11 +548,7 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
                         <span className="font-semibold">$ {costoEnvio.toLocaleString("es-CO")}</span>
                       </div>
                     )}
-                    <div className="flex justify-between border-t border-neutral-300 pt-2">
-                      <span>SUBTOTAL FINAL:</span>
-                      <span className="font-semibold">$ {Math.round(subtotalFinal).toLocaleString("es-CO")}</span>
-                    </div>
-                    <div className="flex justify-between text-base font-bold border-t-2 border-neutral-300 pt-2 mt-2">
+                    <div className="flex justify-between text-[10px] font-bold border-t border-neutral-300 pt-2 mt-2">
                       <span>TOTAL A PAGAR:</span>
                       <span>$ {Math.round(totalFinal).toLocaleString("es-CO")}</span>
                     </div>
@@ -567,7 +558,7 @@ function FacturaModal({ facturaNumero, venta, onClose }: { facturaNumero: string
             </div>
 
             {/* Pie */}
-            <div className="text-center mt-6 text-xs text-neutral-600 border-t-2 border-dashed border-neutral-300 pt-4">
+            <div className="text-center text-[9px] text-neutral-600 border-t-2 border-dashed border-neutral-300 pt-4">
               ¡Gracias por su compra!
             </div>
           </div>
