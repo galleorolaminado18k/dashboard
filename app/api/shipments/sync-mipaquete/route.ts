@@ -17,14 +17,18 @@ export async function POST() {
       .from('shipments')
       .select('*')
       .not('tracking_number', 'is', null)
-      .not('status', 'in', '("delivered","returned")')
+      .neq('status', 'delivered')
+      .neq('status', 'returned')
 
     if (error) {
       console.error('[Sync Shipments] Error obteniendo envíos:', error)
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
     }
 
+    console.log(`[Sync Shipments] Shipments obtenidos:`, shipments?.length || 0)
+
     if (!shipments || shipments.length === 0) {
+      console.log('[Sync Shipments] No hay envíos para sincronizar')
       return NextResponse.json({
         ok: true,
         message: 'No hay envíos activos para sincronizar',
@@ -33,6 +37,7 @@ export async function POST() {
     }
 
     console.log(`[Sync Shipments] Encontrados ${shipments.length} envíos activos`)
+    console.log('[Sync Shipments] Guías a consultar:', shipments.map(s => s.tracking_number))
 
     // 2. Configurar cliente de MiPaquete
     const MIPAQUETE_API_URL = "https://api-v2.mpr.mipaquete.com/getSendingTracking"
