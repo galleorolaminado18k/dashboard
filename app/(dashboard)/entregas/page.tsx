@@ -2,12 +2,15 @@
 import type React from "react"
 import { useMemo, useState } from "react"
 import axios from "axios"
+import useSWR from "swr"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Truck, CheckCircle2, Clock3, AlertTriangle, PackageSearch, MapPin, RotateCcw, Route } from "lucide-react"
 import TrackingDialog from "./components/TrackingDialog"
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 /* =========================================================
    MiPaquete — Tracking (mueve estos secretos a backend si puedes)
@@ -113,66 +116,6 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 /* =========================================================
-   MOCK DATA
-   ========================================================= */
-const MOCK_SHIPMENTS: Shipment[] = [
-  {
-    envioId: "ENV-2025-021",
-    pedidoId: "ORD-2025-10-001",
-    factura: "FAC-2025-0002",
-    cliente: "Carlos Rodríguez",
-    ciudad: "Bogotá",
-    transportadora: "COORDINADORA",
-    guia: "58048077984",
-    estado: "En tránsito",
-    progreso: 70,
-    despacho: "2025-10-07",
-    eta: "2025-10-09",
-    lastUpdate: "hace 2 h",
-  },
-  {
-    envioId: "ENV-2025-022",
-    pedidoId: "ORD-2025-10-002",
-    factura: "FAC-2025-0001",
-    cliente: "María González",
-    ciudad: "Medellín",
-    transportadora: "SERVIENTREGA",
-    guia: "1714815",
-    estado: "Despachado",
-    progreso: 35,
-    despacho: "2025-10-07",
-    eta: "2025-10-10",
-    lastUpdate: "hace 4 h",
-  },
-  {
-    envioId: "ENV-2025-023",
-    pedidoId: "ORD-2025-10-003",
-    cliente: "Ana Martínez",
-    ciudad: "Cali",
-    transportadora: "ENVIA",
-    guia: "1714829",
-    estado: "Retrasado",
-    progreso: 55,
-    despacho: "2025-10-05",
-    eta: "2025-10-08",
-    lastUpdate: "hace 1 h",
-  },
-  {
-    envioId: "ENV-2025-024",
-    pedidoId: "ORD-2025-10-004",
-    cliente: "Luis Hernández",
-    ciudad: "Barranquilla",
-    transportadora: "SERVIENTREGA",
-    guia: "1714821",
-    estado: "Entregado",
-    progreso: 100,
-    despacho: "2025-10-04",
-    eta: "2025-10-06",
-    lastUpdate: "hace 1 d",
-  },
-]
-
-/* =========================================================
    PAGE
    ========================================================= */
 export default function EntregasPage() {
@@ -181,27 +124,30 @@ export default function EntregasPage() {
   const [transSel, setTransSel] = useState<string>("TODAS")
   const [trace, setTrace] = useState({ open: false, guia: "" })
 
-  const resumen = useMemo(
-    () => ({
-      enCurso: 18,
-      entregados: 126,
-      retrasos: 3,
-      promDias: 2.8,
-      aTiempoPct: 92,
-      devoluciones: 1,
-    }),
-    [],
-  )
+  // Obtener datos reales del API
+  const { data, error, isLoading, mutate } = useSWR('/api/shipments', fetcher, {
+    refreshInterval: 30000, // Actualizar cada 30 segundos
+  })
+
+  const shipments = data?.shipments || []
+  const resumen = data?.resumen || {
+    enCurso: 0,
+    entregados: 0,
+    retrasos: 0,
+    promDias: 0,
+    aTiempoPct: 0,
+    devoluciones: 0,
+  }
 
   const enviosFiltrados = useMemo(() => {
-    return MOCK_SHIPMENTS.filter((e) => {
+    return shipments.filter((e: Shipment) => {
       const q = e.envioId + e.pedidoId + (e.factura ?? "") + e.cliente + e.ciudad + e.transportadora + e.guia
       const okSearch = q.toLowerCase().includes(busqueda.toLowerCase())
       const okEstado = estadoSel === "TODOS" ? true : e.estado.toLowerCase().includes(estadoSel.toLowerCase())
       const okTrans = transSel === "TODAS" ? true : e.transportadora.toLowerCase().includes(transSel.toLowerCase())
       return okSearch && okEstado && okTrans
     })
-  }, [busqueda, estadoSel, transSel])
+  }, [shipments, busqueda, estadoSel, transSel])
 
   return (
     <div className="min-h-screen bg-white text-[#0B0B0C]">
@@ -217,6 +163,15 @@ export default function EntregasPage() {
             <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full border-neutral-200 bg-transparent"
+              onClick={() => mutate()}
+              disabled={isLoading}
+            >
+              <RotateCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
             <Button variant="outline" className="rounded-full border-neutral-200 bg-transparent">
               Exportar CSV
             </Button>
@@ -323,25 +278,58 @@ export default function EntregasPage() {
       <section className="px-6 lg:px-10 mt-6 pb-14">
         <FixedCard>
           <div className="p-0 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th className="text-center px-4 py-3">Envío</th>
-                  <th className="text-center px-4 py-3">Pedido / Factura</th>
-                  <th className="text-center px-4 py-3">Cliente</th>
-                  <th className="text-center px-4 py-3">Ciudad</th>
-                  <th className="text-center px-4 py-3">Transportadora</th>
-                  <th className="text-center px-4 py-3">Guía</th>
-                  <th className="text-center px-4 py-3">Estado</th>
-                  <th className="text-center px-4 py-3">Progreso</th>
-                  <th className="text-center px-4 py-3">Despacho</th>
-                  <th className="text-center px-4 py-3">Fecha aproximada de entrega</th>
-                  <th className="text-center px-4 py-3">Última actualización</th>
-                  <th className="text-center px-4 py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {enviosFiltrados.map((e, idx) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <RotateCcw className="w-8 h-8 animate-spin text-[#D8BD80] mx-auto mb-4" />
+                  <p className="text-neutral-600">Cargando envíos...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+                  <p className="text-neutral-600 mb-2">Error al cargar envíos</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => mutate()}
+                    className="rounded-full"
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              </div>
+            ) : enviosFiltrados.length === 0 ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <PackageSearch className="w-8 h-8 text-neutral-400 mx-auto mb-4" />
+                  <p className="text-neutral-600">No hay envíos que mostrar</p>
+                  <p className="text-sm text-neutral-400 mt-1">
+                    Los envíos aparecerán automáticamente cuando se creen facturas con contraentrega
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-50">
+                  <tr>
+                    <th className="text-center px-4 py-3">Envío</th>
+                    <th className="text-center px-4 py-3">Pedido / Factura</th>
+                    <th className="text-center px-4 py-3">Cliente</th>
+                    <th className="text-center px-4 py-3">Ciudad</th>
+                    <th className="text-center px-4 py-3">Transportadora</th>
+                    <th className="text-center px-4 py-3">Guía</th>
+                    <th className="text-center px-4 py-3">Estado</th>
+                    <th className="text-center px-4 py-3">Progreso</th>
+                    <th className="text-center px-4 py-3">Despacho</th>
+                    <th className="text-center px-4 py-3">Fecha aproximada de entrega</th>
+                    <th className="text-center px-4 py-3">Última actualización</th>
+                    <th className="text-center px-4 py-3">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enviosFiltrados.map((e: Shipment, idx: number) => (
                   <tr key={e.envioId} className={idx % 2 ? "bg-neutral-50/50" : "bg-white"}>
                     <td className="px-4 py-3 font-medium text-center">{e.envioId}</td>
                     <td className="px-4 py-3 text-neutral-600 text-center">
@@ -383,22 +371,25 @@ export default function EntregasPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            )}
 
             {/* Footer paginación (demo) */}
-            <div className="flex items-center justify-between px-4 py-4 border-t border-neutral-100 text-sm text-neutral-500">
-              <span>Mostrando {enviosFiltrados.length} envíos</span>
-              <div className="inline-flex items-center gap-2">
-                <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
-                  Anterior
-                </Button>
-                <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
-                  Siguiente
-                </Button>
+            {!isLoading && !error && enviosFiltrados.length > 0 && (
+              <div className="flex items-center justify-between px-4 py-4 border-t border-neutral-100 text-sm text-neutral-500">
+                <span>Mostrando {enviosFiltrados.length} envíos</span>
+                <div className="inline-flex items-center gap-2">
+                  <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
+                    Anterior
+                  </Button>
+                  <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
+                    Siguiente
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </FixedCard>
       </section>
