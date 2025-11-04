@@ -1,3 +1,4 @@
+// VERSIÓN FORZADA: 2025-11-04 23:00 - COLUMNA ACCIONES LÍNEA 411
 "use client"
 import type React from "react"
 import { useMemo, useState } from "react"
