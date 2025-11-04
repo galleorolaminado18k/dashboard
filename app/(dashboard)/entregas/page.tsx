@@ -194,8 +194,9 @@ export default function EntregasPage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[rgba(216,189,128,0.8)]">
                 ENTREGAS
               </span>
+              <sup className="text-xs text-green-600 ml-2">v3.0-FIXED</sup>
             </h1>
-            <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS</p>
+            <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS • Build 2025-11-04 15:25</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -520,7 +521,7 @@ export default function EntregasPage() {
       )}
 
       {/* Modal de Novedad — muestra datos del cliente y pedido para contactar */}
-      {/* Version: 2025-11-04-v2 - Force rebuild with complete Actions column */}
+      {/* Version: 2025-11-04-v3 - FINAL FIX - Build timestamp for cache busting */}
       {novedadModal.open && novedadModal.envio && (
         <NovedadModal
           open={novedadModal.open}
@@ -528,6 +529,11 @@ export default function EntregasPage() {
           envio={novedadModal.envio}
         />
       )}
+
+      {/* Build version indicator - Remove after confirming deploy works */}
+      <div className="fixed bottom-2 right-2 text-xs text-neutral-400 bg-white/80 px-2 py-1 rounded">
+        Build: 2025-11-04 15:25 v3
+      </div>
     </div>
   )
 }
