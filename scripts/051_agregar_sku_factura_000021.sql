@@ -4,14 +4,48 @@
 -- Ejecutar en el SQL Editor de Supabase
 -- Fecha: 2025-11-03
 -- ========================================
+--
+-- IMPORTANTE: La tabla 'invoices' usa 'invoice_number' como PRIMARY KEY
+-- NO tiene columna 'id', solo 'invoice_number' (TEXT)
+-- invoice_items.invoice_id es FK a invoices.invoice_number
+-- ========================================
 
--- Ver la estructura actual de invoice_items
+-- ========================================
+-- PASO 1: VER ESTRUCTURA DE invoice_items
+-- ========================================
 SELECT column_name, data_type, is_nullable, column_default
 FROM information_schema.columns
 WHERE table_name = 'invoice_items'
 ORDER BY ordinal_position;
 
--- Ver los items actuales de la factura 000021
+-- ========================================
+-- PASO 2: VER ESTRUCTURA DE invoices
+-- ========================================
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_name = 'invoices'
+ORDER BY ordinal_position;
+
+-- ========================================
+-- PASO 3: VER LA FACTURA 000021
+-- ========================================
+SELECT
+    invoice_number,
+    client_name,
+    client_nit,
+    client_email,
+    subtotal,
+    tax_amount,
+    total,
+    status,
+    payment_method,
+    created_at
+FROM public.invoices
+WHERE invoice_number = '000021';
+
+-- ========================================
+-- PASO 4: VER ITEMS ACTUALES
+-- ========================================
 SELECT
     id,
     invoice_id,
@@ -19,36 +53,27 @@ SELECT
     reference,
     quantity,
     unit_price,
-    total
+    total,
+    created_at
 FROM public.invoice_items
-WHERE invoice_id::text = (
-    SELECT id::text
-    FROM public.invoices
-    WHERE invoice_number = '000021'
-);
+WHERE invoice_id = '000021';
 
 -- ========================================
--- VERIFICAR SI EXISTE LA COLUMNA reference
+-- PASO 5: AGREGAR COLUMNA reference SI NO EXISTE
 -- ========================================
--- Si la columna NO existe, ejecuta esto:
--- ALTER TABLE public.invoice_items
--- ADD COLUMN IF NOT EXISTS reference TEXT;
+ALTER TABLE public.invoice_items
+ADD COLUMN IF NOT EXISTS reference TEXT;
 
 -- ========================================
--- ACTUALIZAR EL SKU DEL PRODUCTO
+-- PASO 6: ACTUALIZAR EL SKU
 -- ========================================
--- Actualizar el item "Balines #4MM DORADOS" con SKU "04-100"
 UPDATE public.invoice_items
 SET reference = '04-100'
-WHERE invoice_id::text = (
-    SELECT id::text
-    FROM public.invoices
-    WHERE invoice_number = '000021'
-)
-AND description LIKE '%Balines%';
+WHERE invoice_id = '000021'
+AND description ILIKE '%Balines%';
 
 -- ========================================
--- VERIFICAR EL RESULTADO
+-- PASO 7: VERIFICAR RESULTADO FINAL
 -- ========================================
 SELECT
     i.invoice_number,
@@ -56,19 +81,21 @@ SELECT
     ii.description,
     ii.quantity,
     ii.unit_price,
-    ii.total
+    ii.total,
+    ii.created_at
 FROM public.invoice_items ii
-JOIN public.invoices i ON ii.invoice_id::text = i.id::text
+JOIN public.invoices i ON ii.invoice_id = i.invoice_number
 WHERE i.invoice_number = '000021'
 ORDER BY ii.created_at;
 
 -- ========================================
 -- RESULTADO ESPERADO
 -- ========================================
--- La factura 000021 ahora debería mostrar:
+-- invoice_number: 000021
 -- SKU: 04-100
--- DESCRIPCIÓN: Balines #4MM DORADOS
+-- DESCRIPCION: Balines #4MM DORADOS
 -- CANT: 1
+-- P. UNIT: $130.252,10
 -- IVA: 19%
--- TOTAL: $155.000
+-- TOTAL: $155.000,00
 

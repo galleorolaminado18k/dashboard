@@ -18,22 +18,23 @@ ORDER BY ordinal_position;
 -- ========================================
 SELECT
     id,
-    cliente,
+    client_name,
     products,
-    total,
-    factura,
+    total_amount,
+    invoice_number,
     created_at
 FROM public.sales
-WHERE factura = '000021';
+WHERE invoice_number = '000021';
 
 -- ========================================
 -- PASO 3: VER LA ESTRUCTURA DE INVOICES
 -- ========================================
 SELECT
-    id,
     invoice_number,
     client_name,
-    invoice_items,
+    subtotal,
+    tax_amount,
+    total,
     created_at
 FROM public.invoices
 WHERE invoice_number = '000021';
@@ -51,7 +52,7 @@ SELECT
     ii.total,
     i.invoice_number
 FROM public.invoice_items ii
-JOIN public.invoices i ON ii.invoice_id::text = i.id::text
+JOIN public.invoices i ON ii.invoice_id = i.invoice_number
 WHERE i.invoice_number = '000021';
 
 -- ========================================
@@ -70,11 +71,7 @@ WHERE i.invoice_number = '000021';
 -- ========================================
 UPDATE public.invoice_items
 SET reference = '04-100'
-WHERE invoice_id::text = (
-    SELECT id::text
-    FROM public.invoices
-    WHERE invoice_number = '000021'
-)
+WHERE invoice_id = '000021'
 AND description ILIKE '%Balines%4MM%';
 
 -- ========================================
@@ -88,7 +85,7 @@ SELECT
     ii.unit_price,
     ii.total
 FROM public.invoice_items ii
-JOIN public.invoices i ON ii.invoice_id::text = i.id::text
+JOIN public.invoices i ON ii.invoice_id = i.invoice_number
 WHERE i.invoice_number = '000021'
 ORDER BY ii.created_at;
 
