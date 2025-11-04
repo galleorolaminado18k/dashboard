@@ -293,7 +293,7 @@ SELECT
     ORDER BY i.issue_date
   )::TEXT, 3, '0'),
   i.invoice_number,
-  s.id,
+  (SELECT id FROM public.sales WHERE invoice_number = i.invoice_number LIMIT 1), -- Subconsulta para obtener sale_id
   i.guia,
   i.transportadora,
   i.client_name,
@@ -319,7 +319,6 @@ SELECT
   END,
   i.created_at
 FROM public.invoices i
-LEFT JOIN public.sales s ON s.invoice_number = i.invoice_number
 WHERE LOWER(i.payment_method) = 'contraentrega'
 AND NOT EXISTS (
   SELECT 1 FROM public.shipments sh WHERE sh.invoice_number = i.invoice_number
