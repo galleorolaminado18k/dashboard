@@ -21,8 +21,8 @@ SELECT
     unit_price,
     total
 FROM public.invoice_items
-WHERE invoice_id = (
-    SELECT id
+WHERE invoice_id::text = (
+    SELECT id::text
     FROM public.invoices
     WHERE invoice_number = '000021'
 );
@@ -40,8 +40,8 @@ WHERE invoice_id = (
 -- Actualizar el item "Balines #4MM DORADOS" con SKU "04-100"
 UPDATE public.invoice_items
 SET reference = '04-100'
-WHERE invoice_id = (
-    SELECT id
+WHERE invoice_id::text = (
+    SELECT id::text
     FROM public.invoices
     WHERE invoice_number = '000021'
 )
