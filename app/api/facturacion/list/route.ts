@@ -27,6 +27,8 @@ export async function GET() {
     const facturas = (invoices || []).map((inv: any) => {
       const items = (inv.invoice_items || []).map((item: any) => ({
         ref: item.id || '',
+        sku: item.reference || '',  // SKU del producto
+        reference: item.reference || '',  // Alias para compatibilidad
         descripcion: item.product_name || item.description || 'Producto sin nombre',
         und: Number(item.quantity || 1),
         ivaPct: 19, // IVA estándar
