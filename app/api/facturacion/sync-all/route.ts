@@ -17,8 +17,8 @@ export async function POST(req: Request) {
     const { data: facturas, error: facturasError } = await supabase
       .from('invoices')
       .select('*')
-      .not('mipaquete_code', 'is', null)
-      .not('status', 'in', '("Pagado","Devuelto")')  // Solo pendientes
+      .not('guia', 'is', null)
+      .not('status', 'in', '("PAGADO","DEVOLUCION")')  // Solo pendientes
 
     if (facturasError) {
       console.error(`[Sync All] Error obteniendo facturas:`, facturasError)
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
     // 2. Obtener estados de todas las guías de MiPaquete
     const guias = facturas
-      .map(f => f.mipaquete_code)
+      .map(f => f.guia)
       .filter(g => g) as string[]
 
     const estadosMiPaquete = await obtenerEstadosMultiples(guias)
@@ -46,10 +46,10 @@ export async function POST(req: Request) {
     let devoluciones = 0
 
     for (const factura of facturas) {
-      const estadoMiPaquete = estadosMiPaquete.get(factura.mipaquete_code!)
+      const estadoMiPaquete = estadosMiPaquete.get(factura.guia!)
 
       if (!estadoMiPaquete) {
-        console.log(`[Sync All] Sin estado para guía: ${factura.mipaquete_code}`)
+        console.log(`[Sync All] Sin estado para guía: ${factura.guia}`)
         continue
       }
 
@@ -62,12 +62,11 @@ export async function POST(req: Request) {
 
       console.log(`[Sync All] Actualizando ${factura.invoice_number}: ${factura.status} → ${mapped.estadoFactura}`)
 
-      // Actualizar factura
+      // Actualizar factura (solo actualizar en invoices, no mipaquete_status porque no existe esa columna)
       await supabase
         .from('invoices')
         .update({
           status: mapped.estadoFactura,
-          mipaquete_status: estadoMiPaquete.estado,
           updated_at: new Date().toISOString()
         })
         .eq('invoice_number', factura.invoice_number)
@@ -77,14 +76,14 @@ export async function POST(req: Request) {
         client_name: factura.client_name,
         client_phone: factura.client_phone,
         client_address: factura.client_address,
-        city: factura.city,
+        city: factura.ciudad || factura.city,
         products: factura.products || [],
-        payment_method: factura.payment_method || "Contraentrega",
-        total_amount: Number(factura.total_amount || 0),
-        shipping_amount: Number(factura.shipping_amount || 0),
+        payment_method: factura.payment_method || "contraentrega",
+        total_amount: Number(factura.total || 0),
+        shipping_amount: Number(factura.shipping_cost || 0),
         status: mapped.esVentaExitosa ? "entregado" : mapped.esDevolucion ? "devuelto" : "pendiente",
         is_return: mapped.esDevolucion,
-        mipaquete_code: factura.mipaquete_code,
+        mipaquete_code: factura.guia,
         mipaquete_status: estadoMiPaquete.estado,
         invoice_number: factura.invoice_number,
         campaign_id: factura.campaign_id || null,

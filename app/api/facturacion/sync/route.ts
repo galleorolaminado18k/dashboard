@@ -42,8 +42,8 @@ export async function POST(req: Request) {
     let esVentaExitosa = false
     let esDevolucion = false
 
-    if (guia || facturaData.mipaquete_code) {
-      const numeroGuia = guia || facturaData.mipaquete_code
+    if (guia || facturaData.guia) {
+      const numeroGuia = guia || facturaData.guia
       console.log(`[Sync Factura] Consultando guía ${numeroGuia} en MiPaquete...`)
 
       estadoMiPaquete = await obtenerEstadoGuia(numeroGuia)
@@ -73,14 +73,14 @@ export async function POST(req: Request) {
       client_name: facturaData.client_name,
       client_phone: facturaData.client_phone,
       client_address: facturaData.client_address,
-      city: facturaData.city,
+      city: facturaData.ciudad || null,
       products: facturaData.products || [],
-      payment_method: metodo || facturaData.payment_method || "Contraentrega",
-      total_amount: Number(facturaData.total_amount || 0),
-      shipping_amount: Number(facturaData.shipping_amount || 0),
+      payment_method: metodo || facturaData.payment_method || "contraentrega",
+      total_amount: Number(facturaData.total || 0),
+      shipping_amount: Number(facturaData.shipping_cost || 0),
       status: esVentaExitosa ? "entregado" : esDevolucion ? "devuelto" : "pendiente",
       is_return: esDevolucion,
-      mipaquete_code: guia || facturaData.mipaquete_code,
+      mipaquete_code: guia || facturaData.guia,
       mipaquete_status: estadoMiPaquete?.estado || null,
       invoice_number: factura,
       campaign_id: facturaData.campaign_id || null,
