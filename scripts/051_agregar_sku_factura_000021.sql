@@ -58,7 +58,7 @@ SELECT
     ii.unit_price,
     ii.total
 FROM public.invoice_items ii
-JOIN public.invoices i ON ii.invoice_id = i.id
+JOIN public.invoices i ON ii.invoice_id::text = i.id::text
 WHERE i.invoice_number = '000021'
 ORDER BY ii.created_at;
 
