@@ -78,35 +78,35 @@ export async function POST() {
           latestDate = lastEvent.dateEvent || null
         }
 
-        console.log(`[Sync] Guía ${ship.tracking_number}: ${latestStatus}`)
+        console.log(`[Sync] Guía ${ship.tracking_number}: "${latestStatus}"`)
 
         // Mapear estado de MiPaquete a nuestro sistema
         const mappedStatus = mapMiPaqueteStatus(latestStatus)
 
-        // Solo actualizar si cambió el estado
-        if (ship.mipaquete_status !== latestStatus || ship.status !== mappedStatus.status) {
-          const { error: updateError } = await supabase
-            .from('shipments')
-            .update({
-              status: mappedStatus.status,
-              mipaquete_status: latestStatus,
-              progress: mappedStatus.progress,
-              actual_delivery: mappedStatus.status === 'delivered' && !ship.actual_delivery
-                ? new Date().toISOString()
-                : ship.actual_delivery,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', ship.id)
+        console.log(`[Sync] Mapeo: ${latestStatus} → status: ${mappedStatus.status}, novedad: ${mappedStatus.hasNovedad}`)
 
-          if (!updateError) {
-            actualizados++
-            if (mappedStatus.hasNovedad) conNovedad++
-            if (mappedStatus.status === 'delivered') entregados++
-            console.log(`[Sync] ✓ Actualizado: ${ship.shipment_code} → ${latestStatus}`)
-          } else {
-            console.error(`[Sync] Error actualizando ${ship.shipment_code}:`, updateError)
-            errores++
-          }
+        // SIEMPRE actualizar para refrescar el estado (incluso si es igual)
+        const { error: updateError } = await supabase
+          .from('shipments')
+          .update({
+            status: mappedStatus.status,
+            mipaquete_status: latestStatus,
+            progress: mappedStatus.progress,
+            actual_delivery: mappedStatus.status === 'delivered' && !ship.actual_delivery
+              ? new Date().toISOString()
+              : ship.actual_delivery,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', ship.id)
+
+        if (!updateError) {
+          actualizados++
+          if (mappedStatus.hasNovedad) conNovedad++
+          if (mappedStatus.status === 'delivered') entregados++
+          console.log(`[Sync] ✓ Actualizado: ${ship.shipment_code} → ${latestStatus} (novedad: ${mappedStatus.hasNovedad})`)
+        } else {
+          console.error(`[Sync] Error actualizando ${ship.shipment_code}:`, updateError)
+          errores++
         }
 
       } catch (err: any) {
@@ -149,15 +149,22 @@ function mapMiPaqueteStatus(mipaqueteStatus: string): {
   hasNovedad: boolean
 } {
   const statusLower = mipaqueteStatus.toLowerCase()
+  const statusOriginal = mipaqueteStatus // Mantener original para debug
 
-  // Detectar novedades
+  // Detectar novedades - LISTA AMPLIADA
   const hasNovedad =
     statusLower.includes('novedad') ||
     statusLower.includes('usuario cancela') ||
+    statusLower.includes('cancela pedido') ||
+    statusLower.includes('cancelado') ||
     statusLower.includes('rechazado') ||
+    statusLower.includes('rechaza') ||
     statusLower.includes('retenido') ||
     statusLower.includes('devolucion') ||
-    statusLower.includes('devuelto')
+    statusLower.includes('devuelto') ||
+    statusLower.includes('no reclama') ||
+    statusLower.includes('destinatario ausente') ||
+    statusLower.includes('direccion incorrecta')
 
   // Entregado
   if (statusLower.includes('entregado') || statusLower.includes('entrega exitosa')) {
