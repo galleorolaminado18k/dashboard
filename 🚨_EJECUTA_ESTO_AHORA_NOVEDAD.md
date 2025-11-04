@@ -1,12 +1,28 @@
-# 🚨 ACCIÓN INMEDIATA REQUERIDA
+# 🚨 SOLUCIÓN INMEDIATA
 
-## PROBLEMA
-1. Sincronización no actualiza (sigue en 0)
-2. Botón "Solucionar novedad" no aparece
+## ✅ NUEVA FUNCIONALIDAD AGREGADA
 
-## SOLUCIÓN - HAZ ESTO AHORA
+Acabo de subir un **BOTÓN DE ACTUALIZACIÓN FORZADA** que actualiza directamente la base de datos.
 
-### PASO 1: Ejecuta este SQL en Supabase
+---
+
+## 🚀 HAZ ESTO AHORA (MUCHO MÁS FÁCIL)
+
+### OPCIÓN 1: USA EL NUEVO BOTÓN (MÁS RÁPIDO)
+
+1. **Espera 2-3 minutos** (deployment de Vercel)
+2. Ve a `/entregas`
+3. Verás un **NUEVO BOTÓN ROJO**: **"⚠️ Forzar Actualización"**
+4. Haz clic en ese botón
+5. Verás alert: "✅ Actualización forzada exitosa!"
+6. Haz clic en "Actualizar" (botón con refresh)
+7. **Listo! Verás el botón "Solucionar novedad"**
+
+---
+
+### OPCIÓN 2: SQL EN SUPABASE (SI NO QUIERES ESPERAR)
+
+Si no quieres esperar el deployment, ejecuta esto en **Supabase SQL Editor**:
 
 ```sql
 UPDATE shipments
@@ -18,43 +34,42 @@ SET
 WHERE tracking_number = '58048080554';
 ```
 
-### PASO 2: Espera 2 minutos
+Luego en `/entregas` haz clic en "Actualizar".
 
-El deployment de Vercel está en proceso.
+---
 
-### PASO 3: Refresca la página
+## 📋 QUÉ VERÁS DESPUÉS
 
-1. Ve a `/entregas`
-2. Presiona F5 o Ctrl+R
-3. Haz clic en "Actualizar" (NO "Sincronizar MiPaquete")
+En la tabla de entregas:
 
-## RESULTADO ESPERADO
+```
+Estado:
+[Retrasado] 🔴
+⚠️ NOVEDAD
+Usuario cancela pedido
 
-Verás:
-- Badge: "Retrasado" (rojo)
-- Texto: "⚠️ NOVEDAD"
-- Texto: "Usuario cancela pedido"
-- Botón ROJO: "⚠️ Solucionar novedad"
-
-Al hacer clic en el botón rojo se abrirá el modal con todos los datos del cliente.
-
-## SI TODAVÍA NO FUNCIONA
-
-Ejecuta esto en Supabase para ver qué está devolviendo:
-
-```sql
-SELECT 
-  shipment_code,
-  tracking_number,
-  status,
-  mipaquete_status,
-  progress,
-  client_name,
-  client_phone,
-  city
-FROM shipments
-WHERE tracking_number = '58048080554';
+Acciones:
+[⚠️ Solucionar novedad]  ← Botón ROJO
 ```
 
-Y compárteme el resultado.
+Al hacer clic en "Solucionar novedad":
+- 📞 Datos del cliente
+- 📦 Productos del pedido
+- 💰 Montos
+- 💬 Botón de WhatsApp
+
+---
+
+## 🎯 RESUMEN
+
+**MÁS FÁCIL**: Espera 2-3 min → Click en "Forzar Actualización" (botón rojo nuevo)
+
+**MÁS RÁPIDO**: Ejecuta SQL en Supabase ahora mismo
+
+**RESULTADO**: Verás el botón "Solucionar novedad" y el modal funcionará.
+
+---
+
+**Commit**: `7808834` - Ya está en GitHub
+**Deployment**: En proceso (2-3 min)
 
