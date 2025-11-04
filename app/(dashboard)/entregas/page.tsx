@@ -199,6 +199,32 @@ export default function EntregasPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              className="rounded-full border-red-500 text-red-600 bg-transparent"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/shipments/force-update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tracking_number: '58048080554' })
+                  })
+                  const data = await res.json()
+                  if (data.ok) {
+                    alert('✅ Actualización forzada exitosa!')
+                    mutate() // Refrescar datos
+                  } else {
+                    alert('❌ Error: ' + data.error)
+                  }
+                } catch (err) {
+                  alert('❌ Error al actualizar')
+                }
+              }}
+              disabled={isLoading}
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Forzar Actualización
+            </Button>
+            <Button
+              variant="outline"
               className="rounded-full border-neutral-200 bg-transparent"
               onClick={async () => {
                 try {
