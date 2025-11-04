@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Truck, CheckCircle2, Clock3, AlertTriangle, PackageSearch, MapPin, RotateCcw, Route } from "lucide-react"
 import TrackingDialog from "./components/TrackingDialog"
+import NovedadModal from "./components/NovedadModal"
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -152,6 +153,10 @@ export default function EntregasPage() {
   const [estadoSel, setEstadoSel] = useState<string>("TODOS")
   const [transSel, setTransSel] = useState<string>("TODAS")
   const [trace, setTrace] = useState({ open: false, guia: "" })
+  const [novedadModal, setNovedadModal] = useState<{ open: boolean; envio: any | null }>({
+    open: false,
+    envio: null
+  })
 
   // Obtener datos reales del API
   const { data, error, isLoading, mutate } = useSWR('/api/shipments', fetcher, {
@@ -407,18 +412,34 @@ export default function EntregasPage() {
                     <td className="px-4 py-3 text-center">{e.eta}</td>
                     <td className="px-4 py-3 text-neutral-500 text-center">{e.lastUpdate}</td>
                     <td className="px-4 py-3 text-center">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => setTrace({ open: true, guia: e.guia })}
-                          className="inline-flex items-center gap-2 rounded-full px-4 h-9
-                          border border-[rgba(216,189,128,.6)] text-[#0B0B0C]
-                          bg-white hover:bg-[rgba(216,189,128,.08)]
-                          shadow-[0_2px_10px_rgba(0,0,0,.04)] transition"
-                          title="Ver tracking"
-                        >
-                          <Route className="w-4 h-4" />
-                          Ver tracking
-                        </button>
+                      <div className="flex justify-center gap-2">
+                        {/* Si hay novedad, mostrar botón rojo prioritario */}
+                        {e.mipaqueteStatus?.toLowerCase().includes('novedad') ||
+                         e.mipaqueteStatus?.toLowerCase().includes('cancela') ||
+                         e.mipaqueteStatus?.toLowerCase().includes('rechaza') ? (
+                          <button
+                            onClick={() => setNovedadModal({ open: true, envio: e })}
+                            className="inline-flex items-center gap-2 rounded-full px-4 h-9
+                            border border-red-500 text-white bg-red-600 hover:bg-red-700
+                            shadow-[0_2px_10px_rgba(220,38,38,.3)] transition font-medium"
+                            title="Solucionar novedad"
+                          >
+                            <AlertTriangle className="w-4 h-4" />
+                            Solucionar novedad
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setTrace({ open: true, guia: e.guia })}
+                            className="inline-flex items-center gap-2 rounded-full px-4 h-9
+                            border border-[rgba(216,189,128,.6)] text-[#0B0B0C]
+                            bg-white hover:bg-[rgba(216,189,128,.08)]
+                            shadow-[0_2px_10px_rgba(0,0,0,.04)] transition"
+                            title="Ver tracking"
+                          >
+                            <Route className="w-4 h-4" />
+                            Ver tracking
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -448,6 +469,15 @@ export default function EntregasPage() {
       {/* Modal de Tracking — muestra timeline si la API trae eventos; si no, JSON */}
       {trace.open && (
         <TrackingDialog guia={trace.guia} open={trace.open} onClose={() => setTrace({ open: false, guia: "" })} />
+      )}
+
+      {/* Modal de Novedad — muestra datos del cliente y pedido para contactar */}
+      {novedadModal.open && novedadModal.envio && (
+        <NovedadModal
+          open={novedadModal.open}
+          onClose={() => setNovedadModal({ open: false, envio: null })}
+          envio={novedadModal.envio}
+        />
       )}
     </div>
   )

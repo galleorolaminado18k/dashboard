@@ -13,8 +13,16 @@ export async function GET() {
         invoices:invoice_number (
           invoice_number,
           total,
+          subtotal,
+          shipping_cost,
           status,
-          issue_date
+          issue_date,
+          invoice_items (
+            description,
+            quantity,
+            unit_price,
+            total
+          )
         )
       `)
       .order('created_at', { ascending: false })
@@ -29,28 +37,43 @@ export async function GET() {
     }
 
     // Transformar datos al formato esperado por el frontend
-    const formattedShipments = (shipments || []).map((ship: any) => ({
-      envioId: ship.shipment_code,
-      pedidoId: ship.sale_id || ship.invoice_number,
-      factura: ship.invoice_number,
-      cliente: ship.client_name,
-      ciudad: ship.city || 'N/A',
-      transportadora: ship.carrier || 'N/A',
-      guia: ship.tracking_number || 'Sin guía',
-      estado: mapStatus(ship.status),
-      progreso: ship.progress || 0,
-      despacho: ship.dispatch_date ? new Date(ship.dispatch_date).toISOString().split('T')[0] : 'Pendiente',
-      eta: ship.estimated_delivery ? new Date(ship.estimated_delivery).toISOString().split('T')[0] : 'N/A',
-      lastUpdate: getRelativeTime(ship.updated_at),
-      // Datos adicionales
-      barrio: ship.neighborhood,
-      telefono: ship.client_phone,
-      direccion: ship.client_address,
-      notas: ship.notes,
-      evidencia: ship.delivery_evidence,
-      mipaqueteStatus: ship.mipaquete_status,
-      actualDelivery: ship.actual_delivery,
-    }))
+    const formattedShipments = (shipments || []).map((ship: any) => {
+      // Extraer productos desde invoice_items si existen
+      const productos = ship.invoices?.invoice_items?.map((item: any) => ({
+        descripcion: item.description,
+        cantidad: item.quantity,
+        precio: item.unit_price,
+        total: item.total
+      })) || []
+
+      return {
+        envioId: ship.shipment_code,
+        pedidoId: ship.sale_id || ship.invoice_number,
+        factura: ship.invoice_number,
+        cliente: ship.client_name,
+        ciudad: ship.city || 'N/A',
+        transportadora: ship.carrier || 'N/A',
+        guia: ship.tracking_number || 'Sin guía',
+        estado: mapStatus(ship.status),
+        progreso: ship.progress || 0,
+        despacho: ship.dispatch_date ? new Date(ship.dispatch_date).toISOString().split('T')[0] : 'Pendiente',
+        eta: ship.estimated_delivery ? new Date(ship.estimated_delivery).toISOString().split('T')[0] : 'N/A',
+        lastUpdate: getRelativeTime(ship.updated_at),
+        // Datos adicionales
+        barrio: ship.neighborhood,
+        telefono: ship.client_phone,
+        direccion: ship.client_address,
+        notas: ship.notes,
+        evidencia: ship.delivery_evidence,
+        mipaqueteStatus: ship.mipaquete_status,
+        actualDelivery: ship.actual_delivery,
+        // Datos del pedido para modal de novedad
+        productos,
+        subtotal: ship.invoices?.subtotal || 0,
+        envioMonto: ship.invoices?.shipping_cost || 0,
+        total: ship.invoices?.total || 0,
+      }
+    })
 
     // Calcular resumen/KPIs
     const resumen = {
