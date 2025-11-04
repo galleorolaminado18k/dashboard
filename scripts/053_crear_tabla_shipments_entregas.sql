@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.shipments (
 
   -- Relaciones
   invoice_number TEXT NOT NULL REFERENCES public.invoices(invoice_number) ON DELETE CASCADE,
-  sale_id UUID REFERENCES public.sales(id) ON DELETE SET NULL,
+  sale_id UUID, -- Referencia a sales.id (sin constraint por ahora)
 
   -- Información del envío
   shipment_code TEXT UNIQUE NOT NULL, -- ENV-2025-XXX
