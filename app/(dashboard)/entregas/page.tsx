@@ -88,17 +88,46 @@ type Shipment = {
   despacho: string
   eta: string // fecha aprox. de entrega
   lastUpdate: string
+  mipaqueteStatus?: string // Estado real de MiPaquete
 }
 
-function EstadoBadge({ estado }: { estado: Estado }) {
+function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteStatus?: string }) {
   const map: Record<Estado, string> = {
-    "En tránsito": "bg-blue-100 text-blue-900",
-    Despachado: "bg-neutral-100 text-neutral-900",
-    Entregado: "bg-emerald-100 text-emerald-900",
-    Retrasado: "bg-amber-100 text-amber-900",
-    Devolución: "bg-rose-100 text-rose-900",
+    "En tránsito": "bg-blue-100 text-blue-900 border border-blue-300",
+    Despachado: "bg-neutral-100 text-neutral-900 border border-neutral-300",
+    Entregado: "bg-emerald-100 text-emerald-900 border border-emerald-300",
+    Retrasado: "bg-red-100 text-red-900 border border-red-300",
+    Devolución: "bg-rose-100 text-rose-900 border border-rose-300",
   }
-  return <Badge className={`rounded-full border-0 ${map[estado]}`}>{estado}</Badge>
+
+  // Detectar novedad en el estado de MiPaquete
+  const hasNovedad = mipaqueteStatus?.toLowerCase().includes('novedad') ||
+                     mipaqueteStatus?.toLowerCase().includes('usuario cancela') ||
+                     mipaqueteStatus?.toLowerCase().includes('rechazado')
+
+  return (
+    <div className="flex flex-col gap-1 items-center">
+      <Badge className={`rounded-full ${map[estado]}`}>
+        {estado}
+      </Badge>
+      {hasNovedad && mipaqueteStatus && (
+        <div className="text-[10px] text-red-600 font-semibold flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3" />
+          NOVEDAD
+        </div>
+      )}
+      {mipaqueteStatus && !hasNovedad && (
+        <div className="text-[9px] text-neutral-500 max-w-[150px] text-center truncate" title={mipaqueteStatus}>
+          {mipaqueteStatus}
+        </div>
+      )}
+      {mipaqueteStatus && hasNovedad && (
+        <div className="text-[9px] text-red-600 max-w-[150px] text-center truncate font-medium" title={mipaqueteStatus}>
+          {mipaqueteStatus}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function ProgressBar({ value }: { value: number }) {
@@ -163,6 +192,28 @@ export default function EntregasPage() {
             <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full border-neutral-200 bg-transparent"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/shipments/sync-mipaquete', { method: 'POST' })
+                  const data = await res.json()
+                  if (data.ok) {
+                    alert(`✅ Sincronización completada:\n- Actualizados: ${data.actualizados}\n- Con novedad: ${data.conNovedad}\n- Entregados: ${data.entregados}`)
+                    mutate() // Refrescar datos
+                  } else {
+                    alert('❌ Error en sincronización: ' + data.error)
+                  }
+                } catch (err) {
+                  alert('❌ Error al sincronizar')
+                }
+              }}
+              disabled={isLoading}
+            >
+              <Route className="w-4 h-4 mr-2" />
+              Sincronizar MiPaquete
+            </Button>
             <Button
               variant="outline"
               className="rounded-full border-neutral-200 bg-transparent"
@@ -346,7 +397,7 @@ export default function EntregasPage() {
                     <td className="px-4 py-3 tabular-nums text-center">{e.guia}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex justify-center">
-                        <EstadoBadge estado={e.estado} />
+                        <EstadoBadge estado={e.estado} mipaqueteStatus={e.mipaqueteStatus} />
                       </div>
                     </td>
                     <td className="px-4 py-3 w-[160px]">
