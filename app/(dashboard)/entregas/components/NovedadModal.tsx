@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Phone, Mail, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X, Loader2 } from "lucide-react"
+import { Phone, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -38,19 +38,33 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const [accionTomada, setAccionTomada] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Estados para diálogos de acciones
-  const [showContactDialog, setShowContactDialog] = useState(false)
-  const [showAddressDialog, setShowAddressDialog] = useState(false)
-  const [showReturnDialog, setShowReturnDialog] = useState(false)
-  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false)
+  // Estados para diálogos de acciones REALES de MiPaquete
+  const [showIndemnizacionDialog, setShowIndemnizacionDialog] = useState(false)
+  const [showVolverOfrecerDialog, setShowVolverOfrecerDialog] = useState(false)
+  const [showCambioDireccionDialog, setShowCambioDireccionDialog] = useState(false)
+  const [showDevolucionDialog, setShowDevolucionDialog] = useState(false)
+  const [showOtroDialog, setShowOtroDialog] = useState(false)
 
-  // Estados de formularios
-  const [contactNotes, setContactNotes] = useState('')
-  const [contactMethod, setContactMethod] = useState<'phone' | 'whatsapp' | 'email'>('phone')
-  const [newAddress, setNewAddress] = useState(envio.direccion || '')
-  const [returnReason, setReturnReason] = useState('')
-  const [rescheduleDate, setRescheduleDate] = useState('')
-  const [rescheduleNotes, setRescheduleNotes] = useState('')
+  // Estados de formularios según MiPaquete
+  const [indemnizacionDesc, setIndemnizacionDesc] = useState('')
+  const [volverOfrecerDesc, setVolverOfrecerDesc] = useState('')
+  const [volverOfrecerDireccion, setVolverOfrecerDireccion] = useState(envio.direccion || '')
+
+  // Cambio de dirección (campos requeridos por MiPaquete)
+  const [nuevaCiudad, setNuevaCiudad] = useState(envio.ciudad || '')
+  const [nuevaDireccion, setNuevaDireccion] = useState(envio.direccion || '')
+  const [nombreDestinatario, setNombreDestinatario] = useState(envio.cliente || '')
+  const [telefonoDestinatario, setTelefonoDestinatario] = useState(envio.telefono || '')
+
+  // Devolución (campos requeridos por MiPaquete)
+  const [nombreRemitente, setNombreRemitente] = useState('Comercializadora Gale18k')
+  const [telefonoRemitente, setTelefonoRemitente] = useState('3016845026')
+  const [ciudadRemitente, setCiudadRemitente] = useState('VILLA DEL ROSARIO-NORTE DE SANTANDER')
+  const [direccionRemitente, setDireccionRemitente] = useState('Av 1 #9-53 Lomitas del trapiche')
+  const [devolucionDesc, setDevolucionDesc] = useState('')
+
+  // Otro tipo de solución
+  const [otroDesc, setOtroDesc] = useState('')
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -60,108 +74,163 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
     }).format(value)
   }
 
-  const handleAccionAPI = async (actionType: string, data: any = {}) => {
+  const enviarSolucionMiPaquete = async (solutionType: string, data: any = {}) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/shipments/novedad', {
+      console.log('🚀 Enviando solución a MiPaquete:', { solutionType, data })
+
+      const response = await fetch('/api/mipaquete/resolver-novedad', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shipment_id: envio.envioId,
-          action_type: actionType,
+          tracking_number: envio.guia,
+          solution_type: solutionType,
           ...data
         })
       })
 
       const result = await response.json()
+      console.log('📥 Respuesta de API:', result)
 
       if (result.success) {
-        setAccionTomada(getActionLabel(actionType))
+        setAccionTomada(`✅ ${getSolutionLabel(solutionType)} - Enviado a MiPaquete`)
 
-        // Cerrar diálogos
-        setShowContactDialog(false)
-        setShowAddressDialog(false)
-        setShowReturnDialog(false)
-        setShowRescheduleDialog(false)
+        // Cerrar todos los diálogos
+        setShowIndemnizacionDialog(false)
+        setShowVolverOfrecerDialog(false)
+        setShowCambioDireccionDialog(false)
+        setShowDevolucionDialog(false)
+        setShowOtroDialog(false)
 
-        // Cerrar modal después de 2 segundos
+        // Cerrar modal después de 3 segundos
         setTimeout(() => {
           onClose()
-          window.location.reload() // Recargar para actualizar datos
-        }, 2000)
+          window.location.reload()
+        }, 3000)
       } else {
-        alert('Error al registrar la acción: ' + result.error)
+        alert(`❌ Error: ${result.error}\n\nDetalles: ${JSON.stringify(result.details || {})}`)
       }
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al procesar la acción')
+    } catch (error: any) {
+      console.error('❌ Error:', error)
+      alert(`Error al procesar la acción: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const getActionLabel = (actionType: string): string => {
+  const getSolutionLabel = (solutionType: string): string => {
     const labels: Record<string, string> = {
-      'contactar_cliente': 'Cliente contactado',
-      'reprogramar': 'Entrega reprogramada',
-      'solicitar_devolucion': 'Devolución solicitada',
-      'cambiar_direccion': 'Dirección actualizada'
+      'indemnizacion': 'Indemnización solicitada',
+      'volver_a_ofrecer': 'Volver a ofrecer programado',
+      'cambio_direccion': 'Dirección actualizada',
+      'devolucion': 'Devolución solicitada',
+      'otro': 'Solución registrada'
     }
-    return labels[actionType] || actionType
+    return labels[solutionType] || solutionType
   }
 
-  const handleContactarCliente = () => {
-    setShowContactDialog(true)
+  // 1. Indemnización
+  const handleIndemnizacion = () => {
+    setShowIndemnizacionDialog(true)
   }
 
-  const confirmContacto = () => {
-    handleAccionAPI('contactar_cliente', {
-      notes: contactNotes,
-      contact_method: contactMethod
+  const confirmIndemnizacion = () => {
+    enviarSolucionMiPaquete('indemnizacion', {
+      description: indemnizacionDesc || 'Solicitud de indemnización por novedad en entrega'
     })
   }
 
-  const handleCambiarDireccion = () => {
-    setShowAddressDialog(true)
+  // 2. Volver a ofrecer
+  const handleVolverOfrecer = () => {
+    setShowVolverOfrecerDialog(true)
   }
 
-  const confirmCambiarDireccion = () => {
-    if (!newAddress.trim()) {
-      alert('Por favor ingresa una dirección válida')
+  const confirmVolverOfrecer = () => {
+    enviarSolucionMiPaquete('volver_a_ofrecer', {
+      description: volverOfrecerDesc || 'Volver a ofrecer el envío',
+      new_address: volverOfrecerDireccion || undefined
+    })
+  }
+
+  // 3. Cambio de dirección
+  const handleCambioDireccion = () => {
+    setShowCambioDireccionDialog(true)
+  }
+
+  const confirmCambioDireccion = () => {
+    // Validar campos requeridos
+    if (!nuevaCiudad.trim()) {
+      alert('❌ La ciudad es obligatoria')
       return
     }
-    handleAccionAPI('cambiar_direccion', {
-      new_address: newAddress,
-      notes: 'Dirección actualizada por novedad'
+    if (!nuevaDireccion.trim()) {
+      alert('❌ La dirección es obligatoria')
+      return
+    }
+    if (!nombreDestinatario.trim()) {
+      alert('❌ El nombre del destinatario es obligatorio')
+      return
+    }
+    if (!telefonoDestinatario.trim()) {
+      alert('❌ El teléfono del destinatario es obligatorio')
+      return
+    }
+
+    enviarSolucionMiPaquete('cambio_direccion', {
+      new_city: nuevaCiudad,
+      new_address: nuevaDireccion,
+      recipient_name: nombreDestinatario,
+      recipient_phone: telefonoDestinatario,
+      description: 'Cambio de dirección de entrega solicitado por novedad'
     })
   }
 
-  const handleSolicitarDevolucion = () => {
-    setShowReturnDialog(true)
+  // 4. Devolución
+  const handleDevolucion = () => {
+    setShowDevolucionDialog(true)
   }
 
   const confirmDevolucion = () => {
-    if (!returnReason.trim()) {
-      alert('Por favor indica el motivo de la devolución')
+    // Validar campos requeridos
+    if (!nombreRemitente.trim()) {
+      alert('❌ El nombre del remitente es obligatorio')
       return
     }
-    handleAccionAPI('solicitar_devolucion', {
-      notes: returnReason
+    if (!telefonoRemitente.trim()) {
+      alert('❌ El teléfono del remitente es obligatorio')
+      return
+    }
+    if (!ciudadRemitente.trim()) {
+      alert('❌ La ciudad del remitente es obligatoria')
+      return
+    }
+    if (!direccionRemitente.trim()) {
+      alert('❌ La dirección del remitente es obligatoria')
+      return
+    }
+
+    enviarSolucionMiPaquete('devolucion', {
+      sender_name: nombreRemitente,
+      sender_phone: telefonoRemitente,
+      sender_city: ciudadRemitente,
+      sender_address: direccionRemitente,
+      description: devolucionDesc || 'Solicitud de devolución del pedido'
     })
   }
 
-  const handleReprogramar = () => {
-    setShowRescheduleDialog(true)
+  // 5. Otro tipo de solución
+  const handleOtro = () => {
+    setShowOtroDialog(true)
   }
 
-  const confirmReprogramar = () => {
-    if (!rescheduleDate) {
-      alert('Por favor selecciona una fecha')
+  const confirmOtro = () => {
+    if (!otroDesc.trim() || otroDesc.length < 6) {
+      alert('❌ Debes ingresar una descripción de al menos 6 caracteres')
       return
     }
-    handleAccionAPI('reprogramar', {
-      reschedule_date: rescheduleDate,
-      notes: rescheduleNotes
+
+    enviarSolucionMiPaquete('otro', {
+      description: otroDesc
     })
   }
 
@@ -310,52 +379,77 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           <h3 className="font-semibold text-sm mb-3">Acciones Rápidas</h3>
 
           {accionTomada ? (
-            <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
+            <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg animate-pulse">
               <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">✅ {accionTomada}</span>
+              <span className="text-sm font-medium">{accionTomada}</span>
+              <span className="text-xs text-green-700 ml-auto">Cerrando en 3s...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleContactarCliente}
-                className="justify-start hover:bg-blue-50 hover:border-blue-300"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Phone className="w-4 h-4 mr-2" />}
-                Contacté al cliente
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReprogramar}
-                className="justify-start hover:bg-orange-50 hover:border-orange-300"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Package className="w-4 h-4 mr-2" />}
-                Reprogramar
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSolicitarDevolucion}
-                className="justify-start hover:bg-red-50 hover:border-red-300"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
-                Solicitar devolución
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCambiarDireccion}
-                className="justify-start hover:bg-purple-50 hover:border-purple-300"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MapPin className="w-4 h-4 mr-2" />}
-                Cambiar dirección
-              </Button>
+            <div className="space-y-2">
+              <p className="text-xs text-neutral-500 mb-3">
+                💡 Estas acciones se envían directamente a MiPaquete para resolver la novedad
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Indemnización */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleIndemnizacion}
+                  className="justify-start hover:bg-yellow-50 hover:border-yellow-400 text-xs"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <DollarSign className="w-3 h-3 mr-1" />}
+                  Indemnización
+                </Button>
+
+                {/* Volver a ofrecer */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleVolverOfrecer}
+                  className="justify-start hover:bg-orange-50 hover:border-orange-400 text-xs"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Package className="w-3 h-3 mr-1" />}
+                  Volver a ofrecer
+                </Button>
+
+                {/* Cambio de dirección */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCambioDireccion}
+                  className="justify-start hover:bg-purple-50 hover:border-purple-400 text-xs"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <MapPin className="w-3 h-3 mr-1" />}
+                  Cambiar dirección
+                </Button>
+
+                {/* Devolución */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDevolucion}
+                  className="justify-start hover:bg-red-50 hover:border-red-400 text-xs"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
+                  Devolución
+                </Button>
+
+                {/* Otro tipo de solución */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOtro}
+                  className="justify-start hover:bg-blue-50 hover:border-blue-400 text-xs col-span-2"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
+                  Otro tipo de solución
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -381,8 +475,363 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </div>
       </DialogContent>
 
-      {/* Diálogo: Contactar Cliente */}
-      {showContactDialog && (
+      {/* ========== DIÁLOGOS REALES DE MIPAQUETE ========== */}
+
+      {/* Diálogo 1: Indemnización */}
+      {showIndemnizacionDialog && (
+        <Dialog open={showIndemnizacionDialog} onOpenChange={setShowIndemnizacionDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-yellow-600" />
+                Solicitar Indemnización
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  💰 Esta solicitud se enviará directamente a MiPaquete para iniciar el proceso de indemnización.
+                </p>
+              </div>
+              <div>
+                <Label>Descripción (opcional)</Label>
+                <Textarea
+                  value={indemnizacionDesc}
+                  onChange={(e) => setIndemnizacionDesc(e.target.value)}
+                  placeholder="Ej: Producto dañado, paquete perdido, etc."
+                  rows={4}
+                  className="mt-2"
+                />
+              </div>
+              <div className="text-xs text-neutral-500">
+                <p><strong>Guía:</strong> {envio.guia}</p>
+                <p><strong>Transportadora:</strong> {envio.transportadora}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowIndemnizacionDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmIndemnizacion}
+                  className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Solicitar Indemnización
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo 2: Volver a ofrecer */}
+      {showVolverOfrecerDialog && (
+        <Dialog open={showVolverOfrecerDialog} onOpenChange={setShowVolverOfrecerDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-600" />
+                Volver a Ofrecer el Envío
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <p className="text-sm text-orange-800">
+                  📦 El envío será reprogramado para un nuevo intento de entrega.
+                </p>
+              </div>
+              <div>
+                <Label>Descripción (opcional)</Label>
+                <Textarea
+                  value={volverOfrecerDesc}
+                  onChange={(e) => setVolverOfrecerDesc(e.target.value)}
+                  placeholder="Ej: Cliente disponible después de las 2pm"
+                  rows={3}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>Soporte de dirección (opcional)</Label>
+                <Input
+                  value={volverOfrecerDireccion}
+                  onChange={(e) => setVolverOfrecerDireccion(e.target.value)}
+                  placeholder="Indicaciones adicionales sobre la dirección"
+                  className="mt-2"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowVolverOfrecerDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmVolverOfrecer}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Volver a Ofrecer
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo 3: Cambio de Dirección (CAMPOS REQUERIDOS POR MIPAQUETE) */}
+      {showCambioDireccionDialog && (
+        <Dialog open={showCambioDireccionDialog} onOpenChange={setShowCambioDireccionDialog}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-purple-600" />
+                Cambio de Dirección
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <p className="text-sm text-purple-800">
+                  📍 Actualiza la dirección de entrega. Todos los campos son obligatorios.
+                </p>
+              </div>
+
+              <div>
+                <Label>Nueva Ciudad *</Label>
+                <Input
+                  value={nuevaCiudad}
+                  onChange={(e) => setNuevaCiudad(e.target.value)}
+                  placeholder="Ej: TURBACO-BOLÍVAR"
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Nueva Dirección *</Label>
+                <Textarea
+                  value={nuevaDireccion}
+                  onChange={(e) => setNuevaDireccion(e.target.value)}
+                  placeholder="Ej: Bonanza vista manzana 9 lote 20"
+                  rows={2}
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Nombre del Destinatario *</Label>
+                <Input
+                  value={nombreDestinatario}
+                  onChange={(e) => setNombreDestinatario(e.target.value)}
+                  placeholder="Ej: Greycy Salamanca"
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Teléfono del Destinatario *</Label>
+                <Input
+                  value={telefonoDestinatario}
+                  onChange={(e) => setTelefonoDestinatario(e.target.value)}
+                  placeholder="Ej: 3135948790"
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCambioDireccionDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmCambioDireccion}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Actualizar Dirección
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo 4: Devolución (CAMPOS REQUERIDOS POR MIPAQUETE) */}
+      {showDevolucionDialog && (
+        <Dialog open={showDevolucionDialog} onOpenChange={setShowDevolucionDialog}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                Solicitar Devolución
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-800">
+                  ⚠️ El pedido será devuelto a la dirección del remitente.
+                </p>
+              </div>
+
+              <div className="bg-neutral-50 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-neutral-700">Datos del Remitente:</p>
+                <div className="space-y-1 text-xs">
+                  <p><strong>Nombre:</strong> {nombreRemitente}</p>
+                  <p><strong>Teléfono:</strong> {telefonoRemitente}</p>
+                  <p><strong>Ciudad:</strong> {ciudadRemitente}</p>
+                  <p><strong>Dirección:</strong> {direccionRemitente}</p>
+                </div>
+              </div>
+
+              <div>
+                <Label>Nombre del Remitente *</Label>
+                <Input
+                  value={nombreRemitente}
+                  onChange={(e) => setNombreRemitente(e.target.value)}
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Teléfono del Remitente *</Label>
+                <Input
+                  value={telefonoRemitente}
+                  onChange={(e) => setTelefonoRemitente(e.target.value)}
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Ciudad del Remitente *</Label>
+                <Input
+                  value={ciudadRemitente}
+                  onChange={(e) => setCiudadRemitente(e.target.value)}
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Dirección del Remitente *</Label>
+                <Textarea
+                  value={direccionRemitente}
+                  onChange={(e) => setDireccionRemitente(e.target.value)}
+                  rows={2}
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Descripción (opcional)</Label>
+                <Textarea
+                  value={devolucionDesc}
+                  onChange={(e) => setDevolucionDesc(e.target.value)}
+                  placeholder="Motivo de la devolución..."
+                  rows={2}
+                  className="mt-2"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDevolucionDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmDevolucion}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Solicitar Devolución
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo 5: Otro tipo de solución */}
+      {showOtroDialog && (
+        <Dialog open={showOtroDialog} onOpenChange={setShowOtroDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-blue-600" />
+                Otro Tipo de Solución
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  💡 Describe la solución específica que necesitas para esta novedad.
+                </p>
+              </div>
+              <div>
+                <Label>Descripción de la solución * (mínimo 6 caracteres)</Label>
+                <Textarea
+                  value={otroDesc}
+                  onChange={(e) => setOtroDesc(e.target.value)}
+                  placeholder="Describe detalladamente la solución que necesitas..."
+                  rows={5}
+                  className="mt-2"
+                  required
+                />
+                <p className="text-xs text-neutral-500 mt-1">
+                  {otroDesc.length}/200 caracteres
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowOtroDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmOtro}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Enviar Solución
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ========== FIN DIÁLOGOS REALES ========== */}
+
+      {/* DIALOGO VIEJO - ELIMINAR */}
+      {showContactDialog && false && (
         <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
