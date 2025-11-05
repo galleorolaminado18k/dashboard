@@ -2,9 +2,12 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Phone, Mail, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X } from "lucide-react"
+import { Phone, Mail, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 
 interface NovedadModalProps {
   open: boolean
@@ -33,6 +36,21 @@ interface NovedadModalProps {
 
 export default function NovedadModal({ open, onClose, envio }: NovedadModalProps) {
   const [accionTomada, setAccionTomada] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Estados para diálogos de acciones
+  const [showContactDialog, setShowContactDialog] = useState(false)
+  const [showAddressDialog, setShowAddressDialog] = useState(false)
+  const [showReturnDialog, setShowReturnDialog] = useState(false)
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false)
+
+  // Estados de formularios
+  const [contactNotes, setContactNotes] = useState('')
+  const [contactMethod, setContactMethod] = useState<'phone' | 'whatsapp' | 'email'>('phone')
+  const [newAddress, setNewAddress] = useState(envio.direccion || '')
+  const [returnReason, setReturnReason] = useState('')
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleNotes, setRescheduleNotes] = useState('')
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -42,10 +60,109 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
     }).format(value)
   }
 
-  const handleAccion = (accion: string) => {
-    setAccionTomada(accion)
-    // Aquí podrías hacer un POST a un API para registrar la acción
-    console.log(`Acción tomada: ${accion} para envío ${envio.envioId}`)
+  const handleAccionAPI = async (actionType: string, data: any = {}) => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/shipments/novedad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipment_id: envio.envioId,
+          action_type: actionType,
+          ...data
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setAccionTomada(getActionLabel(actionType))
+
+        // Cerrar diálogos
+        setShowContactDialog(false)
+        setShowAddressDialog(false)
+        setShowReturnDialog(false)
+        setShowRescheduleDialog(false)
+
+        // Cerrar modal después de 2 segundos
+        setTimeout(() => {
+          onClose()
+          window.location.reload() // Recargar para actualizar datos
+        }, 2000)
+      } else {
+        alert('Error al registrar la acción: ' + result.error)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error al procesar la acción')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getActionLabel = (actionType: string): string => {
+    const labels: Record<string, string> = {
+      'contactar_cliente': 'Cliente contactado',
+      'reprogramar': 'Entrega reprogramada',
+      'solicitar_devolucion': 'Devolución solicitada',
+      'cambiar_direccion': 'Dirección actualizada'
+    }
+    return labels[actionType] || actionType
+  }
+
+  const handleContactarCliente = () => {
+    setShowContactDialog(true)
+  }
+
+  const confirmContacto = () => {
+    handleAccionAPI('contactar_cliente', {
+      notes: contactNotes,
+      contact_method: contactMethod
+    })
+  }
+
+  const handleCambiarDireccion = () => {
+    setShowAddressDialog(true)
+  }
+
+  const confirmCambiarDireccion = () => {
+    if (!newAddress.trim()) {
+      alert('Por favor ingresa una dirección válida')
+      return
+    }
+    handleAccionAPI('cambiar_direccion', {
+      new_address: newAddress,
+      notes: 'Dirección actualizada por novedad'
+    })
+  }
+
+  const handleSolicitarDevolucion = () => {
+    setShowReturnDialog(true)
+  }
+
+  const confirmDevolucion = () => {
+    if (!returnReason.trim()) {
+      alert('Por favor indica el motivo de la devolución')
+      return
+    }
+    handleAccionAPI('solicitar_devolucion', {
+      notes: returnReason
+    })
+  }
+
+  const handleReprogramar = () => {
+    setShowRescheduleDialog(true)
+  }
+
+  const confirmReprogramar = () => {
+    if (!rescheduleDate) {
+      alert('Por favor selecciona una fecha')
+      return
+    }
+    handleAccionAPI('reprogramar', {
+      reschedule_date: rescheduleDate,
+      notes: rescheduleNotes
+    })
   }
 
   return (
@@ -195,44 +312,48 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           {accionTomada ? (
             <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg">
               <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Acción registrada: {accionTomada}</span>
+              <span className="text-sm font-medium">✅ {accionTomada}</span>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleAccion('Cliente contactado')}
-                className="justify-start"
+                onClick={handleContactarCliente}
+                className="justify-start hover:bg-blue-50 hover:border-blue-300"
+                disabled={loading}
               >
-                <Phone className="w-4 h-4 mr-2" />
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Phone className="w-4 h-4 mr-2" />}
                 Contacté al cliente
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleAccion('Reprogramar entrega')}
-                className="justify-start"
+                onClick={handleReprogramar}
+                className="justify-start hover:bg-orange-50 hover:border-orange-300"
+                disabled={loading}
               >
-                <Package className="w-4 h-4 mr-2" />
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Package className="w-4 h-4 mr-2" />}
                 Reprogramar
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleAccion('Solicitar devolución')}
-                className="justify-start"
+                onClick={handleSolicitarDevolucion}
+                className="justify-start hover:bg-red-50 hover:border-red-300"
+                disabled={loading}
               >
-                <AlertTriangle className="w-4 h-4 mr-2" />
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
                 Solicitar devolución
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleAccion('Actualizar dirección')}
-                className="justify-start"
+                onClick={handleCambiarDireccion}
+                className="justify-start hover:bg-purple-50 hover:border-purple-300"
+                disabled={loading}
               >
-                <MapPin className="w-4 h-4 mr-2" />
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <MapPin className="w-4 h-4 mr-2" />}
                 Cambiar dirección
               </Button>
             </div>
@@ -259,6 +380,253 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           )}
         </div>
       </DialogContent>
+
+      {/* Diálogo: Contactar Cliente */}
+      {showContactDialog && (
+        <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Phone className="w-5 h-5 text-blue-600" />
+                Registrar Contacto con Cliente
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label>Método de contacto</Label>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant={contactMethod === 'phone' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setContactMethod('phone')}
+                    className="flex-1"
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    Teléfono
+                  </Button>
+                  <Button
+                    variant={contactMethod === 'whatsapp' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setContactMethod('whatsapp')}
+                    className="flex-1"
+                  >
+                    WhatsApp
+                  </Button>
+                  <Button
+                    variant={contactMethod === 'email' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setContactMethod('email')}
+                    className="flex-1"
+                  >
+                    Email
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label>Notas de la conversación</Label>
+                <Textarea
+                  value={contactNotes}
+                  onChange={(e) => setContactNotes(e.target.value)}
+                  placeholder="Ej: Cliente confirmó estar en casa mañana de 2-5pm"
+                  rows={4}
+                  className="mt-2"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowContactDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmContacto}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Registrar Contacto
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo: Cambiar Dirección */}
+      {showAddressDialog && (
+        <Dialog open={showAddressDialog} onOpenChange={setShowAddressDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-purple-600" />
+                Actualizar Dirección de Entrega
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label>Dirección actual</Label>
+                <div className="mt-2 p-3 bg-neutral-50 rounded-lg text-sm text-neutral-600">
+                  {envio.direccion || 'No especificada'}
+                </div>
+              </div>
+              <div>
+                <Label>Nueva dirección</Label>
+                <Textarea
+                  value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                  placeholder="Ingresa la nueva dirección completa"
+                  rows={3}
+                  className="mt-2"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddressDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmCambiarDireccion}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Actualizar Dirección
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo: Solicitar Devolución */}
+      {showReturnDialog && (
+        <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                Solicitar Devolución
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ Esta acción iniciará el proceso de devolución con la transportadora.
+                </p>
+              </div>
+              <div>
+                <Label>Motivo de la devolución</Label>
+                <Textarea
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  placeholder="Ej: Cliente no desea recibir el pedido, dirección incorrecta, etc."
+                  rows={4}
+                  className="mt-2"
+                  required
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-neutral-500">Información del pedido</Label>
+                <div className="mt-2 p-3 bg-neutral-50 rounded-lg text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Total:</span>
+                    <span className="font-semibold">{formatCurrency(envio.total || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Transportadora:</span>
+                    <span>{envio.transportadora}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowReturnDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmDevolucion}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Solicitar Devolución
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Diálogo: Reprogramar Entrega */}
+      {showRescheduleDialog && (
+        <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-600" />
+                Reprogramar Entrega
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label>Nueva fecha de entrega</Label>
+                <Input
+                  type="date"
+                  value={rescheduleDate}
+                  onChange={(e) => setRescheduleDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="mt-2"
+                  required
+                />
+              </div>
+              <div>
+                <Label>Notas adicionales (opcional)</Label>
+                <Textarea
+                  value={rescheduleNotes}
+                  onChange={(e) => setRescheduleNotes(e.target.value)}
+                  placeholder="Ej: Cliente disponible después de las 2pm"
+                  rows={3}
+                  className="mt-2"
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  ℹ️ La transportadora será notificada del cambio de fecha.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowRescheduleDialog(false)}
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmReprogramar}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Reprogramar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   )
 }
