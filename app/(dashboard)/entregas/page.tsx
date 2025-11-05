@@ -184,6 +184,9 @@ export default function EntregasPage() {
     })
   }, [shipments, busqueda, estadoSel, transSel])
 
+  console.log('🔥🔥🔥 ENTREGAS PAGE v3.0-FIXED CARGADO - COLUMNA ACCIONES INCLUIDA 🔥🔥🔥')
+  console.log('📊 Número de envíos filtrados:', enviosFiltrados.length)
+
   return (
     <div className="min-h-screen bg-white text-[#0B0B0C]">
       {/* Header */}
@@ -361,7 +364,7 @@ export default function EntregasPage() {
       {/* Tabla — FIJA */}
       <section className="px-6 lg:px-10 mt-6 pb-14">
         <FixedCard>
-          <div className="p-0 overflow-hidden">
+          <div className="p-0 overflow-x-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
