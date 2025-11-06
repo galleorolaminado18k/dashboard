@@ -6,7 +6,8 @@ import { NextResponse } from 'next/server'
  */
 
 const MIPAQUETE_BASE_URL = 'https://api.mipaquete.com/v2'
-const SESSION_TRACKER = 'a0c96ea6-b22d-4fb7-a278-850678d5429c'
+const APIKEY = process.env.MIPAQUETE_API_KEY!
+const SESSION_TRACKER = process.env.MIPAQUETE_SESSION_TRACKER!
 
 export async function POST(request: Request) {
   try {
@@ -123,7 +124,8 @@ export async function POST(request: Request) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Session-Tracker': SESSION_TRACKER
+        'apikey': APIKEY,
+        'session-tracker': SESSION_TRACKER
       },
       body: JSON.stringify(mipaqueteData)
     })
@@ -185,7 +187,8 @@ export async function GET(request: Request) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Session-Tracker': SESSION_TRACKER
+          'apikey': APIKEY,
+          'session-tracker': SESSION_TRACKER
         }
       }
     )
