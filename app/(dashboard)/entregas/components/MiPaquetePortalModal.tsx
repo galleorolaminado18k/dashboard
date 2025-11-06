@@ -34,7 +34,7 @@ export default function MiPaquetePortalModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 gap-0 bg-black/5 backdrop-blur-xl border-0">
+      <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 gap-0 bg-neutral-900/95 backdrop-blur-xl border-0">
 
         {/* Botón de cerrar */}
         <button
@@ -44,13 +44,20 @@ export default function MiPaquetePortalModal({
           <X className="w-5 h-5 text-neutral-700 group-hover:text-neutral-900" />
         </button>
 
-        {/* Iframe fullscreen - SIN OVERLAY */}
+        {/* Mensaje de carga arriba del iframe */}
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 bg-orange-500/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
+          <p className="text-white text-sm font-medium">
+            ⚡ Cargando Portal de MiPaquete - Guía: {trackingNumber}
+          </p>
+        </div>
+
+        {/* Iframe fullscreen */}
         <div className="relative w-full h-full p-3">
-          <div className="w-full h-full rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.3)] border border-white/20 bg-white">
+          <div className="w-full h-full rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/10 bg-neutral-800">
             <iframe
               ref={iframeRef}
               src={portalUrl}
-              className="w-full h-full"
+              className="w-full h-full bg-white"
               title="Portal MiPaquete"
               allow="clipboard-read; clipboard-write"
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
