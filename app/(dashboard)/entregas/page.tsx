@@ -333,91 +333,88 @@ export default function EntregasPage() {
         </div>
       </section>
 
-      {/* Tabla — FIJA */}
+      {/* Tabla - Luxury Dark Theme */}
       <section className="px-6 lg:px-10 mt-6 pb-14">
-        <FixedCard>
-          <div className="p-0 overflow-hidden">
+        <div className="bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl overflow-hidden shadow-lg">
+          <div className="p-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
-                  <RotateCcw className="w-8 h-8 animate-spin text-[#D8BD80] mx-auto mb-4" />
-                  <p className="text-neutral-600">Cargando envíos...</p>
+                  <RotateCcw className="w-8 h-8 animate-spin text-[#D4AF37] mx-auto mb-4" />
+                  <p className="text-[#B8BDC7]">Cargando envíos...</p>
                 </div>
               </div>
             ) : error ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
                   <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-                  <p className="text-neutral-600 mb-2">Error al cargar envíos</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <p className="text-[#F7F7F8] mb-2">Error al cargar envíos</p>
+                  <button
                     onClick={() => mutate()}
-                    className="rounded-full"
+                    className="px-4 py-2 rounded-full bg-[#D4AF37] hover:bg-[#F5E6B3] text-[#0B0B0C] font-semibold text-sm transition-all duration-300"
                   >
                     Reintentar
-                  </Button>
+                  </button>
                 </div>
               </div>
             ) : enviosFiltrados.length === 0 ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
-                  <PackageSearch className="w-8 h-8 text-neutral-400 mx-auto mb-4" />
-                  <p className="text-neutral-600">No hay envíos que mostrar</p>
-                  <p className="text-sm text-neutral-400 mt-1">
+                  <PackageSearch className="w-8 h-8 text-[#B8BDC7] mx-auto mb-4" />
+                  <p className="text-[#F7F7F8]">No hay envíos que mostrar</p>
+                  <p className="text-sm text-[#B8BDC7] mt-1">
                     Los envíos aparecerán automáticamente cuando se creen facturas con contraentrega
                   </p>
                 </div>
               </div>
             ) : (
               <table className="w-full text-xs">
-                <thead className="bg-neutral-50">
+                <thead className="bg-white/4 border-b border-[#FFFFFF14]">
                   <tr>
-                    <th className="text-center px-2 py-2 text-xs">Pedido</th>
-                    <th className="text-center px-2 py-2 text-xs">Valor Total</th>
-                    <th className="text-center px-2 py-2 text-xs">Cliente</th>
-                    <th className="text-center px-2 py-2 text-xs">Ciudad</th>
-                    <th className="text-center px-2 py-2 text-xs">Transp.</th>
-                    <th className="text-center px-2 py-2 text-xs">Guía</th>
-                    <th className="text-center px-2 py-2 text-xs">Estado</th>
-                    <th className="text-center px-2 py-2 text-xs w-[100px]">Progreso</th>
-                    <th className="text-center px-2 py-2 text-xs">Despacho</th>
-                    <th className="text-center px-2 py-2 text-xs">F. Entrega</th>
-                    <th className="text-center px-2 py-2 text-xs">Últ. Act.</th>
-                    <th className="text-center px-2 py-2 text-xs">Acciones</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Pedido</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Valor Total</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Cliente</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Ciudad</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Transp.</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Guía</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Estado</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37] w-[100px]">Progreso</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Despacho</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">F. Entrega</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Últ. Act.</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {enviosFiltrados.map((e: Shipment, idx: number) => (
-                  <tr key={e.envioId} className={idx % 2 ? "bg-neutral-50/50" : "bg-white"}>
-                    <td className="px-2 py-2 font-medium text-center text-xs">
+                  <tr key={e.envioId} className={`border-b border-[#FFFFFF14] hover:bg-white/4 transition-colors ${idx % 2 ? "bg-white/2" : "bg-transparent"}`}>
+                    <td className="px-3 py-3 font-semibold text-center text-xs text-[#F7F7F8]">
                       {e.factura || e.pedidoId}
                     </td>
-                    <td className="px-2 py-2 text-neutral-600 text-center text-xs font-semibold">
+                    <td className="px-3 py-3 text-center text-xs font-bold text-[#D4AF37]">
                       {e.total ? `$ ${e.total.toLocaleString('es-CO')}` : 'N/A'}
                     </td>
-                    <td className="px-2 py-2 text-center text-xs">{e.cliente}</td>
-                    <td className="px-2 py-2 text-center text-xs">
+                    <td className="px-3 py-3 text-center text-xs text-[#F7F7F8]">{e.cliente}</td>
+                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">
                       <div className="flex items-center gap-1 justify-center">
-                        <MapPin className="w-3 h-3" /> {e.ciudad}
+                        <MapPin className="w-3 h-3 text-[#D4AF37]" /> {e.ciudad}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-center text-xs">{e.transportadora}</td>
-                    <td className="px-2 py-2 tabular-nums text-center text-xs">{e.guia}</td>
-                    <td className="px-2 py-2 text-center text-xs">
+                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.transportadora}</td>
+                    <td className="px-3 py-3 tabular-nums text-center text-xs text-[#B8BDC7]">{e.guia}</td>
+                    <td className="px-3 py-3 text-center text-xs">
                       <div className="flex justify-center">
                         <EstadoBadge estado={e.estado} mipaqueteStatus={e.mipaqueteStatus} />
                       </div>
                     </td>
-                    <td className="px-2 py-2 w-[100px]">
+                    <td className="px-3 py-3 w-[100px]">
                       <ProgressBar value={e.progreso} />
                     </td>
-                    <td className="px-2 py-2 text-center text-xs">{e.despacho}</td>
-                    <td className="px-2 py-2 text-center text-xs">{e.eta}</td>
-                    <td className="px-2 py-2 text-neutral-500 text-center text-xs">{e.lastUpdate}</td>
-                    <td className="px-2 py-2 text-center text-xs">
+                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.despacho}</td>
+                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.eta}</td>
+                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.lastUpdate}</td>
+                    <td className="px-3 py-3 text-center text-xs">
                       <div className="flex justify-center gap-2">
-                        {/* Si hay novedad, mostrar botón rojo prioritario */}
                         {(() => {
                           const hasNovedad = e.mipaqueteStatus && (
                             e.mipaqueteStatus.toLowerCase().includes('novedad') ||
@@ -427,24 +424,15 @@ export default function EntregasPage() {
                             e.estado === 'Retrasado'
                           )
 
-                          // Debug: mostrar en console
-                          if (e.guia === '58048080554') {
-                            console.log('DEBUG Envío 58048080554:', {
-                              mipaqueteStatus: e.mipaqueteStatus,
-                              estado: e.estado,
-                              hasNovedad
-                            })
-                          }
-
                           return hasNovedad ? (
                             <button
                               onClick={() => {
                                 console.log('Abriendo modal para:', e)
                                 setNovedadModal({ open: true, envio: e })
                               }}
-                              className="inline-flex items-center gap-1 rounded px-2 py-1
-                              border border-red-600 text-white bg-red-600 hover:bg-red-700
-                              transition-all text-xs whitespace-nowrap"
+                              className="inline-flex items-center gap-1 rounded-lg px-3 py-2
+                              bg-[#7A1F2B] hover:bg-[#8B2332] border border-[#D4AF37]/30 text-[#F7F7F8]
+                              transition-all text-xs whitespace-nowrap font-semibold shadow-lg hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] min-h-[32px]"
                               title="¡URGENTE! Click para solucionar novedad"
                             >
                               <AlertTriangle className="w-3 h-3" />
@@ -453,9 +441,9 @@ export default function EntregasPage() {
                           ) : (
                             <button
                               onClick={() => setTrace({ open: true, guia: e.guia })}
-                              className="inline-flex items-center gap-1 rounded px-2 py-1
-                              border border-neutral-300 text-neutral-700
-                              bg-white hover:bg-neutral-50 transition text-xs whitespace-nowrap"
+                              className="inline-flex items-center gap-1 rounded-lg px-3 py-2
+                              bg-white/6 hover:bg-white/10 border border-[#2A2B2E] text-[#F7F7F8]
+                              transition-all text-xs whitespace-nowrap font-semibold min-h-[32px]"
                               title="Ver tracking"
                             >
                               <Route className="w-3 h-3" />
@@ -471,22 +459,22 @@ export default function EntregasPage() {
               </table>
             )}
 
-            {/* Footer paginación (demo) */}
+            {/* Footer paginación */}
             {!isLoading && !error && enviosFiltrados.length > 0 && (
-              <div className="flex items-center justify-between px-4 py-4 border-t border-neutral-100 text-sm text-neutral-500">
-                <span>Mostrando {enviosFiltrados.length} envíos</span>
+              <div className="flex items-center justify-between px-6 py-4 border-t border-[#FFFFFF14] text-sm">
+                <span className="text-[#B8BDC7]">Mostrando {enviosFiltrados.length} envíos</span>
                 <div className="inline-flex items-center gap-2">
-                  <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
+                  <button className="px-4 py-2 rounded-full bg-white/6 border border-[#2A2B2E] text-[#F7F7F8] hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all text-xs font-semibold">
                     Anterior
-                  </Button>
-                  <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
+                  </button>
+                  <button className="px-4 py-2 rounded-full bg-white/6 border border-[#2A2B2E] text-[#F7F7F8] hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all text-xs font-semibold">
                     Siguiente
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
           </div>
-        </FixedCard>
+        </div>
       </section>
 
       {/* Modal de Tracking — muestra timeline si la API trae eventos; si no, JSON */}
@@ -504,9 +492,9 @@ export default function EntregasPage() {
         />
       )}
 
-      {/* Build version indicator - Remove after confirming deploy works */}
-      <div className="fixed bottom-2 right-2 text-xs text-neutral-400 bg-white/80 px-2 py-1 rounded">
-        Build: 2025-11-04 15:25 v3
+      {/* Build version indicator - Luxury Dark */}
+      <div className="fixed bottom-4 right-4 text-xs text-[#B8BDC7] bg-white/6 backdrop-blur-md border border-[#2A2B2E] px-3 py-2 rounded-lg shadow-lg">
+        Build: 2025-11-06 v4.0-LUXURY-DARK
       </div>
     </div>
   )
