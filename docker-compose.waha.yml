@@ -9,28 +9,20 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./waha-sessions:/app/.sessions
+      - ./waha-data:/app/data  # persistencia de sesión
     environment:
-      # Webhook Configuration
+      # API Configuration
+      - WAHA_HTTP_API_HOST=0.0.0.0
+      - WAHA_LICENSE_ACCEPT=true
+      - WAHA_LOG_LEVEL=info
+      - WAHA_MULTI_DEVICE=true
+
+      # Webhook Configuration (opcional)
       - WHATSAPP_HOOK_URL=https://tu-dashboard.com/api/whatsapp/webhook
       - WHATSAPP_HOOK_EVENTS=message,session.status,message.any
 
-      # API Configuration
-      - WHATSAPP_API_KEY=tu-api-key-secreta-aqui
-      - WHATSAPP_API_PORT=3000
-
-      # Session Configuration
-      - WHATSAPP_DEFAULT_ENGINE=WEBJS
-      - WHATSAPP_RESTART_ALL_SESSIONS=True
-
-      # Security
-      - WHATSAPP_SWAGGER_ENABLED=false
-
-      # Logs
-      - DEBUG=false
-
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { wahaClient } from '@/lib/waha-client'
+
+const WAHA_URL = process.env.WAHA_URL || 'http://localhost:3000'
 
 /**
  * GET /api/whatsapp/session
@@ -7,59 +8,91 @@ import { wahaClient } from '@/lib/waha-client'
  */
 export async function GET() {
   try {
-    const session = await wahaClient.getSession('default')
+    const response = await fetch(`${WAHA_URL}/api/sessions/default`, {
+      method: 'GET',
+    })
+
+    if (!response.ok) {
+      return NextResponse.json({
+        ok: false,
+        error: 'No se pudo obtener el estado de la sesión',
+        needsSetup: true,
+      }, { status: 500 })
+    }
+
+    const data = await response.json()
+
     return NextResponse.json({
       ok: true,
       session: {
-        name: session.name,
-        status: session.status,
-        connected: session.status === 'WORKING',
-        needsQR: session.status === 'SCAN_QR_CODE',
+        name: data.name,
+        status: data.status,
+        connected: data.status === 'WORKING',
+        needsQR: data.status === 'SCAN_QR_CODE' || data.status === 'STARTING',
       },
     })
   } catch (error: any) {
     console.error('Error getting session:', error)
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error.message,
-        needsSetup: true,
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      ok: false,
+      error: error.message,
+      needsSetup: true,
+    }, { status: 500 })
   }
 }
 
 /**
  * POST /api/whatsapp/session
- * Crear o iniciar una nueva sesión
+ * Crear o iniciar una nueva sesión en WAHA
  */
 export async function POST() {
   try {
-    // URL del webhook para recibir eventos
     const webhookUrl = process.env.NEXT_PUBLIC_URL
       ? `${process.env.NEXT_PUBLIC_URL}/api/whatsapp/webhook`
       : undefined
 
-    const session = await wahaClient.startSession('default', webhookUrl)
+    const config = {
+      name: 'default',
+      config: webhookUrl ? {
+        webhooks: [{
+          url: webhookUrl,
+          events: ['message', 'message.any', 'session.status', 'state.change'],
+        }],
+      } : undefined,
+    }
+
+    const response = await fetch(`${WAHA_URL}/api/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(config),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      return NextResponse.json({
+        ok: false,
+        error: `Error iniciando sesión: ${errorText}`,
+      }, { status: response.status })
+    }
+
+    const data = await response.json()
 
     return NextResponse.json({
       ok: true,
       session: {
-        name: session.name,
-        status: session.status,
-        message: 'Sesión iniciada. Escanea el código QR para conectar.',
+        name: data.name,
+        status: data.status,
+        message: 'Sesión iniciada. Obtén el código QR para conectar.',
       },
     })
   } catch (error: any) {
     console.error('Error starting session:', error)
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error.message,
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      ok: false,
+      error: error.message,
+    }, { status: 500 })
   }
 }
 
@@ -69,8 +102,19 @@ export async function POST() {
  */
 export async function DELETE() {
   try {
-    await wahaClient.stopSession('default')
-    await wahaClient.deleteSession('default')
+    // Primero detener
+    await fetch(`${WAHA_URL}/api/sessions/default/stop`, {
+      method: 'POST',
+    })
+
+    // Luego eliminar
+    const response = await fetch(`${WAHA_URL}/api/sessions/default`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      throw new Error('Error eliminando sesión')
+    }
 
     return NextResponse.json({
       ok: true,
@@ -78,13 +122,10 @@ export async function DELETE() {
     })
   } catch (error: any) {
     console.error('Error deleting session:', error)
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error.message,
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      ok: false,
+      error: error.message,
+    }, { status: 500 })
   }
 }
 

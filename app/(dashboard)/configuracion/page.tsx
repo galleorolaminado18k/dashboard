@@ -40,11 +40,21 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string>("")
+  const [sessionStatus, setSessionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected')
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
 
   // Cargar configuración guardada
   useEffect(() => {
     loadConfig()
+    checkSessionStatus()
   }, [])
+
+  // Limpiar interval al desmontar
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) clearInterval(pollingInterval)
+    }
+  }, [pollingInterval])
 
   const loadConfig = async () => {
     try {
@@ -52,40 +62,117 @@ export default function ConfiguracionPage() {
       if (res.ok) {
         const data = await res.json()
         setConfig(data)
-        if (data.whatsappBusinessPhone) {
-          generateQRCode(data.whatsappBusinessPhone)
-        }
       }
     } catch (err) {
       console.error('Error loading config:', err)
     }
   }
 
-  const generateQRCode = async (phone: string) => {
-    if (!phone) return
+  const checkSessionStatus = async () => {
     try {
-      // Generar código QR para WhatsApp Business
-      const whatsappLink = `https://wa.me/${phone.replace(/\D/g, '')}`
-      const qrDataUrl = await QRCode.toDataURL(whatsappLink, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#0B0B0C',
-          light: '#FFFFFF'
+      const res = await fetch('/api/whatsapp/session')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.ok && data.session) {
+          if (data.session.connected) {
+            setSessionStatus('connected')
+          } else if (data.session.needsQR) {
+            setSessionStatus('connecting')
+            startPollingQR()
+          }
         }
-      })
-      setQrCodeImage(qrDataUrl)
+      }
     } catch (err) {
-      console.error('Error generating QR:', err)
-      setError('Error al generar código QR')
+      console.error('Error checking session:', err)
     }
+  }
+
+  const startWhatsAppSession = async () => {
+    setSessionStatus('connecting')
+    setError("")
+
+    try {
+      // Iniciar sesión en WAHA
+      const res = await fetch('/api/whatsapp/session', { method: 'POST' })
+      const data = await res.json()
+
+      if (data.ok) {
+        // Empezar a obtener el QR
+        startPollingQR()
+      } else {
+        setError(data.error || 'Error al iniciar sesión')
+        setSessionStatus('disconnected')
+      }
+    } catch (err: any) {
+      setError('Error conectando con WAHA. ¿Está corriendo Docker?')
+      setSessionStatus('disconnected')
+    }
+  }
+
+  const startPollingQR = () => {
+    // Limpiar interval anterior si existe
+    if (pollingInterval) clearInterval(pollingInterval)
+
+    // Obtener QR inmediatamente
+    fetchQRCode()
+
+    // Y luego cada 5 segundos
+    const interval = setInterval(fetchQRCode, 5000)
+    setPollingInterval(interval)
+
+    // Timeout de 2 minutos
+    setTimeout(() => {
+      if (interval) clearInterval(interval)
+      if (sessionStatus === 'connecting') {
+        setError('Tiempo agotado. Reinicia la sesión.')
+        setSessionStatus('disconnected')
+      }
+    }, 120000)
+  }
+
+  const fetchQRCode = async () => {
+    try {
+      const res = await fetch('/api/whatsapp/qr')
+      const data = await res.json()
+
+      if (data.ok && data.qr) {
+        // QR REAL de WhatsApp Web en base64
+        setQrCodeImage(data.qr)
+      } else if (data.currentState === 'WORKING') {
+        // Ya está conectado
+        setSessionStatus('connected')
+        if (pollingInterval) clearInterval(pollingInterval)
+        setQrCodeImage("")
+      }
+    } catch (err) {
+      console.error('Error fetching QR:', err)
+    }
+  }
+
+  const disconnectWhatsApp = async () => {
+    try {
+      await fetch('/api/whatsapp/session', { method: 'DELETE' })
+      setSessionStatus('disconnected')
+      setQrCodeImage("")
+      if (pollingInterval) clearInterval(pollingInterval)
+    } catch (err) {
+      setError('Error al desconectar')
+    }
+  }
+
+  const generateQRCode = async (phone: string) => {
+    // Esta función ahora inicia la sesión de WAHA
+    if (!phone || phone.length < 10) return
+
+    // Guardar el número en la config
+    setConfig({ ...config, whatsappBusinessPhone: phone })
+
+    // Iniciar sesión de WhatsApp con WAHA
+    await startWhatsAppSession()
   }
 
   const handlePhoneChange = (phone: string) => {
     setConfig({ ...config, whatsappBusinessPhone: phone })
-    if (phone.length >= 10) {
-      generateQRCode(phone)
-    }
   }
 
   const saveConfig = async () => {
@@ -188,49 +275,88 @@ export default function ConfiguracionPage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                        <div className="text-xs text-green-800">
-                          <p className="font-semibold mb-1">¿Cómo vincular?</p>
+                        <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
+                        <div className="text-xs text-blue-800">
+                          <p className="font-semibold mb-1">Requisitos:</p>
                           <ol className="list-decimal list-inside space-y-1">
-                            <li>Escanea el código QR con tu WhatsApp Business</li>
-                            <li>Confirma la vinculación en tu teléfono</li>
-                            <li>El dashboard empezará a enviar notificaciones</li>
+                            <li>Docker corriendo con WAHA: <code className="bg-blue-100 px-1 rounded text-[10px]">docker-compose -f docker-compose.waha.yml up -d</code></li>
+                            <li>Ingresa tu número de WhatsApp Business</li>
+                            <li>Click en "Conectar WhatsApp"</li>
+                            <li>Escanea el QR REAL de WhatsApp Web</li>
                           </ol>
                         </div>
                       </div>
                     </div>
+
+                    {/* Botón de Conectar */}
+                    {sessionStatus === 'disconnected' && config.whatsappBusinessPhone && (
+                      <Button
+                        onClick={startWhatsAppSession}
+                        className="w-full bg-[#12B886] hover:bg-[#0F9D72] text-white"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Conectar WhatsApp
+                      </Button>
+                    )}
+
+                    {sessionStatus === 'connected' && (
+                      <div className="space-y-3">
+                        <div className="p-3 bg-green-100 border border-green-300 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-800">
+                            <Check className="w-5 h-5" />
+                            <span className="text-sm font-semibold">✅ WhatsApp Conectado</span>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={disconnectWhatsApp}
+                          variant="outline"
+                          className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                        >
+                          Desconectar WhatsApp
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-center justify-center">
-                    {qrCodeImage ? (
+                    {sessionStatus === 'connecting' && qrCodeImage ? (
                       <div className="space-y-4">
                         <div className="p-4 bg-white border-2 border-[#D8BD80] rounded-2xl shadow-lg">
-                          <img src={qrCodeImage} alt="QR Code WhatsApp" className="w-64 h-64" />
+                          <img src={qrCodeImage} alt="QR WhatsApp Web REAL" className="w-64 h-64" />
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-semibold text-neutral-700 mb-1">
                             Escanea con WhatsApp Business
                           </p>
                           <p className="text-xs text-neutral-500">
-                            +57 {config.whatsappBusinessPhone}
+                            QR REAL de WhatsApp Web
                           </p>
+                          <div className="flex items-center justify-center gap-2 mt-2 text-orange-600">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span className="text-xs">Esperando escaneo...</span>
+                          </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => generateQRCode(config.whatsappBusinessPhone)}
-                          className="w-full"
-                        >
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Regenerar QR
-                        </Button>
+                      </div>
+                    ) : sessionStatus === 'connected' ? (
+                      <div className="flex flex-col items-center justify-center h-64 text-green-600">
+                        <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                          <Check className="w-12 h-12" />
+                        </div>
+                        <p className="text-lg font-semibold">WhatsApp Conectado</p>
+                        <p className="text-sm text-neutral-500 mt-2">+57 {config.whatsappBusinessPhone}</p>
+                      </div>
+                    ) : sessionStatus === 'connecting' && !qrCodeImage ? (
+                      <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
+                        <RefreshCw className="w-16 h-16 mb-4 animate-spin" />
+                        <p className="text-sm">Generando código QR...</p>
+                        <p className="text-xs mt-2">Esto puede tardar unos segundos</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-64 text-neutral-400">
                         <QrCode className="w-16 h-16 mb-4" />
-                        <p className="text-sm">Ingresa un número para generar el código QR</p>
+                        <p className="text-sm text-center">Ingresa un número y click en<br/>"Conectar WhatsApp"</p>
                       </div>
                     )}
                   </div>
