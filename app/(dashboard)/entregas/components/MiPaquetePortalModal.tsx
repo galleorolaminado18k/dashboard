@@ -93,40 +93,6 @@ export default function MiPaquetePortalModal({
                     }
 
                     // PRIORIDAD 2: Si no está logueado, hacer auto-login primero
-                    // PRIORIDAD 1: Buscar campo de búsqueda de guía (si ya está logueado)
-                    const searchInput = iframeDoc.querySelector('input[placeholder*="Escribir" i], input[placeholder*="buscar" i], input[placeholder*="guía" i], input[name="search"], input[type="search"]') as HTMLInputElement
-
-                    if (searchInput) {
-                      console.log('✅ Campo de búsqueda encontrado!')
-                      console.log('✅ Campos de login encontrados - Auto-login iniciando...')
-
-                      // Llenar campo de búsqueda con el número de guía
-                      searchInput.value = trackingNumber
-                      searchInput.focus()
-
-                      // Disparar eventos
-                      const events = ['input', 'change', 'keyup', 'keydown']
-                      events.forEach(eventType => {
-                        const event = new Event(eventType, { bubbles: true, cancelable: true })
-                        searchInput.dispatchEvent(event)
-                      })
-
-                      // También disparar evento Enter para buscar
-                      const enterEvent = new KeyboardEvent('keydown', {
-                        key: 'Enter',
-                        code: 'Enter',
-                        keyCode: 13,
-                        which: 13,
-                        bubbles: true,
-                        cancelable: true
-                      })
-                      searchInput.dispatchEvent(enterEvent)
-
-                      console.log(`✅ Búsqueda auto-completada con guía: ${trackingNumber}`)
-                      return
-                    }
-
-                    // PRIORIDAD 2: Si no está logueado, hacer auto-login primero
                     const emailInput = iframeDoc.querySelector('input[type="email"], input[name="email"], input[placeholder*="correo" i], input[placeholder*="email" i]') as HTMLInputElement
                     const passwordInput = iframeDoc.querySelector('input[type="password"], input[name="password"], input[placeholder*="contraseña" i], input[placeholder*="password" i]') as HTMLInputElement
                     const submitButton = iframeDoc.querySelector('button[type="submit"], button:not([type="button"]):not([disabled])') as HTMLButtonElement
@@ -150,7 +116,7 @@ export default function MiPaquetePortalModal({
 
                       // Auto-submit después de 1.5 segundos
                       setTimeout(() => {
-          }, 2000)
+                        if (submitButton) {
                           console.log('🚀 Haciendo click en botón de submit...')
                           submitButton.click()
                         } else {
@@ -184,7 +150,7 @@ export default function MiPaquetePortalModal({
               console.error('❌ Error al intentar acceso al iframe (CORS):', error)
               console.log('ℹ️ El portal de MiPaquete se cargará manualmente debido a restricciones CORS')
             }
-          }, 1000)
+          }, 2000)
         }
 
         iframe.addEventListener('load', handleLoad)
@@ -206,7 +172,7 @@ export default function MiPaquetePortalModal({
       // Cuando se cierra el modal, resetear el estado
       setIsLoading(true)
     }
-  }, [open])
+  }, [open, trackingNumber])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
