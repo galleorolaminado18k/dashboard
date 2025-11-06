@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Package, X } from "lucide-react"
+import { Package, X } from "lucide-react"
 import { useState } from "react"
 
 export default function PortalMiPaquetePage() {
@@ -18,33 +18,27 @@ export default function PortalMiPaquetePage() {
       {/* Modal Container - 90% width, 85% height */}
       <div className="w-full max-w-[90vw] h-[85vh] flex flex-col bg-neutral-900 rounded-3xl shadow-2xl border border-orange-500/20 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
 
-        {/* Header Luxury */}
+        {/* Header Luxury - Minimalista */}
         <div className="flex-shrink-0 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-orange-500/20 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
-            <button
-              onClick={() => router.push('/entregas')}
-              className="group flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg transition-all duration-300 font-semibold shadow-lg hover:shadow-orange-500/50 hover:scale-105 text-sm"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Volver a Entregas</span>
-            </button>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-orange-500/10 to-orange-600/10 border border-orange-500/30 rounded-lg backdrop-blur-sm">
-                <Package className="w-4 h-4 text-orange-400" />
+            {/* Badge de Guía - Centrado visualmente */}
+            <div className="flex-1 flex justify-center">
+              <div className="flex items-center gap-3 px-6 py-2.5 bg-gradient-to-r from-orange-500/10 to-orange-600/10 border border-orange-500/30 rounded-lg backdrop-blur-sm">
+                <Package className="w-5 h-5 text-orange-400" />
                 <div className="text-left">
-                  <p className="text-xs text-orange-300/70 font-medium">Guía</p>
-                  <p className="text-sm font-bold text-white tracking-wider">{guia}</p>
+                  <p className="text-xs text-orange-300/70 font-medium">Guía de Envío</p>
+                  <p className="text-base font-bold text-white tracking-wider">{guia}</p>
                 </div>
               </div>
-
-              <button
-                onClick={() => router.push('/entregas')}
-                className="w-9 h-9 rounded-full bg-neutral-700 hover:bg-neutral-600 flex items-center justify-center transition-colors group"
-              >
-                <X className="w-5 h-5 text-neutral-300 group-hover:text-white transition-colors" />
-              </button>
             </div>
+
+            {/* Botón X - Solo para cerrar */}
+            <button
+              onClick={() => router.push('/entregas')}
+              className="w-10 h-10 rounded-full bg-neutral-700/50 hover:bg-neutral-600 backdrop-blur-sm flex items-center justify-center transition-all duration-200 group border border-neutral-600/50 hover:border-orange-500/50"
+            >
+              <X className="w-5 h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-all duration-200" />
+            </button>
           </div>
         </div>
 
