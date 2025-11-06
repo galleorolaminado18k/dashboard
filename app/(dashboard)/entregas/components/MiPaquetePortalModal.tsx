@@ -29,14 +29,14 @@ export default function MiPaquetePortalModal({
     if (open) {
       // ✅ IMPORTANTE: Resetear loading a true cada vez que se abre
       setIsLoading(true)
-      console.log('🌐 Modal abierto, iniciando carga...')
+      console.log('🌐 Modal abierto, iniciando carga...', new Date().toISOString())
 
-      // ✅ CRÍTICO: Ocultar loading después de 2 segundos SIEMPRE
+      // ✅ CRÍTICO: Ocultar loading después de 1 segundo SIEMPRE
       // Este timer se ejecuta independientemente del iframe o CORS
       const forceHideLoadingTimer = setTimeout(() => {
-        console.log('⏱️ Forzando ocultación de overlay (2 segundos)')
+        console.log('⏱️ Forzando ocultación de overlay (1 segundo)', new Date().toISOString())
         setIsLoading(false)
-      }, 2000)
+      }, 1000)
 
       if (iframeRef.current) {
         const iframe = iframeRef.current
@@ -173,6 +173,9 @@ export default function MiPaquetePortalModal({
       setIsLoading(true)
     }
   }, [open, trackingNumber])
+
+  // Log de debugging para verificar el estado de isLoading
+  console.log('🔍 [MiPaquetePortalModal] Render - isLoading:', isLoading, 'open:', open)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
