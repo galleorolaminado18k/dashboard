@@ -24,6 +24,12 @@ export default function MiPaquetePortalModal({
 
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
+  // ✅ NO renderizar si no hay URL (evita SSR/build con valores vacíos)
+  if (!portalUrl || portalUrl.trim() === '') {
+    console.log('⚠️ [MiPaquetePortalModal] No hay URL, no renderizar modal')
+    return null
+  }
+
   console.log('🌐 [MiPaquetePortalModal] Abriendo portal - URL:', portalUrl, 'Guía:', trackingNumber)
 
   return (
