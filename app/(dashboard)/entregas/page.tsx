@@ -91,6 +91,7 @@ type Shipment = {
   eta: string // fecha aprox. de entrega
   lastUpdate: string
   mipaqueteStatus?: string // Estado real de MiPaquete
+  total?: number // Total de la factura
 }
 
 function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteStatus?: string }) {
@@ -401,8 +402,8 @@ export default function EntregasPage() {
               <table className="w-full text-xs">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="text-center px-2 py-2 text-xs">Envío</th>
                     <th className="text-center px-2 py-2 text-xs">Pedido</th>
+                    <th className="text-center px-2 py-2 text-xs">Valor Total</th>
                     <th className="text-center px-2 py-2 text-xs">Cliente</th>
                     <th className="text-center px-2 py-2 text-xs">Ciudad</th>
                     <th className="text-center px-2 py-2 text-xs">Transp.</th>
@@ -418,10 +419,11 @@ export default function EntregasPage() {
                 <tbody>
                   {enviosFiltrados.map((e: Shipment, idx: number) => (
                   <tr key={e.envioId} className={idx % 2 ? "bg-neutral-50/50" : "bg-white"}>
-                    <td className="px-2 py-2 font-medium text-center text-xs">{e.envioId}</td>
-                    <td className="px-2 py-2 text-neutral-600 text-center text-xs">
-                      {e.pedidoId}
-                      {e.factura ? ` • ${e.factura}` : ""}
+                    <td className="px-2 py-2 font-medium text-center text-xs">
+                      {e.factura || e.pedidoId}
+                    </td>
+                    <td className="px-2 py-2 text-neutral-600 text-center text-xs font-semibold">
+                      {e.total ? `$ ${e.total.toLocaleString('es-CO')}` : 'N/A'}
                     </td>
                     <td className="px-2 py-2 text-center text-xs">{e.cliente}</td>
                     <td className="px-2 py-2 text-center text-xs">
