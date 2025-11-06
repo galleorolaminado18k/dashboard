@@ -38,32 +38,32 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const [accionTomada, setAccionTomada] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Estados para diÃ¡logos de acciones REALES de MiPaquete
+  // Estados para diálogos de acciones REALES de MiPaquete
   const [showIndemnizacionDialog, setShowIndemnizacionDialog] = useState(false)
   const [showVolverOfrecerDialog, setShowVolverOfrecerDialog] = useState(false)
   const [showCambioDireccionDialog, setShowCambioDireccionDialog] = useState(false)
   const [showDevolucionDialog, setShowDevolucionDialog] = useState(false)
   const [showOtroDialog, setShowOtroDialog] = useState(false)
 
-  // Estados de formularios segÃºn MiPaquete
+  // Estados de formularios según MiPaquete
   const [indemnizacionDesc, setIndemnizacionDesc] = useState('')
   const [volverOfrecerDesc, setVolverOfrecerDesc] = useState('')
   const [volverOfrecerDireccion, setVolverOfrecerDireccion] = useState(envio.direccion || '')
 
-  // Cambio de direcciÃ³n (campos requeridos por MiPaquete)
+  // Cambio de dirección (campos requeridos por MiPaquete)
   const [nuevaCiudad, setNuevaCiudad] = useState(envio.ciudad || '')
   const [nuevaDireccion, setNuevaDireccion] = useState(envio.direccion || '')
   const [nombreDestinatario, setNombreDestinatario] = useState(envio.cliente || '')
   const [telefonoDestinatario, setTelefonoDestinatario] = useState(envio.telefono || '')
 
-  // DevoluciÃ³n (campos requeridos por MiPaquete)
+  // Devolución (campos requeridos por MiPaquete)
   const [nombreRemitente, setNombreRemitente] = useState('Comercializadora Gale18k')
   const [telefonoRemitente, setTelefonoRemitente] = useState('3016845026')
   const [ciudadRemitente, setCiudadRemitente] = useState('VILLA DEL ROSARIO-NORTE DE SANTANDER')
   const [direccionRemitente, setDireccionRemitente] = useState('Av 1 #9-53 Lomitas del trapiche')
   const [devolucionDesc, setDevolucionDesc] = useState('')
 
-  // Otro tipo de soluciÃ³n
+  // Otro tipo de solución
   const [otroDesc, setOtroDesc] = useState('')
 
   const formatCurrency = (value: number) => {
@@ -77,7 +77,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const enviarSolucionMiPaquete = async (solutionType: string, data: any = {}) => {
     setLoading(true)
     try {
-      console.log('ðŸš€ Enviando soluciÃ³n a MiPaquete:', { solutionType, data })
+      console.log('🚀 Enviando solución a MiPaquete:', { solutionType, data })
 
       const response = await fetch('/api/mipaquete/resolver-novedad', {
         method: 'POST',
@@ -93,16 +93,16 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       console.log('ðŸ“¥ Respuesta de API:', result)
 
       if (result.success) {
-        setAccionTomada(`âœ… ${getSolutionLabel(solutionType)} - Enviado a MiPaquete`)
+        setAccionTomada(`❌… ${getSolutionLabel(solutionType)} - Enviado a MiPaquete`)
 
-        // Cerrar todos los diÃ¡logos
+        // Cerrar todos los diálogos
         setShowIndemnizacionDialog(false)
         setShowVolverOfrecerDialog(false)
         setShowCambioDireccionDialog(false)
         setShowDevolucionDialog(false)
         setShowOtroDialog(false)
 
-        // Cerrar modal despuÃ©s de 3 segundos
+        // Cerrar modal después de 3 segundos
         setTimeout(() => {
           onClose()
           window.location.reload()
@@ -112,7 +112,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       }
     } catch (error: any) {
       console.error('âŒ Error:', error)
-      alert(`Error al procesar la acciÃ³n: ${error.message}`)
+      alert(`Error al procesar la acción: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -120,23 +120,23 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
   const getSolutionLabel = (solutionType: string): string => {
     const labels: Record<string, string> = {
-      'indemnizacion': 'IndemnizaciÃ³n solicitada',
+      'indemnizacion': 'Indemnización solicitada',
       'volver_a_ofrecer': 'Volver a ofrecer programado',
-      'cambio_direccion': 'DirecciÃ³n actualizada',
-      'devolucion': 'DevoluciÃ³n solicitada',
-      'otro': 'SoluciÃ³n registrada'
+      'cambio_direccion': 'Dirección actualizada',
+      'devolucion': 'Devolución solicitada',
+      'otro': 'solución registrada'
     }
     return labels[solutionType] || solutionType
   }
 
-  // 1. IndemnizaciÃ³n
+  // 1. Indemnización
   const handleIndemnizacion = () => {
     setShowIndemnizacionDialog(true)
   }
 
   const confirmIndemnizacion = () => {
     enviarSolucionMiPaquete('indemnizacion', {
-      description: indemnizacionDesc || 'Solicitud de indemnizaciÃ³n por novedad en entrega'
+      description: indemnizacionDesc || 'Solicitud de indemnización por novedad en entrega'
     })
   }
 
@@ -147,12 +147,12 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
   const confirmVolverOfrecer = () => {
     enviarSolucionMiPaquete('volver_a_ofrecer', {
-      description: volverOfrecerDesc || 'Volver a ofrecer el envÃ­o',
+      description: volverOfrecerDesc || 'Volver a ofrecer el Envío',
       new_address: volverOfrecerDireccion || undefined
     })
   }
 
-  // 3. Cambio de direcciÃ³n
+  // 3. Cambio de dirección
   const handleCambioDireccion = () => {
     setShowCambioDireccionDialog(true)
   }
@@ -164,7 +164,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       return
     }
     if (!nuevaDireccion.trim()) {
-      alert('âŒ La direcciÃ³n es obligatoria')
+      alert('❌ La dirección es obligatoria')
       return
     }
     if (!nombreDestinatario.trim()) {
@@ -172,7 +172,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       return
     }
     if (!telefonoDestinatario.trim()) {
-      alert('âŒ El telÃ©fono del destinatario es obligatorio')
+      alert('âŒ El teléfono del destinatario es obligatorio')
       return
     }
 
@@ -181,11 +181,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       new_address: nuevaDireccion,
       recipient_name: nombreDestinatario,
       recipient_phone: telefonoDestinatario,
-      description: 'Cambio de direcciÃ³n de entrega solicitado por novedad'
+      description: 'Cambio de dirección de entrega solicitado por novedad'
     })
   }
 
-  // 4. DevoluciÃ³n
+  // 4. Devolución
   const handleDevolucion = () => {
     setShowDevolucionDialog(true)
   }
@@ -197,7 +197,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       return
     }
     if (!telefonoRemitente.trim()) {
-      alert('âŒ El telÃ©fono del remitente es obligatorio')
+      alert('âŒ El teléfono del remitente es obligatorio')
       return
     }
     if (!ciudadRemitente.trim()) {
@@ -205,7 +205,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       return
     }
     if (!direccionRemitente.trim()) {
-      alert('âŒ La direcciÃ³n del remitente es obligatoria')
+      alert('❌ La dirección del remitente es obligatoria')
       return
     }
 
@@ -214,18 +214,18 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       sender_phone: telefonoRemitente,
       sender_city: ciudadRemitente,
       sender_address: direccionRemitente,
-      description: devolucionDesc || 'Solicitud de devoluciÃ³n del pedido'
+      description: devolucionDesc || 'Solicitud de Devolución del pedido'
     })
   }
 
-  // 5. Otro tipo de soluciÃ³n
+  // 5. Otro tipo de solución
   const handleOtro = () => {
     setShowOtroDialog(true)
   }
 
   const confirmOtro = () => {
     if (!otroDesc.trim() || otroDesc.length < 6) {
-      alert('âŒ Debes ingresar una descripciÃ³n de al menos 6 caracteres')
+      alert('âŒ Debes ingresar una descripción de al menos 6 caracteres')
       return
     }
 
@@ -242,10 +242,10 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
             <div>
               <DialogTitle className="text-2xl font-bold text-red-600 flex items-center gap-2">
                 <AlertTriangle className="w-6 h-6" />
-                Novedad en EnvÃ­o
+                Novedad en Envío
               </DialogTitle>
               <p className="text-sm text-neutral-500 mt-1">
-                EnvÃ­o: {envio.envioId} â€¢ Factura: {envio.factura || 'N/A'}
+                Envío: {envio.envioId} • Factura: {envio.factura || 'N/A'}
               </p>
             </div>
             <button
@@ -265,17 +265,17 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
               <h3 className="font-semibold text-red-900">Estado Actual</h3>
               <p className="text-sm text-red-700 mt-1">{envio.mipaqueteStatus || 'Novedad en entrega'}</p>
               <p className="text-xs text-red-600 mt-2">
-                GuÃ­a: {envio.guia} â€¢ Transportadora: {envio.transportadora}
+                Guía: {envio.guia} • Transportadora: {envio.transportadora}
               </p>
             </div>
           </div>
         </div>
 
-        {/* InformaciÃ³n del Cliente */}
+        {/* Información del Cliente */}
         <div className="bg-white border border-neutral-200 rounded-lg p-4 mb-4">
           <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
             <Phone className="w-5 h-5 text-[#D8BD80]" />
-            InformaciÃ³n del Cliente
+            Información del Cliente
           </h3>
 
           <div className="space-y-3">
@@ -286,7 +286,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
             {envio.telefono && (
               <div className="flex items-start gap-3">
-                <div className="w-24 text-sm text-neutral-500">TelÃ©fono:</div>
+                <div className="w-24 text-sm text-neutral-500">teléfono:</div>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{envio.telefono}</span>
                   <a
@@ -318,7 +318,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
             {envio.direccion && (
               <div className="flex items-start gap-3">
-                <div className="w-24 text-sm text-neutral-500">DirecciÃ³n:</div>
+                <div className="w-24 text-sm text-neutral-500">Dirección:</div>
                 <div className="text-sm">{envio.direccion}</div>
               </div>
             )}
@@ -340,7 +340,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                     <div className="flex-1">
                       <div className="font-medium text-sm">{prod.descripcion}</div>
                       <div className="text-xs text-neutral-500">
-                        Cantidad: {prod.cantidad} Ã— {formatCurrency(prod.precio)}
+                        Cantidad: {prod.cantidad} × {formatCurrency(prod.precio)}
                       </div>
                     </div>
                     <div className="font-semibold text-right ml-4">
@@ -359,7 +359,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                 )}
                 {envio.envioMonto && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Costo de envÃ­o:</span>
+                    <span className="text-neutral-600">Costo de Envío:</span>
                     <span className="font-medium">{formatCurrency(envio.envioMonto)}</span>
                   </div>
                 )}
@@ -374,9 +374,9 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           )}
         </div>
 
-        {/* Acciones RÃ¡pidas */}
+        {/* Acciones Rápidas */}
         <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-          <h3 className="font-semibold text-sm mb-3">Acciones RÃ¡pidas</h3>
+          <h3 className="font-semibold text-sm mb-3">Acciones Rápidas</h3>
 
           {accionTomada ? (
             <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg animate-pulse">
@@ -387,10 +387,10 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-neutral-500 mb-3">
-                ðŸ’¡ Estas acciones se envÃ­an directamente a MiPaquete para resolver la novedad
+                💡 Estas acciones se envían directamente a MiPaquete para resolver la novedad
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {/* IndemnizaciÃ³n */}
+                {/* Indemnización */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -399,7 +399,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <DollarSign className="w-3 h-3 mr-1" />}
-                  IndemnizaciÃ³n
+                  Indemnización
                 </Button>
 
                 {/* Volver a ofrecer */}
@@ -414,7 +414,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   Volver a ofrecer
                 </Button>
 
-                {/* Cambio de direcciÃ³n */}
+                {/* Cambio de dirección */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -423,10 +423,10 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <MapPin className="w-3 h-3 mr-1" />}
-                  Cambiar direcciÃ³n
+                  Cambiar dirección
                 </Button>
 
-                {/* DevoluciÃ³n */}
+                {/* Devolución */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -435,10 +435,10 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  DevoluciÃ³n
+                  Devolución
                 </Button>
 
-                {/* Otro tipo de soluciÃ³n */}
+                {/* Otro tipo de solución */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -447,14 +447,14 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  Otro tipo de soluciÃ³n
+                  Otro tipo de solución
                 </Button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Botones de AcciÃ³n */}
+        {/* Botones de acción */}
         <div className="flex gap-3 pt-4 border-t border-neutral-200">
           <Button
             onClick={onClose}
@@ -475,36 +475,36 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </div>
       </DialogContent>
 
-      {/* ========== DIÃLOGOS REALES DE MIPAQUETE ========== */}
+      {/* ========== DIÁLOGOS REALES DE MIPAQUETE ========== */}
 
-      {/* DiÃ¡logo 1: IndemnizaciÃ³n */}
+      {/* Diálogo 1: Indemnización */}
       {showIndemnizacionDialog && (
         <Dialog open={showIndemnizacionDialog} onOpenChange={setShowIndemnizacionDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-yellow-600" />
-                Solicitar IndemnizaciÃ³n
+                Solicitar indemnización
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <p className="text-sm text-yellow-800">
-                  ðŸ’° Esta solicitud se enviarÃ¡ directamente a MiPaquete para iniciar el proceso de indemnizaciÃ³n.
+                  💰 Esta solicitud se enviará directamente a MiPaquete para iniciar el proceso de indemnización.
                 </p>
               </div>
               <div>
-                <Label>DescripciÃ³n (opcional)</Label>
+                <Label>descripción (opcional)</Label>
                 <Textarea
                   value={indemnizacionDesc}
                   onChange={(e) => setIndemnizacionDesc(e.target.value)}
-                  placeholder="Ej: Producto daÃ±ado, paquete perdido, etc."
+                  placeholder="Ej: Producto dañado, paquete perdido, etc."
                   rows={4}
                   className="mt-2"
                 />
               </div>
               <div className="text-xs text-neutral-500">
-                <p><strong>GuÃ­a:</strong> {envio.guia}</p>
+                <p><strong>Guía:</strong> {envio.guia}</p>
                 <p><strong>Transportadora:</strong> {envio.transportadora}</p>
               </div>
               <div className="flex gap-2">
@@ -522,7 +522,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Solicitar IndemnizaciÃ³n
+                  Solicitar indemnización
                 </Button>
               </div>
             </div>
@@ -530,38 +530,38 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </Dialog>
       )}
 
-      {/* DiÃ¡logo 2: Volver a ofrecer */}
+      {/* Diálogo 2: Volver a ofrecer */}
       {showVolverOfrecerDialog && (
         <Dialog open={showVolverOfrecerDialog} onOpenChange={setShowVolverOfrecerDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5 text-orange-600" />
-                Volver a Ofrecer el EnvÃ­o
+                Volver a Ofrecer el Envío
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                 <p className="text-sm text-orange-800">
-                  ðŸ“¦ El envÃ­o serÃ¡ reprogramado para un nuevo intento de entrega.
+                  📦 El Envío será reprogramado para un nuevo intento de entrega.
                 </p>
               </div>
               <div>
-                <Label>DescripciÃ³n (opcional)</Label>
+                <Label>descripción (opcional)</Label>
                 <Textarea
                   value={volverOfrecerDesc}
                   onChange={(e) => setVolverOfrecerDesc(e.target.value)}
-                  placeholder="Ej: Cliente disponible despuÃ©s de las 2pm"
+                  placeholder="Ej: Cliente disponible después de las 2pm"
                   rows={3}
                   className="mt-2"
                 />
               </div>
               <div>
-                <Label>Soporte de direcciÃ³n (opcional)</Label>
+                <Label>Soporte de dirección (opcional)</Label>
                 <Input
                   value={volverOfrecerDireccion}
                   onChange={(e) => setVolverOfrecerDireccion(e.target.value)}
-                  placeholder="Indicaciones adicionales sobre la direcciÃ³n"
+                  placeholder="Indicaciones adicionales sobre la dirección"
                   className="mt-2"
                 />
               </div>
@@ -588,20 +588,20 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </Dialog>
       )}
 
-      {/* DiÃ¡logo 3: Cambio de DirecciÃ³n (CAMPOS REQUERIDOS POR MIPAQUETE) */}
+      {/* Diálogo 3: Cambio de Dirección (CAMPOS REQUERIDOS POR MIPAQUETE) */}
       {showCambioDireccionDialog && (
         <Dialog open={showCambioDireccionDialog} onOpenChange={setShowCambioDireccionDialog}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-purple-600" />
-                Cambio de DirecciÃ³n
+                Cambio de Dirección
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                 <p className="text-sm text-purple-800">
-                  ðŸ“ Actualiza la direcciÃ³n de entrega. Todos los campos son obligatorios.
+                  📍 Actualiza la dirección de entrega. Todos los campos son obligatorios.
                 </p>
               </div>
 
@@ -610,14 +610,14 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                 <Input
                   value={nuevaCiudad}
                   onChange={(e) => setNuevaCiudad(e.target.value)}
-                  placeholder="Ej: TURBACO-BOLÃVAR"
+                  placeholder="Ej: TURBACO-BOLÍVAR"
                   className="mt-2"
                   required
                 />
               </div>
 
               <div>
-                <Label>Nueva DirecciÃ³n *</Label>
+                <Label>Nueva Dirección *</Label>
                 <Textarea
                   value={nuevaDireccion}
                   onChange={(e) => setNuevaDireccion(e.target.value)}
@@ -640,7 +640,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
               </div>
 
               <div>
-                <Label>TelÃ©fono del Destinatario *</Label>
+                <Label>teléfono del Destinatario *</Label>
                 <Input
                   value={telefonoDestinatario}
                   onChange={(e) => setTelefonoDestinatario(e.target.value)}
@@ -665,7 +665,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Actualizar DirecciÃ³n
+                  Actualizar Dirección
                 </Button>
               </div>
             </div>
@@ -673,20 +673,20 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </Dialog>
       )}
 
-      {/* DiÃ¡logo 4: DevoluciÃ³n (CAMPOS REQUERIDOS POR MIPAQUETE) */}
+      {/* Diálogo 4: Devolución (CAMPOS REQUERIDOS POR MIPAQUETE) */}
       {showDevolucionDialog && (
         <Dialog open={showDevolucionDialog} onOpenChange={setShowDevolucionDialog}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
-                Solicitar DevoluciÃ³n
+                Solicitar Devolución
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-sm text-red-800">
-                  âš ï¸ El pedido serÃ¡ devuelto a la direcciÃ³n del remitente.
+                  ⚠️ El pedido será devuelto a la dirección del remitente.
                 </p>
               </div>
 
@@ -694,9 +694,9 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                 <p className="text-xs font-semibold text-neutral-700">Datos del Remitente:</p>
                 <div className="space-y-1 text-xs">
                   <p><strong>Nombre:</strong> {nombreRemitente}</p>
-                  <p><strong>TelÃ©fono:</strong> {telefonoRemitente}</p>
+                  <p><strong>teléfono:</strong> {telefonoRemitente}</p>
                   <p><strong>Ciudad:</strong> {ciudadRemitente}</p>
-                  <p><strong>DirecciÃ³n:</strong> {direccionRemitente}</p>
+                  <p><strong>Dirección:</strong> {direccionRemitente}</p>
                 </div>
               </div>
 
@@ -711,7 +711,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
               </div>
 
               <div>
-                <Label>TelÃ©fono del Remitente *</Label>
+                <Label>teléfono del Remitente *</Label>
                 <Input
                   value={telefonoRemitente}
                   onChange={(e) => setTelefonoRemitente(e.target.value)}
@@ -731,7 +731,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
               </div>
 
               <div>
-                <Label>DirecciÃ³n del Remitente *</Label>
+                <Label>Dirección del Remitente *</Label>
                 <Textarea
                   value={direccionRemitente}
                   onChange={(e) => setDireccionRemitente(e.target.value)}
@@ -742,11 +742,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
               </div>
 
               <div>
-                <Label>DescripciÃ³n (opcional)</Label>
+                <Label>descripción (opcional)</Label>
                 <Textarea
                   value={devolucionDesc}
                   onChange={(e) => setDevolucionDesc(e.target.value)}
-                  placeholder="Motivo de la devoluciÃ³n..."
+                  placeholder="Motivo de la Devolución..."
                   rows={2}
                   className="mt-2"
                 />
@@ -767,7 +767,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Solicitar DevoluciÃ³n
+                  Solicitar Devolución
                 </Button>
               </div>
             </div>
@@ -775,28 +775,28 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </Dialog>
       )}
 
-      {/* DiÃ¡logo 5: Otro tipo de soluciÃ³n */}
+      {/* Diálogo 5: Otro tipo de solución */}
       {showOtroDialog && (
         <Dialog open={showOtroDialog} onOpenChange={setShowOtroDialog}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-blue-600" />
-                Otro Tipo de SoluciÃ³n
+                Otro Tipo de solución
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-800">
-                  ðŸ’¡ Describe la soluciÃ³n especÃ­fica que necesitas para esta novedad.
+                  💡 Describe la solución específica que necesitas para esta novedad.
                 </p>
               </div>
               <div>
-                <Label>DescripciÃ³n de la soluciÃ³n * (mÃ­nimo 6 caracteres)</Label>
+                <Label>Descripción de la solución * (mínimo 6 caracteres)</Label>
                 <Textarea
                   value={otroDesc}
                   onChange={(e) => setOtroDesc(e.target.value)}
-                  placeholder="Describe detalladamente la soluciÃ³n que necesitas..."
+                  placeholder="Describe detalladamente la solución que necesitas..."
                   rows={5}
                   className="mt-2"
                   required
@@ -820,7 +820,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                   disabled={loading}
                 >
                   {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Enviar SoluciÃ³n
+                  Enviar solución
                 </Button>
               </div>
             </div>
@@ -828,7 +828,9 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </Dialog>
       )}
 
-      {/* ========== FIN DIÃLOGOS REALES ========== */}
+      {/* ========== FIN DIÁLOGOS REALES ========== */}
     </Dialog>
   )
 }
+
+
