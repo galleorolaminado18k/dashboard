@@ -189,29 +189,24 @@ export default function EntregasPage() {
   console.log('📊 Número de envíos filtrados:', enviosFiltrados.length)
 
   return (
-    <div className="min-h-screen bg-white text-[#0B0B0C]">
-      {/* Header */}
+    <div className="min-h-screen bg-gradient-radial from-[#0B0B0C] via-[#0F0F10] to-[#111214] text-[#F7F7F8]">
+      {/* Header - Luxury Dark */}
       <section className="px-6 lg:px-10 pt-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[32px] md:text-[40px] font-semibold tracking-tight leading-tight">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[rgba(216,189,128,0.8)]">
+            <h1 className="text-[32px] md:text-[40px] font-serif tracking-tight leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] via-[#F5E6B3] to-[#D4AF37]">
                 ENTREGAS
               </span>
-              <sup className="text-xs text-green-600 ml-2">v3.0-FIXED</sup>
+              <sup className="text-xs text-[#12B886] ml-2 font-sans">v3.0-FIXED</sup>
             </h1>
-            <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS • Build 2025-11-04 15:25</p>
+            <p className="text-sm text-[#B8BDC7] mt-1 font-medium">SEGUIMIENTO DE ENVIOS • Build 2025-11-04 15:25</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="rounded-full border-[#D8BD80] text-[#D8BD80] bg-transparent hover:bg-[#D8BD80]/10"
+          <div className="flex items-center gap-3">
+            <button
               onClick={async () => {
                 try {
-                  // Primero refrescar datos locales
                   await mutate()
-
-                  // Luego forzar actualización desde MiPaquete
                   const res = await fetch('/api/shipments/force-update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -220,7 +215,7 @@ export default function EntregasPage() {
                   const data = await res.json()
                   if (data.ok) {
                     alert('✅ Actualización de envíos exitosa!')
-                    await mutate() // Refrescar datos después de actualizar
+                    await mutate()
                   } else {
                     alert('❌ Error: ' + data.error)
                   }
@@ -229,18 +224,19 @@ export default function EntregasPage() {
                 }
               }}
               disabled={isLoading}
+              className="group relative px-6 py-2.5 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F5E6B3] hover:from-[#F5E6B3] hover:to-[#D4AF37] text-[#0B0B0C] font-semibold text-sm shadow-xl hover:shadow-[0_0_24px_rgba(212,175,55,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] flex items-center gap-2"
             >
-              <RotateCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RotateCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Actualización de envíos
-            </Button>
-            <Button variant="outline" className="rounded-full border-neutral-200 bg-transparent">
+            </button>
+            <button className="px-6 py-2.5 rounded-full bg-white/6 backdrop-blur-md border border-[#2A2B2E] text-[#F7F7F8] font-semibold text-sm hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all duration-300 min-h-[44px] shadow-lg">
               Exportar CSV
-            </Button>
+            </button>
           </div>
         </div>
       </section>
 
-      {/* KPIs */}
+      {/* KPIs - Luxury Glassmorphism */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-6">
         {[
           {
@@ -280,36 +276,38 @@ export default function EntregasPage() {
             sub: "Este mes",
           },
         ].map((k, i) => (
-          <GradientCard key={i}>
-            <div className="p-6">
-              <div className="text-sm text-neutral-500 flex items-center gap-2">
-                {k.icon} {k.label}
+          <div key={i} className="group relative">
+            <div className="absolute -inset-px bg-gradient-to-b from-[#D4AF37]/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="relative bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl p-6 hover:bg-white/8 hover:translate-y-[-2px] hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-all duration-300">
+              <div className="text-xs text-[#B8BDC7] font-medium flex items-center gap-2 mb-3">
+                <div className="text-[#D4AF37]">{k.icon}</div>
+                {k.label}
               </div>
-              <div className="mt-2 text-4xl font-semibold">{k.value}</div>
-              <p className="text-xs text-neutral-500 mt-1">{k.sub}</p>
+              <div className="text-4xl font-bold text-[#F7F7F8] mb-2">{k.value}</div>
+              <p className="text-[10px] text-[#B8BDC7] leading-relaxed">{k.sub}</p>
             </div>
-          </GradientCard>
+          </div>
         ))}
       </section>
 
-      {/* Filtros — FIJO */}
+      {/* Filtros - Luxury Glassmorphism */}
       <section className="px-6 lg:px-10 mt-8">
-        <FixedCard>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-            <div className="flex items-center gap-2 md:col-span-2">
-              <PackageSearch className="w-4 h-4 text-neutral-400" />
+        <div className="bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl p-6 shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+            <div className="flex items-center gap-3 md:col-span-2 bg-white/4 rounded-full px-4 py-2.5 border border-[#2A2B2E] hover:border-[#D4AF37]/30 transition-all duration-300">
+              <PackageSearch className="w-4 h-4 text-[#D4AF37]" />
               <Input
                 placeholder="Buscar por cliente, ciudad, guía o pedido…"
-                className="rounded-full"
+                className="bg-transparent border-0 text-[#F7F7F8] placeholder:text-[#B8BDC7] focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
             <Select onValueChange={setEstadoSel}>
-              <SelectTrigger className="rounded-full">
+              <SelectTrigger className="rounded-full bg-white/4 border-[#2A2B2E] hover:border-[#D4AF37]/30 text-[#F7F7F8] transition-all duration-300 min-h-[44px]">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#0B0B0C] border-[#2A2B2E] text-[#F7F7F8]">
                 <SelectItem value="TODOS">Todos</SelectItem>
                 <SelectItem value="DESPACHADO">Despachado</SelectItem>
                 <SelectItem value="TRÁNSITO">En tránsito</SelectItem>
@@ -319,10 +317,10 @@ export default function EntregasPage() {
               </SelectContent>
             </Select>
             <Select onValueChange={setTransSel}>
-              <SelectTrigger className="rounded-full">
+              <SelectTrigger className="rounded-full bg-white/4 border-[#2A2B2E] hover:border-[#D4AF37]/30 text-[#F7F7F8] transition-all duration-300 min-h-[44px]">
                 <SelectValue placeholder="Transportadora" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-[#0B0B0C] border-[#2A2B2E] text-[#F7F7F8]">
                 <SelectItem value="TODAS">Todas</SelectItem>
                 <SelectItem value="SERVIENTREGA">SERVIENTREGA</SelectItem>
                 <SelectItem value="INTERRAPIDISIMO">INTERRAPIDISIMO</SelectItem>
@@ -332,7 +330,7 @@ export default function EntregasPage() {
               </SelectContent>
             </Select>
           </div>
-        </FixedCard>
+        </div>
       </section>
 
       {/* Tabla — FIJA */}

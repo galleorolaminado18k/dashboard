@@ -248,196 +248,216 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white via-neutral-50 to-white border-2 border-[#D8BD80]/20 shadow-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-radial from-[#0B0B0C] via-[#0F0F10] to-[#111214] border-2 border-[#D4AF37]/30 shadow-[0_0_48px_rgba(212,175,55,0.2)]">
         <DialogHeader>
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-red-600 via-red-500 to-orange-500 bg-clip-text text-transparent flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl shadow-lg">
-                  <AlertTriangle className="w-7 h-7 text-white" />
+              {/* Header Chip "Novedad en Envío" con círculo dorado */}
+              <div className="inline-flex items-center gap-3 mb-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-[#D4AF37] rounded-full blur-md opacity-40"></div>
+                  <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#F5E6B3] flex items-center justify-center shadow-[inset_0_2px_8px_rgba(0,0,0,0.3)]">
+                    <AlertTriangle className="w-6 h-6 text-[#0B0B0C]" />
+                  </div>
                 </div>
-                Novedad en Envío
-              </DialogTitle>
-              <div className="mt-3 flex items-center gap-3 text-sm">
-                <span className="px-3 py-1 bg-[#D8BD80]/10 border border-[#D8BD80]/30 rounded-full text-[#D8BD80] font-semibold">
-                  Factura: {envio.factura || 'N/A'}
-                </span>
-                <span className="text-neutral-400">•</span>
-                <span className="text-neutral-600 font-medium">{envio.envioId}</span>
+                <div>
+                  <DialogTitle className="text-[28px] font-bold tracking-tight leading-tight text-[#F7F7F8]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                    Novedad en Envío
+                  </DialogTitle>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-block px-3 py-1 rounded-full bg-white/6 backdrop-blur-md border border-[#D4AF37]/30 text-xs font-medium text-[#D4AF37]">
+                      Factura: {envio.factura || 'N/A'}
+                    </span>
+                    <span className="text-xs text-[#B8BDC7]">• {envio.envioId}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="rounded-full p-2.5 hover:bg-gradient-to-br hover:from-[#D8BD80]/10 hover:to-[#D8BD80]/5 transition-all duration-300 border border-transparent hover:border-[#D8BD80]/20"
+              className="group rounded-full p-2.5 bg-white/6 backdrop-blur-md border border-[#2A2B2E] hover:border-[#D4AF37]/50 hover:bg-white/10 transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0B0C]"
             >
-              <X className="w-6 h-6 text-neutral-400 hover:text-neutral-600" />
+              <X className="w-5 h-5 text-[#B8BDC7] group-hover:text-[#F7F7F8] transition-colors" />
             </button>
           </div>
         </DialogHeader>
 
-        {/* Estado de la Novedad - Luxury Design */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50 via-orange-50 to-red-50 border-2 border-red-200/50 p-6 mb-6 shadow-lg">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400/10 to-orange-400/10 rounded-full blur-3xl"></div>
-          <div className="relative flex items-start gap-4">
-            <div className="p-3 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl shadow-lg flex-shrink-0">
-              <AlertTriangle className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-red-900 mb-2">Estado Actual</h3>
-              <p className="text-base text-red-700 font-medium leading-relaxed">{envio.mipaqueteStatus || 'Novedad en entrega'}</p>
-              <div className="mt-3 flex items-center gap-3 text-xs">
-                <span className="px-2.5 py-1 bg-white/70 backdrop-blur-sm rounded-full text-red-700 font-semibold border border-red-300/30">
-                  Guía: {envio.guia}
-                </span>
-                <span className="px-2.5 py-1 bg-white/70 backdrop-blur-sm rounded-full text-red-700 font-semibold border border-red-300/30">
-                  {envio.transportadora}
-                </span>
-              </div>
+        {/* Estado Actual - Card con borde oro y glow */}
+        <div className="group relative mb-6">
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-[#D4AF37]/30 via-[#D4AF37]/20 to-[#D4AF37]/30 rounded-2xl opacity-75 group-hover:opacity-100 blur-sm transition-opacity duration-300"></div>
+          <div className="relative bg-white/6 backdrop-blur-md border border-[#D4AF37]/30 rounded-2xl p-6 hover:translate-y-[-1px] hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-all duration-300">
+            <h3 className="text-base font-semibold text-[#D4AF37] mb-3 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></div>
+              Estado Actual
+            </h3>
+            <p className="text-[#F7F7F8] text-sm leading-6 mb-3">{envio.mipaqueteStatus || 'Novedad en entrega'}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-block px-2.5 py-1 rounded-full bg-white/4 border border-[#FFFFFF14] text-xs text-[#B8BDC7]" title="Número de guía">
+                Guía: {envio.guia}
+              </span>
+              <span className="inline-block px-2.5 py-1 rounded-full bg-white/4 border border-[#FFFFFF14] text-xs text-[#B8BDC7]" title="Transportadora">
+                {envio.transportadora}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Información del Cliente - Luxury Design */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-neutral-50/30 to-white border-2 border-[#D8BD80]/20 p-6 mb-6 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D8BD80]/5 to-transparent rounded-full blur-3xl"></div>
-          <div className="relative">
-            <h3 className="text-xl font-bold mb-5 flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-[#D8BD80] to-[#C5AC6E] rounded-xl shadow-md">
-                <Phone className="w-5 h-5 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-neutral-800 to-neutral-600 bg-clip-text text-transparent">
-                Información del Cliente
-              </span>
+        {/* Información del Cliente - Glassmorphism Card */}
+        <div className="group relative mb-6">
+          <div className="relative bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl p-6 hover:translate-y-[-1px] hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-all duration-300">
+            <h3 className="text-lg font-semibold text-[#F7F7F8] mb-5 flex items-center gap-2">
+              <Phone className="w-5 h-5 text-[#D4AF37]" />
+              Información del Cliente
             </h3>
 
             <div className="space-y-4">
-              <div className="flex items-start gap-4 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-neutral-100/50">
-                <div className="min-w-[90px] text-sm font-medium text-neutral-500">Nombre:</div>
-                <div className="font-semibold text-neutral-900">{envio.cliente}</div>
+              <div className="flex items-start gap-4">
+                <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Nombre:</div>
+                <div className="text-sm font-semibold text-[#F7F7F8] leading-6">{envio.cliente}</div>
               </div>
 
+              <div className="h-px bg-[#FFFFFF14]"></div>
+
               {envio.telefono && (
-                <div className="flex items-start gap-4 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-neutral-100/50">
-                  <div className="min-w-[90px] text-sm font-medium text-neutral-500">Teléfono:</div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-neutral-900">{envio.telefono}</span>
-                    <a
-                      href={`https://wa.me/57${envio.telefono.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-medium hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg"
-                    >
-                      WhatsApp
-                    </a>
+                <>
+                  <div className="flex items-start gap-4">
+                    <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Teléfono:</div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-[#F7F7F8]">{envio.telefono}</span>
+                      <a
+                        href={`https://wa.me/57${envio.telefono.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#12B886] hover:bg-[#0F9D72] text-white text-xs font-semibold shadow-lg hover:shadow-xl transition-all duration-300 min-h-[44px]"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                        WhatsApp
+                      </a>
+                    </div>
                   </div>
-                </div>
+                  <div className="h-px bg-[#FFFFFF14]"></div>
+                </>
               )}
 
-              <div className="flex items-start gap-4 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-neutral-100/50">
-                <div className="min-w-[90px] text-sm font-medium text-neutral-500">Ciudad:</div>
+              <div className="flex items-start gap-4">
+                <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Ciudad:</div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#D8BD80]" />
-                  <span className="font-semibold text-neutral-900">{envio.ciudad}</span>
+                  <MapPin className="w-4 h-4 text-[#D4AF37]" />
+                  <span className="text-sm font-semibold text-[#F7F7F8]">{envio.ciudad}</span>
                 </div>
               </div>
 
               {envio.direccion && (
-                <div className="flex items-start gap-4 p-3 rounded-xl bg-white/60 backdrop-blur-sm border border-neutral-100/50">
-                  <div className="min-w-[90px] text-sm font-medium text-neutral-500">Dirección:</div>
-                  <div className="font-medium text-neutral-700">{envio.direccion}</div>
-                </div>
+                <>
+                  <div className="h-px bg-[#FFFFFF14]"></div>
+                  <div className="flex items-start gap-4">
+                    <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Dirección:</div>
+                    <div className="text-sm text-[#F7F7F8] leading-6">{envio.direccion}</div>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Detalles del Pedido - Luxury Design */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-amber-50/10 to-white border-2 border-[#D8BD80]/20 p-6 mb-6 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-[#D8BD80]/8 to-transparent rounded-full blur-3xl"></div>
-          <div className="relative">
-            <h3 className="text-xl font-bold mb-5 flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-[#D8BD80] to-[#C5AC6E] rounded-xl shadow-md">
-                <Package className="w-5 h-5 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-neutral-800 to-neutral-600 bg-clip-text text-transparent">
-                Detalles del Pedido
-              </span>
+        {/* Detalles del Pedido - Glassmorphism Card */}
+        <div className="group relative mb-6">
+          <div className="relative bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl p-6 hover:translate-y-[-1px] hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-all duration-300">
+            <h3 className="text-lg font-semibold text-[#F7F7F8] mb-5 flex items-center gap-2">
+              <Package className="w-5 h-5 text-[#D4AF37]" />
+              Detalles del Pedido
             </h3>
 
             {envio.productos && envio.productos.length > 0 ? (
               <>
                 <div className="space-y-3 mb-5">
                   {envio.productos.map((prod, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-white/70 backdrop-blur-sm border border-neutral-100/80 hover:border-[#D8BD80]/30 transition-all duration-300">
+                    <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-white/4 border border-[#FFFFFF14] hover:bg-white/6 hover:border-[#D4AF37]/20 transition-all duration-300">
                       <div className="flex-1">
-                        <div className="font-semibold text-base text-neutral-900 mb-1">{prod.descripcion}</div>
-                        <div className="flex items-center gap-3 text-xs text-neutral-600">
+                        <div className="font-semibold text-sm text-[#F7F7F8] mb-2 leading-6">{prod.descripcion}</div>
+                        <div className="flex items-center gap-3 text-xs">
                           {prod.sku && (
-                            <span className="px-2 py-0.5 bg-[#D8BD80]/10 border border-[#D8BD80]/30 rounded-md font-bold text-[#D8BD80]">
+                            <span className="inline-block px-2.5 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 font-bold text-[#D4AF37]" title="SKU del producto">
                               SKU: {prod.sku}
                             </span>
                           )}
-                          <span className="font-medium">
+                          <span className="text-[#B8BDC7]">
                             Cantidad: {prod.cantidad} × {formatCurrency(prod.precio)}
                           </span>
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-neutral-900 ml-4">
+                      <div className="text-base font-bold text-[#F7F7F8] ml-4">
                         {formatCurrency(prod.total)}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="border-t-2 border-neutral-200/60 pt-5 space-y-3">
+                <div className="h-px bg-[#FFFFFF14] mb-5"></div>
+
+                <div className="space-y-3">
                   {envio.subtotal && (
-                    <div className="flex justify-between items-center text-base px-2">
-                      <span className="font-medium text-neutral-600">Subtotal:</span>
-                      <span className="font-bold text-neutral-800">{formatCurrency(envio.subtotal)}</span>
+                    <div className="flex justify-between items-center text-sm px-2" title="Subtotal sin envío">
+                      <span className="text-[#B8BDC7] font-medium">Subtotal:</span>
+                      <span className="font-bold text-[#F7F7F8]">{formatCurrency(envio.subtotal)}</span>
                     </div>
                   )}
                   {envio.envioMonto && (
-                    <div className="flex justify-between items-center text-base px-2">
-                      <span className="font-medium text-neutral-600">Costo de Envío:</span>
-                      <span className="font-bold text-neutral-800">{formatCurrency(envio.envioMonto)}</span>
+                    <div className="flex justify-between items-center text-sm px-2" title="Costo de envío">
+                      <span className="text-[#B8BDC7] font-medium">Costo de Envío:</span>
+                      <span className="font-bold text-[#F7F7F8]">{formatCurrency(envio.envioMonto)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-center text-xl font-bold pt-3 px-3 py-4 rounded-xl bg-gradient-to-r from-[#D8BD80]/10 via-amber-50/50 to-[#D8BD80]/10 border-2 border-[#D8BD80]/30 mt-4">
-                    <span className="text-neutral-800">Total:</span>
-                    <span className="text-2xl bg-gradient-to-r from-[#D8BD80] to-[#C5AC6E] bg-clip-text text-transparent">
+
+                  <div className="h-px bg-[#FFFFFF14]"></div>
+
+                  <div className="flex justify-between items-center px-3 py-4 rounded-xl bg-gradient-to-r from-[#D4AF37]/10 via-[#D4AF37]/5 to-[#D4AF37]/10 border border-[#D4AF37]/30">
+                    <span className="text-base font-bold text-[#F7F7F8]" style={{ fontFamily: "'Playfair Display', serif" }}>Total:</span>
+                    <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-[#F5E6B3]" style={{ fontFamily: "'Playfair Display', serif" }}>
                       {formatCurrency(envio.total || 0)}
                     </span>
                   </div>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-neutral-500 italic">No hay detalles de productos disponibles</p>
+              <p className="text-sm text-[#B8BDC7] italic">No hay detalles de productos disponibles</p>
             )}
           </div>
         </div>
 
-        {/* Resolver Novedad - Luxury Premium Button */}
+        {/* Botón Resolver Novedad - Luxury Danger Button */}
         <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 rounded-2xl blur-lg opacity-60 group-hover:opacity-80 transition duration-500 animate-pulse"></div>
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-[#D4AF37]/40 via-[#D4AF37]/20 to-[#D4AF37]/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <button
             onClick={handleVolverOfrecer}
             disabled={loading}
-            className="relative w-full bg-gradient-to-r from-red-500 via-red-600 to-orange-600 hover:from-red-600 hover:via-red-700 hover:to-orange-700 rounded-xl px-8 py-5 flex items-center justify-center gap-4 transition-all duration-300 shadow-2xl hover:shadow-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-red-500"
+            className="relative w-full bg-[#7A1F2B] hover:bg-[#8B2332] border-2 border-[#D4AF37]/30 hover:border-[#D4AF37]/60 rounded-xl px-8 py-5 flex items-center justify-center gap-4 transition-all duration-300 shadow-[0_8px_32px_rgba(122,31,43,0.4)] hover:shadow-[0_12px_48px_rgba(212,175,55,0.3)] hover:-translate-y-[2px] hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100 focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0B0C] min-h-[56px] group"
+            style={{ transform: 'perspective(1000px) rotateX(0deg)' }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.currentTarget.style.transform = 'perspective(1000px) rotateX(2deg)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg)'
+            }}
           >
             {loading ? (
               <>
-                <Loader2 className="w-7 h-7 text-white animate-spin" />
-                <span className="text-xl font-bold text-white">Abriendo Portal...</span>
+                <Loader2 className="w-6 h-6 text-[#F7F7F8] animate-spin" />
+                <span className="text-lg font-bold text-[#F7F7F8]">Abriendo Portal...</span>
               </>
             ) : (
               <>
-                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                  <AlertTriangle className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
+                <div className="p-2 bg-white/10 backdrop-blur-sm rounded-lg group-hover:bg-white/15 transition-colors">
+                  <AlertTriangle className="w-6 h-6 text-[#F7F7F8] group-hover:scale-110 transition-transform" />
                 </div>
-                <span className="text-xl font-bold text-white tracking-wide">
+                <span className="text-lg font-bold text-[#F7F7F8] tracking-wide">
                   Resolver Novedad
                 </span>
-                <ExternalLink className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform" />
+                <ExternalLink className="w-5 h-5 text-[#F7F7F8] group-hover:translate-x-1 transition-transform" />
               </>
             )}
           </button>
