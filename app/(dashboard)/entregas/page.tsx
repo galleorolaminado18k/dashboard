@@ -493,10 +493,6 @@ export default function EntregasPage() {
         />
       )}
 
-      {/* Build version indicator - Remove after confirming deploy works */}
-      <div className="fixed bottom-2 right-2 text-xs text-neutral-400 bg-white/80 px-2 py-1 rounded">
-        Build: 2025-11-04 15:25 v3
-      </div>
     </div>
   )
 }
