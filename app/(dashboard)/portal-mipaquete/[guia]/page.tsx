@@ -15,8 +15,6 @@ export default function PortalMiPaquetePage() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-4">
       {/* Modal Container - 90% width, 85% height */}
       <div className="w-full max-w-[90vw] h-[85vh] flex flex-col bg-neutral-900 rounded-3xl shadow-2xl border border-orange-500/20 overflow-hidden animate-in fade-in zoom-in-95 duration-300">
 
