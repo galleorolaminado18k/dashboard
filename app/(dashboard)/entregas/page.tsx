@@ -42,38 +42,9 @@ async function getTracking(code: string) {
 }
 
 /* =========================================================
-   UI — Luxury Clean con 30% de dorado
+   UI — Luxury Dark Theme
    ========================================================= */
-const GOLD = "#D8BD80" // champagne
-const GLASS = "bg-white/95 backdrop-blur-md"
-
-/** KPIs con elevación suave y dorado al 45% + relleno luxury */
-function GradientCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="group rounded-[24px] p-[1px] bg-gradient-to-b from-white via-[#D8BD80]/45 to-white">
-      <div
-        className={`rounded-[23px] ${GLASS} border border-white/70
-        border-l-4 border-l-[#D8BD80]
-        shadow-[0_12px_36px_rgba(0,0,0,.06)]
-        transition-all duration-300 ease-out
-        group-hover:-translate-y-[2px] group-hover:shadow-[0_18px_48px_rgba(0,0,0,.10)]`}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/** Filtros y tabla: FIJOS (sin elevación) */
-function FixedCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-[24px] p-[1px] bg-gradient-to-b from-white via-[#D8BD80]/45 to-white">
-      <div className={`rounded-[23px] ${GLASS} border border-white/70 shadow-[0_10px_28px_rgba(0,0,0,.05)]`}>
-        {children}
-      </div>
-    </div>
-  )
-}
+const GOLD = "#D4AF37" // gold luxury
 
 type Estado = "En tránsito" | "Despachado" | "Entregado" | "Retrasado" | "Devolución"
 
@@ -96,11 +67,11 @@ type Shipment = {
 
 function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteStatus?: string }) {
   const map: Record<Estado, string> = {
-    "En tránsito": "bg-blue-100 text-blue-900 border border-blue-300",
-    Despachado: "bg-neutral-100 text-neutral-900 border border-neutral-300",
-    Entregado: "bg-emerald-100 text-emerald-900 border border-emerald-300",
-    Retrasado: "bg-red-100 text-red-900 border border-red-300",
-    Devolución: "bg-rose-100 text-rose-900 border border-rose-300",
+    "En tránsito": "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+    Despachado: "bg-neutral-500/20 text-neutral-300 border border-neutral-500/30",
+    Entregado: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30",
+    Retrasado: "bg-red-500/20 text-red-300 border border-red-500/30",
+    Devolución: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
   }
 
   // Detectar novedad en el estado de MiPaquete
@@ -114,18 +85,18 @@ function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteSta
         {estado}
       </Badge>
       {hasNovedad && mipaqueteStatus && (
-        <div className="text-[10px] text-red-600 font-semibold flex items-center gap-1">
+        <div className="text-[10px] text-red-400 font-semibold flex items-center gap-1">
           <AlertTriangle className="w-3 h-3" />
           NOVEDAD
         </div>
       )}
       {mipaqueteStatus && !hasNovedad && (
-        <div className="text-[9px] text-neutral-500 max-w-[150px] text-center truncate" title={mipaqueteStatus}>
+        <div className="text-[9px] text-[#B8BDC7] max-w-[150px] text-center truncate" title={mipaqueteStatus}>
           {mipaqueteStatus}
         </div>
       )}
       {mipaqueteStatus && hasNovedad && (
-        <div className="text-[9px] text-red-600 max-w-[150px] text-center truncate font-medium" title={mipaqueteStatus}>
+        <div className="text-[9px] text-red-400 max-w-[150px] text-center truncate font-medium" title={mipaqueteStatus}>
           {mipaqueteStatus}
         </div>
       )}
@@ -135,13 +106,10 @@ function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteSta
 
 function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="w-full h-2 rounded-full bg-neutral-200/80 overflow-hidden">
+    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
       <div
-        className="h-full rounded-full"
-        style={{
-          width: `${value}%`,
-          background: `linear-gradient(90deg, ${GOLD}, rgba(184,167,116,.8))`,
-        }}
+        className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F5E6B3]"
+        style={{ width: `${value}%` }}
       />
     </div>
   )
