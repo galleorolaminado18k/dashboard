@@ -215,7 +215,7 @@ export default function EntregasPage() {
                   })
                   const data = await res.json()
                   if (data.ok) {
-                    alert('✅ Actualización forzada exitosa!')
+                    alert('✅ Actualización de envíos exitosa!')
                     mutate() // Refrescar datos
                   } else {
                     alert('❌ Error: ' + data.error)
@@ -227,29 +227,7 @@ export default function EntregasPage() {
               disabled={isLoading}
             >
               <AlertTriangle className="w-4 h-4 mr-2" />
-              Forzar Actualización
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-neutral-200 bg-transparent"
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/shipments/sync-mipaquete', { method: 'POST' })
-                  const data = await res.json()
-                  if (data.ok) {
-                    alert(`✅ Sincronización completada:\n- Actualizados: ${data.actualizados}\n- Con novedad: ${data.conNovedad}\n- Entregados: ${data.entregados}`)
-                    mutate() // Refrescar datos
-                  } else {
-                    alert('❌ Error en sincronización: ' + data.error)
-                  }
-                } catch (err) {
-                  alert('❌ Error al sincronizar')
-                }
-              }}
-              disabled={isLoading}
-            >
-              <Route className="w-4 h-4 mr-2" />
-              Sincronizar MiPaquete
+              Actualización de envíos
             </Button>
             <Button
               variant="outline"
