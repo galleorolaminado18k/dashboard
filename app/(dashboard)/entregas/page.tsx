@@ -205,9 +205,13 @@ export default function EntregasPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              className="rounded-full border-red-500 text-red-600 bg-transparent"
+              className="rounded-full border-[#D8BD80] text-[#D8BD80] bg-transparent hover:bg-[#D8BD80]/10"
               onClick={async () => {
                 try {
+                  // Primero refrescar datos locales
+                  await mutate()
+
+                  // Luego forzar actualización desde MiPaquete
                   const res = await fetch('/api/shipments/force-update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -216,7 +220,7 @@ export default function EntregasPage() {
                   const data = await res.json()
                   if (data.ok) {
                     alert('✅ Actualización de envíos exitosa!')
-                    mutate() // Refrescar datos
+                    await mutate() // Refrescar datos después de actualizar
                   } else {
                     alert('❌ Error: ' + data.error)
                   }
@@ -226,17 +230,8 @@ export default function EntregasPage() {
               }}
               disabled={isLoading}
             >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Actualización de envíos
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-neutral-200 bg-transparent"
-              onClick={() => mutate()}
-              disabled={isLoading}
-            >
               <RotateCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Actualizar
+              Actualización de envíos
             </Button>
             <Button variant="outline" className="rounded-full border-neutral-200 bg-transparent">
               Exportar CSV
