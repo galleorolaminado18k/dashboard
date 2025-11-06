@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 /**
- * API para resolver novedades directamente con MiPaquete
- * Integración con las 5 opciones reales del sistema de MiPaquete
+ * API para resolver novedades - VERSIÓN REALISTA
+ *
+ * IMPORTANTE: MiPaquete NO tiene API pública para resolver novedades.
+ * Esta API:
+ * 1. Registra la acción localmente en nuestra DB
+ * 2. Proporciona la URL del portal de MiPaquete
+ * 3. Abre automáticamente el portal para que el usuario complete la acción
  */
 
-const MIPAQUETE_BASE_URL = 'https://api.mipaquete.com/v2'
-const APIKEY = process.env.MIPAQUETE_API_KEY!
-const SESSION_TRACKER = process.env.MIPAQUETE_SESSION_TRACKER!
+const MIPAQUETE_PORTAL_URL = 'https://centrodenovedades.mipaquete.com/novedades'
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +28,8 @@ export async function POST(request: Request) {
       sender_name,
       sender_phone,
       sender_city,
-      sender_address
+      sender_address,
+      shipment_id
     } = body
 
     // Validar datos requeridos
@@ -51,23 +56,17 @@ export async function POST(request: Request) {
       )
     }
 
-    // Preparar datos para MiPaquete
-    let mipaqueteData: any = {
-      tracking_number
+    // Preparar datos para registro local
+    const actionData: any = {
+      tracking_number,
+      solution_type,
+      description: description || getSolutionDescription(solution_type),
+      status: 'pending',
+      created_at: new Date().toISOString()
     }
 
+    // Agregar campos específicos según el tipo
     switch (solution_type) {
-      case 'indemnizacion':
-        mipaqueteData.solution = 'indemnizacion'
-        mipaqueteData.description = description || 'Solicitud de indemnización'
-        break
-
-      case 'volver_a_ofrecer':
-        mipaqueteData.solution = 'volver_a_ofrecer'
-        mipaqueteData.description = description || 'Volver a ofrecer'
-        if (new_address) mipaqueteData.support_address = new_address
-        break
-
       case 'cambio_direccion':
         if (!new_city || !new_address || !recipient_name || !recipient_phone) {
           return NextResponse.json(
@@ -75,12 +74,10 @@ export async function POST(request: Request) {
             { status: 400 }
           )
         }
-        mipaqueteData.solution = 'cambio_direccion'
-        mipaqueteData.new_city = new_city
-        mipaqueteData.new_address = new_address
-        mipaqueteData.recipient_name = recipient_name
-        mipaqueteData.recipient_phone = recipient_phone
-        mipaqueteData.description = description || 'Cambio de dirección'
+        actionData.new_city = new_city
+        actionData.new_address = new_address
+        actionData.recipient_name = recipient_name
+        actionData.recipient_phone = recipient_phone
         break
 
       case 'devolucion':
@@ -90,12 +87,10 @@ export async function POST(request: Request) {
             { status: 400 }
           )
         }
-        mipaqueteData.solution = 'devolucion'
-        mipaqueteData.sender_name = sender_name
-        mipaqueteData.sender_phone = sender_phone
-        mipaqueteData.sender_city = sender_city
-        mipaqueteData.sender_address = sender_address
-        mipaqueteData.description = description || 'Devolución'
+        actionData.sender_name = sender_name
+        actionData.sender_phone = sender_phone
+        actionData.sender_city = sender_city
+        actionData.sender_address = sender_address
         break
 
       case 'otro':
@@ -105,64 +100,68 @@ export async function POST(request: Request) {
             { status: 400 }
           )
         }
-        mipaqueteData.solution = 'otro'
-        mipaqueteData.description = description
         break
-
-      default:
-        return NextResponse.json(
-          { error: 'Solución no soportada' },
-          { status: 400 }
-        )
     }
 
-    // Enviar a MiPaquete
-    console.log('📤 Enviando a MiPaquete:', mipaqueteData)
+    // Registrar en base de datos local
+    console.log('📝 Registrando acción localmente:', actionData)
 
-    const mipaqueteResponse = await fetch(`${MIPAQUETE_BASE_URL}/novedades`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'apikey': APIKEY,
-        'session-tracker': SESSION_TRACKER
-      },
-      body: JSON.stringify(mipaqueteData)
-    })
+    const supabase = await createClient()
 
-    const mipaqueteResult = await mipaqueteResponse.json()
+    if (shipment_id) {
+      // Registrar en shipment_novedades
+      const { error: dbError } = await supabase
+        .from('shipment_novedades')
+        .insert({
+          shipment_id,
+          action_type: solution_type,
+          description: actionData.description,
+          data: actionData,
+          status: 'pending'
+        })
 
-    console.log('📥 Respuesta MiPaquete:', {
-      status: mipaqueteResponse.status,
-      data: mipaqueteResult
-    })
+      if (dbError) {
+        console.error('⚠️ Error al registrar en DB:', dbError)
+        // No falla la request si falla el registro en DB
+      }
+    }
 
-    if (!mipaqueteResponse.ok) {
-      return NextResponse.json(
-        {
-          error: 'Error en MiPaquete',
-          details: mipaqueteResult,
-          status: mipaqueteResponse.status
-        },
-        { status: mipaqueteResponse.status }
-      )
+    // Construir URL del portal de MiPaquete con la guía pre-cargada
+    const portalUrl = `${MIPAQUETE_PORTAL_URL}?guia=${encodeURIComponent(tracking_number)}`
+
+    // Mapear tipo de solución a label en español
+    const solutionLabels: Record<string, string> = {
+      'indemnizacion': 'Indemnización',
+      'volver_a_ofrecer': 'Volver a ofrecer',
+      'cambio_direccion': 'Cambio de dirección',
+      'devolucion': 'Devolución',
+      'otro': 'Otro tipo de solución'
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Solución enviada a MiPaquete exitosamente',
+      message: `✅ ${solutionLabels[solution_type]} registrada - Abriendo portal de MiPaquete`,
       data: {
         tracking_number,
         solution_type,
-        mipaquete_response: mipaqueteResult,
+        solution_label: solutionLabels[solution_type],
+        description: actionData.description,
+        portal_url: portalUrl,
+        instructions: [
+          '1. Se abrirá el portal de MiPaquete automáticamente',
+          `2. La guía ${tracking_number} ya está pre-cargada`,
+          `3. Selecciona la solución: ${solutionLabels[solution_type]}`,
+          '4. Completa los datos y confirma la acción'
+        ],
+        registered_locally: !!shipment_id,
         timestamp: new Date().toISOString()
       }
     })
 
   } catch (error: any) {
-    console.error('❌ Error:', error)
+    console.error('❌ Error en resolver-novedad:', error)
     return NextResponse.json(
-      { error: 'Error interno', details: error.message },
+      { error: 'Error interno del servidor', details: error.message },
       { status: 500 }
     )
   }
@@ -175,44 +174,42 @@ export async function GET(request: Request) {
 
     if (!tracking_number) {
       return NextResponse.json(
-        { error: 'tracking_number requerido' },
+        { error: 'tracking_number requerido en query params' },
         { status: 400 }
       )
     }
 
-    const trackingResponse = await fetch(
-      `${MIPAQUETE_BASE_URL}/tracking?tracking_number=${tracking_number}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'apikey': APIKEY,
-          'session-tracker': SESSION_TRACKER
-        }
-      }
-    )
-
-    if (!trackingResponse.ok) {
-      return NextResponse.json(
-        { error: 'Error al consultar tracking' },
-        { status: trackingResponse.status }
-      )
-    }
-
-    const trackingData = await trackingResponse.json()
+    const portalUrl = `${MIPAQUETE_PORTAL_URL}?guia=${encodeURIComponent(tracking_number)}`
 
     return NextResponse.json({
       success: true,
-      data: trackingData
+      data: {
+        tracking_number,
+        portal_url: portalUrl,
+        message: 'URL del portal de MiPaquete para gestionar novedades'
+      }
     })
 
   } catch (error: any) {
-    console.error('❌ Error GET:', error)
+    console.error('❌ Error en GET resolver-novedad:', error)
     return NextResponse.json(
-      { error: 'Error interno', details: error.message },
+      { error: 'Error interno del servidor', details: error.message },
       { status: 500 }
     )
   }
+}
+
+/**
+ * Obtiene la descripción por defecto según el tipo de solución
+ */
+function getSolutionDescription(type: string): string {
+  const descriptions: Record<string, string> = {
+    'indemnizacion': 'Solicitud de indemnización por novedad en entrega',
+    'volver_a_ofrecer': 'Volver a ofrecer el envío al destinatario',
+    'cambio_direccion': 'Actualización de dirección de entrega',
+    'devolucion': 'Solicitud de devolución del pedido al remitente',
+    'otro': 'Resolución personalizada de novedad'
+  }
+  return descriptions[type] || 'Resolución de novedad'
 }
 

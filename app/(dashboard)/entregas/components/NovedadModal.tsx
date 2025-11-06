@@ -85,6 +85,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         body: JSON.stringify({
           tracking_number: envio.guia,
           solution_type: solutionType,
+          shipment_id: envio.envioId,
           ...data
         })
       })
@@ -93,7 +94,12 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       console.log('ðŸ“¥ Respuesta de API:', result)
 
       if (result.success) {
-        setAccionTomada(`❌… ${getSolutionLabel(solutionType)} - Enviado a MiPaquete`)
+        // Abrir portal de MiPaquete en nueva pestaña
+        if (result.data?.portal_url) {
+          window.open(result.data.portal_url, '_blank')
+        }
+
+        setAccionTomada(`✅ ${getSolutionLabel(solutionType)} - Portal abierto`)
 
         // Cerrar todos los diálogos
         setShowIndemnizacionDialog(false)
@@ -102,11 +108,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         setShowDevolucionDialog(false)
         setShowOtroDialog(false)
 
-        // Cerrar modal después de 3 segundos
+        // Cerrar modal después de 2 segundos
         setTimeout(() => {
           onClose()
           window.location.reload()
-        }, 3000)
+        }, 2000)
       } else {
         alert(`âŒ Error: ${result.error}\n\nDetalles: ${JSON.stringify(result.details || {})}`)
       }
