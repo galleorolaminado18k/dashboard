@@ -119,11 +119,11 @@ export default function ConfiguracionPage() {
         <div>
           <h1 className="text-[32px] md:text-[40px] font-semibold tracking-tight leading-tight">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[rgba(216,189,128,0.8)]">
-              CONFIGURACIÓN DEL DASHBOARD
+              CONFIGURACIÓN
             </span>
           </h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Configura todas las integraciones y servicios de tu negocio
+            Configura tu cuenta y servicios básicos
           </p>
         </div>
       </section>
