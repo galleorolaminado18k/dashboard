@@ -8,6 +8,7 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import MiPaquetePortalModal from "./MiPaquetePortalModal"
 
 interface NovedadModalProps {
   open: boolean
@@ -37,6 +38,10 @@ interface NovedadModalProps {
 export default function NovedadModal({ open, onClose, envio }: NovedadModalProps) {
   const [accionTomada, setAccionTomada] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Estados para modal del portal de MiPaquete
+  const [showPortalModal, setShowPortalModal] = useState(false)
+  const [portalUrl, setPortalUrl] = useState('')
 
   // Estados para diálogos de acciones REALES de MiPaquete
   const [showIndemnizacionDialog, setShowIndemnizacionDialog] = useState(false)
@@ -91,12 +96,13 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       })
 
       const result = await response.json()
-      console.log('ðŸ“¥ Respuesta de API:', result)
+      console.log('📥 Respuesta de API:', result)
 
       if (result.success) {
-        // Abrir portal de MiPaquete en nueva pestaña
+        // Abrir portal de MiPaquete en modal interno (iframe)
         if (result.data?.portal_url) {
-          window.open(result.data.portal_url, '_blank')
+          setPortalUrl(result.data.portal_url)
+          setShowPortalModal(true)
         }
 
         setAccionTomada(`✅ ${getSolutionLabel(solutionType)} - Portal abierto`)
@@ -108,13 +114,10 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         setShowDevolucionDialog(false)
         setShowOtroDialog(false)
 
-        // Cerrar modal después de 2 segundos
-        setTimeout(() => {
-          onClose()
-          window.location.reload()
-        }, 2000)
+        // NO cerrar el modal principal - dejar que el usuario vea el portal
+        // El modal principal se cierra cuando el usuario cierre el portal modal
       } else {
-        alert(`âŒ Error: ${result.error}\n\nDetalles: ${JSON.stringify(result.details || {})}`)
+        alert(`❌ Error: ${result.error}\n\nDetalles: ${JSON.stringify(result.details || {})}`)
       }
     } catch (error: any) {
       console.error('âŒ Error:', error)
@@ -835,6 +838,21 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       )}
 
       {/* ========== FIN DIÁLOGOS REALES ========== */}
+
+      {/* ========== MODAL PORTAL MIPAQUETE ========== */}
+      <MiPaquetePortalModal
+        open={showPortalModal}
+        onClose={() => {
+          setShowPortalModal(false)
+          // Cuando cierra el portal, cerrar también el modal principal y recargar
+          setTimeout(() => {
+            onClose()
+            window.location.reload()
+          }, 500)
+        }}
+        portalUrl={portalUrl}
+        trackingNumber={envio.guia}
+      />
     </Dialog>
   )
 }
