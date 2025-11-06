@@ -42,9 +42,38 @@ async function getTracking(code: string) {
 }
 
 /* =========================================================
-   UI — Luxury Dark Theme
+   UI — Luxury Clean con 30% de dorado
    ========================================================= */
-const GOLD = "#D4AF37" // gold luxury
+const GOLD = "#D8BD80" // champagne
+const GLASS = "bg-white/95 backdrop-blur-md"
+
+/** KPIs con elevación suave y dorado al 45% + relleno luxury */
+function GradientCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="group rounded-[24px] p-[1px] bg-gradient-to-b from-white via-[#D8BD80]/45 to-white">
+      <div
+        className={`rounded-[23px] ${GLASS} border border-white/70
+        border-l-4 border-l-[#D8BD80]
+        shadow-[0_12px_36px_rgba(0,0,0,.06)]
+        transition-all duration-300 ease-out
+        group-hover:-translate-y-[2px] group-hover:shadow-[0_18px_48px_rgba(0,0,0,.10)]`}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+/** Filtros y tabla: FIJOS (sin elevación) */
+function FixedCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-[24px] p-[1px] bg-gradient-to-b from-white via-[#D8BD80]/45 to-white">
+      <div className={`rounded-[23px] ${GLASS} border border-white/70 shadow-[0_10px_28px_rgba(0,0,0,.05)]`}>
+        {children}
+      </div>
+    </div>
+  )
+}
 
 type Estado = "En tránsito" | "Despachado" | "Entregado" | "Retrasado" | "Devolución"
 
@@ -67,11 +96,11 @@ type Shipment = {
 
 function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteStatus?: string }) {
   const map: Record<Estado, string> = {
-    "En tránsito": "bg-blue-500/20 text-blue-300 border border-blue-500/30",
-    Despachado: "bg-neutral-500/20 text-neutral-300 border border-neutral-500/30",
-    Entregado: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30",
-    Retrasado: "bg-red-500/20 text-red-300 border border-red-500/30",
-    Devolución: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
+    "En tránsito": "bg-blue-100 text-blue-900 border border-blue-300",
+    Despachado: "bg-neutral-100 text-neutral-900 border border-neutral-300",
+    Entregado: "bg-emerald-100 text-emerald-900 border border-emerald-300",
+    Retrasado: "bg-red-100 text-red-900 border border-red-300",
+    Devolución: "bg-rose-100 text-rose-900 border border-rose-300",
   }
 
   // Detectar novedad en el estado de MiPaquete
@@ -85,18 +114,18 @@ function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteSta
         {estado}
       </Badge>
       {hasNovedad && mipaqueteStatus && (
-        <div className="text-[10px] text-red-400 font-semibold flex items-center gap-1">
+        <div className="text-[10px] text-red-600 font-semibold flex items-center gap-1">
           <AlertTriangle className="w-3 h-3" />
           NOVEDAD
         </div>
       )}
       {mipaqueteStatus && !hasNovedad && (
-        <div className="text-[9px] text-[#B8BDC7] max-w-[150px] text-center truncate" title={mipaqueteStatus}>
+        <div className="text-[9px] text-neutral-500 max-w-[150px] text-center truncate" title={mipaqueteStatus}>
           {mipaqueteStatus}
         </div>
       )}
       {mipaqueteStatus && hasNovedad && (
-        <div className="text-[9px] text-red-400 max-w-[150px] text-center truncate font-medium" title={mipaqueteStatus}>
+        <div className="text-[9px] text-red-600 max-w-[150px] text-center truncate font-medium" title={mipaqueteStatus}>
           {mipaqueteStatus}
         </div>
       )}
@@ -106,10 +135,13 @@ function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteSta
 
 function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+    <div className="w-full h-2 rounded-full bg-neutral-200/80 overflow-hidden">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F5E6B3]"
-        style={{ width: `${value}%` }}
+        className="h-full rounded-full"
+        style={{
+          width: `${value}%`,
+          background: `linear-gradient(90deg, ${GOLD}, rgba(184,167,116,.8))`,
+        }}
       />
     </div>
   )
@@ -157,21 +189,23 @@ export default function EntregasPage() {
   console.log('📊 Número de envíos filtrados:', enviosFiltrados.length)
 
   return (
-    <div className="min-h-screen bg-gradient-radial from-[#0B0B0C] via-[#0F0F10] to-[#111214] text-[#F7F7F8]">
-      {/* Header - Luxury Dark */}
+    <div className="min-h-screen bg-white text-[#0B0B0C]">
+      {/* Header */}
       <section className="px-6 lg:px-10 pt-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[32px] md:text-[40px] font-serif tracking-tight leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] via-[#F5E6B3] to-[#D4AF37]">
+            <h1 className="text-[32px] md:text-[40px] font-semibold tracking-tight leading-tight">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[rgba(216,189,128,0.8)]">
                 ENTREGAS
               </span>
-              <sup className="text-xs text-[#12B886] ml-2 font-sans">v3.0-FIXED</sup>
+              <sup className="text-xs text-green-600 ml-2">v3.0-FIXED</sup>
             </h1>
-            <p className="text-sm text-[#B8BDC7] mt-1 font-medium">SEGUIMIENTO DE ENVIOS • Build 2025-11-04 15:25</p>
+            <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS • Build 2025-11-04 15:25</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="rounded-full border-[#D8BD80] text-[#D8BD80] bg-transparent hover:bg-[#D8BD80]/10"
               onClick={async () => {
                 try {
                   await mutate()
@@ -192,19 +226,18 @@ export default function EntregasPage() {
                 }
               }}
               disabled={isLoading}
-              className="group relative px-6 py-2.5 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F5E6B3] hover:from-[#F5E6B3] hover:to-[#D4AF37] text-[#0B0B0C] font-semibold text-sm shadow-xl hover:shadow-[0_0_24px_rgba(212,175,55,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px] flex items-center gap-2"
             >
-              <RotateCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RotateCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Actualización de envíos
-            </button>
-            <button className="px-6 py-2.5 rounded-full bg-white/6 backdrop-blur-md border border-[#2A2B2E] text-[#F7F7F8] font-semibold text-sm hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all duration-300 min-h-[44px] shadow-lg">
+            </Button>
+            <Button variant="outline" className="rounded-full border-neutral-200 bg-transparent">
               Exportar CSV
-            </button>
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* KPIs - Luxury Glassmorphism */}
+      {/* KPIs */}
       <section className="px-6 lg:px-10 mt-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-6">
         {[
           {
@@ -244,38 +277,36 @@ export default function EntregasPage() {
             sub: "Este mes",
           },
         ].map((k, i) => (
-          <div key={i} className="group relative">
-            <div className="absolute -inset-px bg-gradient-to-b from-[#D4AF37]/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div className="relative bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl p-6 hover:bg-white/8 hover:translate-y-[-2px] hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] transition-all duration-300">
-              <div className="text-xs text-[#B8BDC7] font-medium flex items-center gap-2 mb-3">
-                <div className="text-[#D4AF37]">{k.icon}</div>
-                {k.label}
+          <GradientCard key={i}>
+            <div className="p-6">
+              <div className="text-sm text-neutral-500 flex items-center gap-2">
+                {k.icon} {k.label}
               </div>
-              <div className="text-4xl font-bold text-[#F7F7F8] mb-2">{k.value}</div>
-              <p className="text-[10px] text-[#B8BDC7] leading-relaxed">{k.sub}</p>
+              <div className="mt-2 text-4xl font-semibold">{k.value}</div>
+              <p className="text-xs text-neutral-500 mt-1">{k.sub}</p>
             </div>
-          </div>
+          </GradientCard>
         ))}
       </section>
 
-      {/* Filtros - Luxury Glassmorphism */}
+      {/* Filtros — FIJO */}
       <section className="px-6 lg:px-10 mt-8">
-        <div className="bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl p-6 shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-            <div className="flex items-center gap-3 md:col-span-2 bg-white/4 rounded-full px-4 py-2.5 border border-[#2A2B2E] hover:border-[#D4AF37]/30 transition-all duration-300">
-              <PackageSearch className="w-4 h-4 text-[#D4AF37]" />
+        <FixedCard>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+            <div className="flex items-center gap-2 md:col-span-2">
+              <PackageSearch className="w-4 h-4 text-neutral-400" />
               <Input
                 placeholder="Buscar por cliente, ciudad, guía o pedido…"
-                className="bg-transparent border-0 text-[#F7F7F8] placeholder:text-[#B8BDC7] focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                className="rounded-full"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
             <Select onValueChange={setEstadoSel}>
-              <SelectTrigger className="rounded-full bg-white/4 border-[#2A2B2E] hover:border-[#D4AF37]/30 text-[#F7F7F8] transition-all duration-300 min-h-[44px]">
+              <SelectTrigger className="rounded-full">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
-              <SelectContent className="bg-[#0B0B0C] border-[#2A2B2E] text-[#F7F7F8]">
+              <SelectContent>
                 <SelectItem value="TODOS">Todos</SelectItem>
                 <SelectItem value="DESPACHADO">Despachado</SelectItem>
                 <SelectItem value="TRÁNSITO">En tránsito</SelectItem>
@@ -285,10 +316,10 @@ export default function EntregasPage() {
               </SelectContent>
             </Select>
             <Select onValueChange={setTransSel}>
-              <SelectTrigger className="rounded-full bg-white/4 border-[#2A2B2E] hover:border-[#D4AF37]/30 text-[#F7F7F8] transition-all duration-300 min-h-[44px]">
+              <SelectTrigger className="rounded-full">
                 <SelectValue placeholder="Transportadora" />
               </SelectTrigger>
-              <SelectContent className="bg-[#0B0B0C] border-[#2A2B2E] text-[#F7F7F8]">
+              <SelectContent>
                 <SelectItem value="TODAS">Todas</SelectItem>
                 <SelectItem value="SERVIENTREGA">SERVIENTREGA</SelectItem>
                 <SelectItem value="INTERRAPIDISIMO">INTERRAPIDISIMO</SelectItem>
@@ -298,90 +329,92 @@ export default function EntregasPage() {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </FixedCard>
       </section>
 
-      {/* Tabla - Luxury Dark Theme */}
+      {/* Tabla — FIJA */}
       <section className="px-6 lg:px-10 mt-6 pb-14">
-        <div className="bg-white/6 backdrop-blur-md border border-[#2A2B2E] rounded-2xl overflow-hidden shadow-lg">
-          <div className="p-0">
+        <FixedCard>
+          <div className="p-0 overflow-hidden">
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
-                  <RotateCcw className="w-8 h-8 animate-spin text-[#D4AF37] mx-auto mb-4" />
-                  <p className="text-[#B8BDC7]">Cargando envíos...</p>
+                  <RotateCcw className="w-8 h-8 animate-spin text-[#D8BD80] mx-auto mb-4" />
+                  <p className="text-neutral-600">Cargando envíos...</p>
                 </div>
               </div>
             ) : error ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
                   <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-                  <p className="text-[#F7F7F8] mb-2">Error al cargar envíos</p>
-                  <button
+                  <p className="text-neutral-600 mb-2">Error al cargar envíos</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => mutate()}
-                    className="px-4 py-2 rounded-full bg-[#D4AF37] hover:bg-[#F5E6B3] text-[#0B0B0C] font-semibold text-sm transition-all duration-300"
+                    className="rounded-full"
                   >
                     Reintentar
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : enviosFiltrados.length === 0 ? (
               <div className="flex items-center justify-center py-20">
                 <div className="text-center">
-                  <PackageSearch className="w-8 h-8 text-[#B8BDC7] mx-auto mb-4" />
-                  <p className="text-[#F7F7F8]">No hay envíos que mostrar</p>
-                  <p className="text-sm text-[#B8BDC7] mt-1">
+                  <PackageSearch className="w-8 h-8 text-neutral-400 mx-auto mb-4" />
+                  <p className="text-neutral-600">No hay envíos que mostrar</p>
+                  <p className="text-sm text-neutral-400 mt-1">
                     Los envíos aparecerán automáticamente cuando se creen facturas con contraentrega
                   </p>
                 </div>
               </div>
             ) : (
               <table className="w-full text-xs">
-                <thead className="bg-white/4 border-b border-[#FFFFFF14]">
+                <thead className="bg-neutral-50">
                   <tr>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Pedido</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Valor Total</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Cliente</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Ciudad</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Transp.</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Guía</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Estado</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37] w-[100px]">Progreso</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Despacho</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">F. Entrega</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Últ. Act.</th>
-                    <th className="text-center px-3 py-3 text-xs font-semibold text-[#D4AF37]">Acciones</th>
+                    <th className="text-center px-2 py-2 text-xs">Pedido</th>
+                    <th className="text-center px-2 py-2 text-xs">Valor Total</th>
+                    <th className="text-center px-2 py-2 text-xs">Cliente</th>
+                    <th className="text-center px-2 py-2 text-xs">Ciudad</th>
+                    <th className="text-center px-2 py-2 text-xs">Transp.</th>
+                    <th className="text-center px-2 py-2 text-xs">Guía</th>
+                    <th className="text-center px-2 py-2 text-xs">Estado</th>
+                    <th className="text-center px-2 py-2 text-xs w-[100px]">Progreso</th>
+                    <th className="text-center px-2 py-2 text-xs">Despacho</th>
+                    <th className="text-center px-2 py-2 text-xs">F. Entrega</th>
+                    <th className="text-center px-2 py-2 text-xs">Últ. Act.</th>
+                    <th className="text-center px-2 py-2 text-xs">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {enviosFiltrados.map((e: Shipment, idx: number) => (
-                  <tr key={e.envioId} className={`border-b border-[#FFFFFF14] hover:bg-white/4 transition-colors ${idx % 2 ? "bg-white/2" : "bg-transparent"}`}>
-                    <td className="px-3 py-3 font-semibold text-center text-xs text-[#F7F7F8]">
+                  <tr key={e.envioId} className={idx % 2 ? "bg-neutral-50/50" : "bg-white"}>
+                    <td className="px-2 py-2 font-medium text-center text-xs">
                       {e.factura || e.pedidoId}
                     </td>
-                    <td className="px-3 py-3 text-center text-xs font-bold text-[#D4AF37]">
+                    <td className="px-2 py-2 text-neutral-600 text-center text-xs font-semibold">
                       {e.total ? `$ ${e.total.toLocaleString('es-CO')}` : 'N/A'}
                     </td>
-                    <td className="px-3 py-3 text-center text-xs text-[#F7F7F8]">{e.cliente}</td>
-                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">
+                    <td className="px-2 py-2 text-center text-xs">{e.cliente}</td>
+                    <td className="px-2 py-2 text-center text-xs">
                       <div className="flex items-center gap-1 justify-center">
-                        <MapPin className="w-3 h-3 text-[#D4AF37]" /> {e.ciudad}
+                        <MapPin className="w-3 h-3" /> {e.ciudad}
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.transportadora}</td>
-                    <td className="px-3 py-3 tabular-nums text-center text-xs text-[#B8BDC7]">{e.guia}</td>
-                    <td className="px-3 py-3 text-center text-xs">
+                    <td className="px-2 py-2 text-center text-xs">{e.transportadora}</td>
+                    <td className="px-2 py-2 tabular-nums text-center text-xs">{e.guia}</td>
+                    <td className="px-2 py-2 text-center text-xs">
                       <div className="flex justify-center">
                         <EstadoBadge estado={e.estado} mipaqueteStatus={e.mipaqueteStatus} />
                       </div>
                     </td>
-                    <td className="px-3 py-3 w-[100px]">
+                    <td className="px-2 py-2 w-[100px]">
                       <ProgressBar value={e.progreso} />
                     </td>
-                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.despacho}</td>
-                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.eta}</td>
-                    <td className="px-3 py-3 text-center text-xs text-[#B8BDC7]">{e.lastUpdate}</td>
-                    <td className="px-3 py-3 text-center text-xs">
+                    <td className="px-2 py-2 text-center text-xs">{e.despacho}</td>
+                    <td className="px-2 py-2 text-center text-xs">{e.eta}</td>
+                    <td className="px-2 py-2 text-neutral-500 text-center text-xs">{e.lastUpdate}</td>
+                    <td className="px-2 py-2 text-center text-xs">
                       <div className="flex justify-center gap-2">
                         {(() => {
                           const hasNovedad = e.mipaqueteStatus && (
@@ -398,9 +431,9 @@ export default function EntregasPage() {
                                 console.log('Abriendo modal para:', e)
                                 setNovedadModal({ open: true, envio: e })
                               }}
-                              className="inline-flex items-center gap-1 rounded-lg px-3 py-2
-                              bg-[#7A1F2B] hover:bg-[#8B2332] border border-[#D4AF37]/30 text-[#F7F7F8]
-                              transition-all text-xs whitespace-nowrap font-semibold shadow-lg hover:shadow-[0_0_16px_rgba(212,175,55,0.25)] min-h-[32px]"
+                              className="inline-flex items-center gap-1 rounded px-2 py-1
+                              border border-red-600 text-white bg-red-600 hover:bg-red-700
+                              transition-all text-xs whitespace-nowrap"
                               title="¡URGENTE! Click para solucionar novedad"
                             >
                               <AlertTriangle className="w-3 h-3" />
@@ -409,9 +442,9 @@ export default function EntregasPage() {
                           ) : (
                             <button
                               onClick={() => setTrace({ open: true, guia: e.guia })}
-                              className="inline-flex items-center gap-1 rounded-lg px-3 py-2
-                              bg-white/6 hover:bg-white/10 border border-[#2A2B2E] text-[#F7F7F8]
-                              transition-all text-xs whitespace-nowrap font-semibold min-h-[32px]"
+                              className="inline-flex items-center gap-1 rounded px-2 py-1
+                              border border-neutral-300 text-neutral-700
+                              bg-white hover:bg-neutral-50 transition text-xs whitespace-nowrap"
                               title="Ver tracking"
                             >
                               <Route className="w-3 h-3" />
@@ -427,22 +460,22 @@ export default function EntregasPage() {
               </table>
             )}
 
-            {/* Footer paginación */}
+            {/* Footer paginación (demo) */}
             {!isLoading && !error && enviosFiltrados.length > 0 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-[#FFFFFF14] text-sm">
-                <span className="text-[#B8BDC7]">Mostrando {enviosFiltrados.length} envíos</span>
+              <div className="flex items-center justify-between px-4 py-4 border-t border-neutral-100 text-sm text-neutral-500">
+                <span>Mostrando {enviosFiltrados.length} envíos</span>
                 <div className="inline-flex items-center gap-2">
-                  <button className="px-4 py-2 rounded-full bg-white/6 border border-[#2A2B2E] text-[#F7F7F8] hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all text-xs font-semibold">
+                  <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
                     Anterior
-                  </button>
-                  <button className="px-4 py-2 rounded-full bg-white/6 border border-[#2A2B2E] text-[#F7F7F8] hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all text-xs font-semibold">
+                  </Button>
+                  <Button variant="outline" className="rounded-full h-8 px-3 bg-transparent">
                     Siguiente
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
           </div>
-        </div>
+        </FixedCard>
       </section>
 
       {/* Modal de Tracking — muestra timeline si la API trae eventos; si no, JSON */}
@@ -460,9 +493,9 @@ export default function EntregasPage() {
         />
       )}
 
-      {/* Build version indicator - Luxury Dark */}
-      <div className="fixed bottom-4 right-4 text-xs text-[#B8BDC7] bg-white/6 backdrop-blur-md border border-[#2A2B2E] px-3 py-2 rounded-lg shadow-lg">
-        Build: 2025-11-06 v4.0-LUXURY-DARK
+      {/* Build version indicator - Remove after confirming deploy works */}
+      <div className="fixed bottom-2 right-2 text-xs text-neutral-400 bg-white/80 px-2 py-1 rounded">
+        Build: 2025-11-04 15:25 v3
       </div>
     </div>
   )
