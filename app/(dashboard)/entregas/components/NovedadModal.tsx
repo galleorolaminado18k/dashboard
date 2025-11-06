@@ -1,8 +1,8 @@
-﻿"use client"
+﻿﻿"use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Phone, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X, Loader2 } from "lucide-react"
+import { Phone, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X, Loader2, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -383,84 +383,34 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           )}
         </div>
 
-        {/* Acciones Rápidas */}
-        <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-          <h3 className="font-semibold text-sm mb-3">Acciones Rápidas</h3>
+        {/* Resolver Novedad - Barra Roja Grande */}
+        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-1 shadow-lg">
+          <button
+            onClick={handleVolverOfrecer}
+            disabled={loading}
+            className="w-full bg-white hover:bg-red-50 rounded-lg px-6 py-4 flex items-center justify-center gap-3 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-6 h-6 text-red-600 animate-spin" />
+                <span className="text-lg font-bold text-red-600">Abriendo Portal...</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="w-6 h-6 text-red-600 group-hover:scale-110 transition-transform" />
+                <span className="text-lg font-bold text-red-600 group-hover:text-red-700">
+                  Resolver Novedad
+                </span>
+                <ExternalLink className="w-5 h-5 text-red-600 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
+          </button>
+        </div>
 
-          {accionTomada ? (
-            <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-lg animate-pulse">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">{accionTomada}</span>
-              <span className="text-xs text-green-700 ml-auto">Cerrando en 3s...</span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-neutral-500 mb-3">
-                💡 Estas acciones se envían directamente a MiPaquete para resolver la novedad
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {/* Indemnización */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleIndemnizacion}
-                  className="justify-start hover:bg-yellow-50 hover:border-yellow-400 text-xs"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <DollarSign className="w-3 h-3 mr-1" />}
-                  Indemnización
-                </Button>
-
-                {/* Volver a ofrecer */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleVolverOfrecer}
-                  className="justify-start hover:bg-orange-50 hover:border-orange-400 text-xs"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Package className="w-3 h-3 mr-1" />}
-                  Volver a ofrecer
-                </Button>
-
-                {/* Cambio de dirección */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCambioDireccion}
-                  className="justify-start hover:bg-purple-50 hover:border-purple-400 text-xs"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <MapPin className="w-3 h-3 mr-1" />}
-                  Cambiar dirección
-                </Button>
-
-                {/* Devolución */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDevolucion}
-                  className="justify-start hover:bg-red-50 hover:border-red-400 text-xs"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  Devolución
-                </Button>
-
-                {/* Otro tipo de solución */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOtro}
-                  className="justify-start hover:bg-blue-50 hover:border-blue-400 text-xs col-span-2"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  Otro tipo de solución
-                </Button>
-              </div>
-            </div>
-          )}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-xs text-red-700 text-center">
+            💡 Al hacer clic se abrirá el portal de MiPaquete para gestionar esta novedad directamente con la guía <strong>{envio.guia}</strong>
+          </p>
         </div>
 
         {/* Botones de acción */}
