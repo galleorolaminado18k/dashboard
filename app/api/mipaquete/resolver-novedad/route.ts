@@ -52,8 +52,7 @@ export async function POST(request: Request) {
 
     // Preparar datos para MiPaquete
     let mipaqueteData: any = {
-      tracking_number,
-      session_tracker: SESSION_TRACKER
+      tracking_number
     }
 
     switch (solution_type) {
@@ -123,7 +122,8 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Session-Tracker': SESSION_TRACKER
       },
       body: JSON.stringify(mipaqueteData)
     })
@@ -179,12 +179,13 @@ export async function GET(request: Request) {
     }
 
     const trackingResponse = await fetch(
-      `${MIPAQUETE_BASE_URL}/tracking?tracking_number=${tracking_number}&session_tracker=${SESSION_TRACKER}`,
+      `${MIPAQUETE_BASE_URL}/tracking?tracking_number=${tracking_number}`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Session-Tracker': SESSION_TRACKER
         }
       }
     )
