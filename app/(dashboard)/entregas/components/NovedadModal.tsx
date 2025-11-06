@@ -149,9 +149,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
     })
   }
 
-  // 2. Volver a ofrecer
+  // 2. Volver a ofrecer - Ahora abre directamente el portal de MiPaquete
   const handleVolverOfrecer = () => {
-    setShowVolverOfrecerDialog(true)
+    // Navegar directamente al portal de MiPaquete con la guía del envío
+    const portalPath = `/portal-mipaquete/${encodeURIComponent(envio.guia)}`
+    window.location.href = portalPath
   }
 
   const confirmVolverOfrecer = () => {
