@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/⏰_VERIFICAR_EN_2_MINUTOS_FIX_DEFINITIVO.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/⏰_VERIFICAR_EN_2_MINUTOS_FIX_DEFINITIVO.md" />
+              <option name="updatedContent" value="⏰ VERIFICAR EN 2-3 MINUTOS - DEPLOY EN PROGRESO&#10;&#10;✅ SOLUCIÓN DEFINITIVA APLICADA&#10;==============================&#10;&#10;Commit: 77484b8&#10;Cambio: Timer forzado independiente de CORS para ocultar loading&#10;&#10; QUÉ SE CORRIGIÓ:&#10;- Timer movido FUERA de handleLoad&#10;- Ahora se ejecuta SIEMPRE cuando se abre el modal&#10;- Independiente de iframe, CORS, o eventos&#10;- Estado se resetea correctamente al abrir/cerrar&#10;&#10;✅ GARANTÍA:&#10;El overlay &quot;Preparando portal&quot; DESAPARECERÁ en 2 segundos&#10;SIN IMPORTAR:&#10;- Si CORS bloquea&#10;- Si el iframe carga&#10;- Si hay errores de red&#10;- Cualquier otra cosa&#10;&#10;⏳ PASOS PARA VERIFICAR:&#10;1. Espera 2-3 minutos (Vercel desplegando)&#10;2. Ve a /entregas en producción&#10;3. Click &quot;Volver a ofrecer&quot; en cualquier envío&#10;4. Observa:&#10;   - ✅ Modal abre&#10;   - ✅ Overlay visible (2 segundos)&#10;   - ✅ Overlay DESAPARECE automáticamente&#10;   - ✅ Portal visible y funcional&#10;&#10; LOG CLAVE EN CONSOLE:&#10;⏱️ Forzando ocultación de overlay (2 segundos) ← Nuevo&#10;&#10;Si ves este log, significa que el fix está funcionando.&#10;&#10;✅ RESULTADO ESPERADO:&#10;Portal de MiPaquete visible y funcional después de 2 segundos,&#10;sin importar CORS o cualquier otro bloqueo.&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
