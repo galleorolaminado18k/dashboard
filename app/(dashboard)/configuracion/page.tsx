@@ -88,23 +88,30 @@ export default function ConfiguracionPage() {
   }
 
   const startWhatsAppSession = async () => {
+    console.log('🚀 Iniciando sesión de WhatsApp...')
     setSessionStatus('connecting')
     setError("")
 
     try {
       // Iniciar sesión en WAHA
+      console.log('📡 Llamando a /api/whatsapp/session...')
       const res = await fetch('/api/whatsapp/session', { method: 'POST' })
       const data = await res.json()
 
+      console.log('📥 Respuesta de sesión:', data)
+
       if (data.ok) {
+        console.log('✅ Sesión iniciada, comenzando polling...')
         // Empezar a obtener el QR
         startPollingQR()
       } else {
-        setError(data.error || 'Error al iniciar sesión')
+        console.error('❌ Error al iniciar sesión:', data.error)
+        setError(data.error || 'Error al iniciar sesión. Verifica que WAHA esté corriendo.')
         setSessionStatus('disconnected')
       }
     } catch (err: any) {
-      setError('Error conectando con WAHA. ¿Está corriendo Docker?')
+      console.error('❌ Error conectando con WAHA:', err)
+      setError('Error conectando con WAHA. ¿Está corriendo Docker? Ejecuta: docker-compose -f docker-compose.waha.yml up -d')
       setSessionStatus('disconnected')
     }
   }
@@ -132,20 +139,27 @@ export default function ConfiguracionPage() {
 
   const fetchQRCode = async () => {
     try {
+      console.log('🔄 Obteniendo QR...')
       const res = await fetch('/api/whatsapp/qr')
       const data = await res.json()
 
+      console.log('📥 Respuesta QR:', data)
+
       if (data.ok && data.qr) {
         // QR REAL de WhatsApp Web en base64
+        console.log('✅ QR recibido!')
         setQrCodeImage(data.qr)
       } else if (data.currentState === 'WORKING') {
         // Ya está conectado
+        console.log('✅ WhatsApp ya está conectado!')
         setSessionStatus('connected')
         if (pollingInterval) clearInterval(pollingInterval)
         setQrCodeImage("")
+      } else {
+        console.log('⏳ QR no disponible aún:', data.error || 'esperando...')
       }
     } catch (err) {
-      console.error('Error fetching QR:', err)
+      console.error('❌ Error obteniendo QR:', err)
     }
   }
 
@@ -574,10 +588,21 @@ export default function ConfiguracionPage() {
 
         {/* Mensajes de Error */}
         {error && (
-          <div className="fixed bottom-24 right-8 z-50 p-4 bg-red-100 border border-red-300 rounded-lg shadow-lg">
-            <div className="flex items-center gap-2 text-red-800">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm font-medium">{error}</span>
+          <div className="fixed bottom-24 right-8 z-50 max-w-md">
+            <div className="p-4 bg-red-100 border-2 border-red-400 rounded-xl shadow-2xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-900 mb-1">Error</p>
+                  <p className="text-xs text-red-800">{error}</p>
+                </div>
+                <button
+                  onClick={() => setError("")}
+                  className="text-red-600 hover:text-red-800 flex-shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           </div>
         )}
