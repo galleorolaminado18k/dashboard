@@ -201,8 +201,8 @@ export default function MiPaquetePortalModal({
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
             />
 
-            {/* Overlay de carga */}
-            {isLoading && (
+            {/* Overlay de carga - DESHABILITADO para debugging */}
+            {false && isLoading && (
               <div className="absolute inset-0 bg-gradient-to-br from-orange-50/98 via-white/98 to-orange-50/98 backdrop-blur-md flex items-center justify-center">
                 <div className="text-center">
                   <div className="relative w-16 h-16 mx-auto mb-6">
