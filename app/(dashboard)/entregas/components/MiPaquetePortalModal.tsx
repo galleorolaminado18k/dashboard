@@ -26,101 +26,117 @@ export default function MiPaquetePortalModal({
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
-    if (open && iframeRef.current) {
-      const iframe = iframeRef.current
-      let checkInterval: NodeJS.Timeout
+    if (open) {
+      // ✅ IMPORTANTE: Resetear loading a true cada vez que se abre
+      setIsLoading(true)
+      console.log('🌐 Modal abierto, iniciando carga...')
 
-      const handleLoad = () => {
-        console.log('🌐 Iframe cargado, esperando que MiPaquete renderice...')
+      // ✅ CRÍTICO: Ocultar loading después de 2 segundos SIEMPRE
+      // Este timer se ejecuta independientemente del iframe o CORS
+      const forceHideLoadingTimer = setTimeout(() => {
+        console.log('⏱️ Forzando ocultación de overlay (2 segundos)')
+        setIsLoading(false)
+      }, 2000)
 
-        // IMPORTANTE: Ocultar loading después de 2 segundos SIEMPRE (incluso si CORS bloquea)
-        const hideLoadingTimer = setTimeout(() => {
-          console.log('⏱️ Ocultando overlay de carga')
-          setIsLoading(false)
-        }, 2000)
+      if (iframeRef.current) {
+        const iframe = iframeRef.current
+        let checkInterval: NodeJS.Timeout
 
-        // Esperar 1 segundo para que MiPaquete cargue completamente
-        setTimeout(() => {
-          console.log('🔐 Iniciando auto-login...')
+        const handleLoad = () => {
+          console.log('🌐 Iframe cargado, esperando que MiPaquete renderice...')
 
-          // Método 1: Intentar acceso directo al DOM del iframe (funcionará si no hay CORS)
-          try {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+          // Esperar 1 segundo para que MiPaquete cargue completamente
+          setTimeout(() => {
+            console.log('🔐 Iniciando auto-login...')
 
-            if (iframeDoc) {
-              console.log('✅ Acceso directo al iframe obtenido')
+            // Método 1: Intentar acceso directo al DOM del iframe (funcionará si no hay CORS)
+            try {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
 
-              // Buscar campos cada 500ms
-              checkInterval = setInterval(() => {
-                try {
-                  const emailInput = iframeDoc.querySelector('input[type="email"], input[name="email"], input[placeholder*="correo" i], input[placeholder*="email" i]') as HTMLInputElement
-                  const passwordInput = iframeDoc.querySelector('input[type="password"], input[name="password"], input[placeholder*="contraseña" i], input[placeholder*="password" i]') as HTMLInputElement
-                  const submitButton = iframeDoc.querySelector('button[type="submit"], button:not([type="button"]):not([disabled])') as HTMLButtonElement
+              if (iframeDoc) {
+                console.log('✅ Acceso directo al iframe obtenido')
 
-                  if (emailInput && passwordInput) {
-                    console.log('✅ Campos de login encontrados!')
-                    clearInterval(checkInterval)
+                // Buscar campos cada 500ms
+                checkInterval = setInterval(() => {
+                  try {
+                    const emailInput = iframeDoc.querySelector('input[type="email"], input[name="email"], input[placeholder*="correo" i], input[placeholder*="email" i]') as HTMLInputElement
+                    const passwordInput = iframeDoc.querySelector('input[type="password"], input[name="password"], input[placeholder*="contraseña" i], input[placeholder*="password" i]') as HTMLInputElement
+                    const submitButton = iframeDoc.querySelector('button[type="submit"], button:not([type="button"]):not([disabled])') as HTMLButtonElement
 
-                    // Llenar campos
-                    emailInput.value = 'galleorolaminado18k@gmail.com'
-                    passwordInput.value = 'Om@r1430**'
+                    if (emailInput && passwordInput) {
+                      console.log('✅ Campos de login encontrados!')
+                      clearInterval(checkInterval)
 
-                    // Disparar todos los eventos posibles
-                    const events = ['input', 'change', 'blur', 'keyup']
-                    events.forEach(eventType => {
-                      emailInput.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }))
-                      passwordInput.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }))
-                    })
+                      // Llenar campos
+                      emailInput.value = 'galleorolaminado18k@gmail.com'
+                      passwordInput.value = 'Om@r1430**'
 
-                    console.log('✅ Campos llenados con credenciales')
+                      // Disparar todos los eventos posibles
+                      const events = ['input', 'change', 'blur', 'keyup']
+                      events.forEach(eventType => {
+                        emailInput.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }))
+                        passwordInput.dispatchEvent(new Event(eventType, { bubbles: true, cancelable: true }))
+                      })
 
-                    // Auto-submit después de 1.5 segundos
-                    setTimeout(() => {
-                      if (submitButton) {
-                        console.log('🚀 Haciendo click en botón de submit...')
-                        submitButton.click()
-                      } else {
-                        // Si no hay botón, intentar submit del form
-                        const form = iframeDoc.querySelector('form')
-                        if (form) {
-                          console.log('🚀 Enviando formulario directamente...')
-                          form.submit()
+                      console.log('✅ Campos llenados con credenciales')
+
+                      // Auto-submit después de 1.5 segundos
+                      setTimeout(() => {
+                        if (submitButton) {
+                          console.log('🚀 Haciendo click en botón de submit...')
+                          submitButton.click()
+                        } else {
+                          // Si no hay botón, intentar submit del form
+                          const form = iframeDoc.querySelector('form')
+                          if (form) {
+                            console.log('🚀 Enviando formulario directamente...')
+                            form.submit()
+                          }
                         }
-                      }
-                    }, 1500)
+                      }, 1500)
+                    }
+                  } catch (e) {
+                    // Error accediendo al DOM (CORS runtime)
+                    console.log('⚠️ CORS bloquea acceso al DOM en runtime')
+                    clearInterval(checkInterval)
                   }
-                } catch (e) {
-                  // Error accediendo al DOM (CORS runtime)
-                  console.log('⚠️ CORS bloquea acceso al DOM en runtime')
-                  clearInterval(checkInterval)
-                }
-              }, 500)
+                }, 500)
 
-              // Timeout de seguridad: detener búsqueda después de 10 segundos
-              setTimeout(() => {
-                if (checkInterval) {
-                  console.log('⏱️ Timeout alcanzado, deteniendo búsqueda de campos')
-                  clearInterval(checkInterval)
-                }
-              }, 10000)
-            } else {
-              console.log('⚠️ No se pudo acceder al documento del iframe (posible CORS)')
+                // Timeout de seguridad: detener búsqueda después de 10 segundos
+                setTimeout(() => {
+                  if (checkInterval) {
+                    console.log('⏱️ Timeout alcanzado, deteniendo búsqueda de campos')
+                    clearInterval(checkInterval)
+                  }
+                }, 10000)
+              } else {
+                console.log('⚠️ No se pudo acceder al documento del iframe (posible CORS)')
+              }
+            } catch (error) {
+              console.error('❌ Error al intentar acceso al iframe (CORS):', error)
+              console.log('ℹ️ El portal de MiPaquete se cargará manualmente debido a restricciones CORS')
             }
-          } catch (error) {
-            console.error('❌ Error al intentar acceso al iframe (CORS):', error)
-            console.log('ℹ️ El portal de MiPaquete se cargará manualmente debido a restricciones CORS')
+          }, 1000)
+        }
+
+        iframe.addEventListener('load', handleLoad)
+
+        return () => {
+          iframe.removeEventListener('load', handleLoad)
+          if (checkInterval) {
+            clearInterval(checkInterval)
           }
-        }, 1000)
-      }
-
-      iframe.addEventListener('load', handleLoad)
-
-      return () => {
-        iframe.removeEventListener('load', handleLoad)
-        if (checkInterval) {
-          clearInterval(checkInterval)
+          clearTimeout(forceHideLoadingTimer)
+        }
+      } else {
+        // Si no hay iframe, solo limpiamos el timer
+        return () => {
+          clearTimeout(forceHideLoadingTimer)
         }
       }
+    } else {
+      // Cuando se cierra el modal, resetear el estado
+      setIsLoading(true)
     }
   }, [open])
 
