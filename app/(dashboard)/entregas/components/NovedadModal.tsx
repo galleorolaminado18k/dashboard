@@ -24,6 +24,7 @@ interface NovedadModalProps {
     transportadora: string
     mipaqueteStatus?: string
     productos?: Array<{
+      sku?: string
       descripcion: string
       cantidad: number
       precio: number
@@ -301,13 +302,6 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{envio.telefono}</span>
                   <a
-                    href={`tel:${envio.telefono}`}
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Llamar
-                  </a>
-                  <a
                     href={`https://wa.me/57${envio.telefono.replace(/\D/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -351,6 +345,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                     <div className="flex-1">
                       <div className="font-medium text-sm">{prod.descripcion}</div>
                       <div className="text-xs text-neutral-500">
+                        {prod.sku && <span className="font-semibold">SKU: {prod.sku} • </span>}
                         Cantidad: {prod.cantidad} × {formatCurrency(prod.precio)}
                       </div>
                     </div>
