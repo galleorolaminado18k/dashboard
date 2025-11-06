@@ -1,4 +1,4 @@
-﻿﻿"use client"
+?"use client"
 
 import { Button } from "@/components/ui/button"
 import { Phone, MapPin, Package, DollarSign, AlertTriangle, CheckCircle2, X, Loader2, ExternalLink } from "lucide-react"
@@ -43,14 +43,14 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const [showPortalModal, setShowPortalModal] = useState(false)
   const [portalUrl, setPortalUrl] = useState('')
 
-  // Estados para diálogos de acciones REALES de MiPaquete
+  // Estados para di�logos de acciones REALES de MiPaquete
   const [showIndemnizacionDialog, setShowIndemnizacionDialog] = useState(false)
   const [showVolverOfrecerDialog, setShowVolverOfrecerDialog] = useState(false)
   const [showCambioDireccionDialog, setShowCambioDireccionDialog] = useState(false)
   const [showDevolucionDialog, setShowDevolucionDialog] = useState(false)
   const [showOtroDialog, setShowOtroDialog] = useState(false)
 
-  // Bloqueo de scroll cuando el modal está abierto
+  // Bloqueo de scroll cuando el modal est� abierto
   useEffect(() => {
     if (open) {
       document.body.classList.add('overflow-hidden')
@@ -62,25 +62,25 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
     }
   }, [open])
 
-  // Estados de formularios según MiPaquete
+  // Estados de formularios seg�n MiPaquete
   const [indemnizacionDesc, setIndemnizacionDesc] = useState('')
   const [volverOfrecerDesc, setVolverOfrecerDesc] = useState('')
   const [volverOfrecerDireccion, setVolverOfrecerDireccion] = useState(envio.direccion || '')
 
-  // Cambio de dirección (campos requeridos por MiPaquete)
+  // Cambio de direcci�n (campos requeridos por MiPaquete)
   const [nuevaCiudad, setNuevaCiudad] = useState(envio.ciudad || '')
   const [nuevaDireccion, setNuevaDireccion] = useState(envio.direccion || '')
   const [nombreDestinatario, setNombreDestinatario] = useState(envio.cliente || '')
   const [telefonoDestinatario, setTelefonoDestinatario] = useState(envio.telefono || '')
 
-  // Devolución (campos requeridos por MiPaquete)
+  // Devoluci�n (campos requeridos por MiPaquete)
   const [nombreRemitente, setNombreRemitente] = useState('Comercializadora Gale18k')
   const [telefonoRemitente, setTelefonoRemitente] = useState('3016845026')
   const [ciudadRemitente, setCiudadRemitente] = useState('VILLA DEL ROSARIO-NORTE DE SANTANDER')
   const [direccionRemitente, setDireccionRemitente] = useState('Av 1 #9-53 Lomitas del trapiche')
   const [devolucionDesc, setDevolucionDesc] = useState('')
 
-  // Otro tipo de solución
+  // Otro tipo de soluci�n
   const [otroDesc, setOtroDesc] = useState('')
 
   const formatCurrency = (value: number) => {
@@ -94,7 +94,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const enviarSolucionMiPaquete = async (solutionType: string, data: any = {}) => {
     setLoading(true)
     try {
-      console.log('🚀 Enviando solución a MiPaquete:', { solutionType, data })
+      console.log('?? Enviando soluci�n a MiPaquete:', { solutionType, data })
 
       const response = await fetch('/api/mipaquete/resolver-novedad', {
         method: 'POST',
@@ -108,7 +108,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       })
 
       const result = await response.json()
-      console.log('📥 Respuesta de API:', result)
+      console.log('?? Respuesta de API:', result)
 
       if (result.success) {
         // Abrir portal de MiPaquete en modal interno (iframe)
@@ -117,9 +117,9 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           setShowPortalModal(true)
         }
 
-        setAccionTomada(`✅ ${getSolutionLabel(solutionType)} - Portal abierto`)
+        setAccionTomada(`? ${getSolutionLabel(solutionType)} - Portal abierto`)
 
-        // Cerrar todos los diálogos
+        // Cerrar todos los di�logos
         setShowIndemnizacionDialog(false)
         setShowVolverOfrecerDialog(false)
         setShowCambioDireccionDialog(false)
@@ -129,11 +129,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         // NO cerrar el modal principal - dejar que el usuario vea el portal
         // El modal principal se cierra cuando el usuario cierre el portal modal
       } else {
-        alert(`❌ Error: ${result.error}\n\nDetalles: ${JSON.stringify(result.details || {})}`)
+        alert(`? Error: ${result.error}\n\nDetalles: ${JSON.stringify(result.details || {})}`)
       }
     } catch (error: any) {
-      console.error('âŒ Error:', error)
-      alert(`Error al procesar la acción: ${error.message}`)
+      console.error('❌ Error:', error)
+      alert(`Error al procesar la acci�n: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -141,41 +141,41 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
   const getSolutionLabel = (solutionType: string): string => {
     const labels: Record<string, string> = {
-      'indemnizacion': 'Indemnización solicitada',
+      'indemnizacion': 'Indemnizaci�n solicitada',
       'volver_a_ofrecer': 'Volver a ofrecer programado',
-      'cambio_direccion': 'Dirección actualizada',
-      'devolucion': 'Devolución solicitada',
-      'otro': 'solución registrada'
+      'cambio_direccion': 'Direcci�n actualizada',
+      'devolucion': 'Devoluci�n solicitada',
+      'otro': 'soluci�n registrada'
     }
     return labels[solutionType] || solutionType
   }
 
-  // 1. Indemnización
+  // 1. Indemnizaci�n
   const handleIndemnizacion = () => {
     setShowIndemnizacionDialog(true)
   }
 
   const confirmIndemnizacion = () => {
     enviarSolucionMiPaquete('indemnizacion', {
-      description: indemnizacionDesc || 'Solicitud de indemnización por novedad en entrega'
+      description: indemnizacionDesc || 'Solicitud de indemnizaci�n por novedad en entrega'
     })
   }
 
   // 2. Volver a ofrecer - Ahora abre directamente el portal de MiPaquete
   const handleVolverOfrecer = () => {
-    // Navegar directamente al portal de MiPaquete con la guía del envío
+    // Navegar directamente al portal de MiPaquete con la gu�a del env�o
     const portalPath = `/portal-mipaquete/${encodeURIComponent(envio.guia)}`
     window.location.href = portalPath
   }
 
   const confirmVolverOfrecer = () => {
     enviarSolucionMiPaquete('volver_a_ofrecer', {
-      description: volverOfrecerDesc || 'Volver a ofrecer el Envío',
+      description: volverOfrecerDesc || 'Volver a ofrecer el Env�o',
       new_address: volverOfrecerDireccion || undefined
     })
   }
 
-  // 3. Cambio de dirección
+  // 3. Cambio de direcci�n
   const handleCambioDireccion = () => {
     setShowCambioDireccionDialog(true)
   }
@@ -183,19 +183,19 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const confirmCambioDireccion = () => {
     // Validar campos requeridos
     if (!nuevaCiudad.trim()) {
-      alert('âŒ La ciudad es obligatoria')
+      alert('❌ La ciudad es obligatoria')
       return
     }
     if (!nuevaDireccion.trim()) {
-      alert('❌ La dirección es obligatoria')
+      alert('? La direcci�n es obligatoria')
       return
     }
     if (!nombreDestinatario.trim()) {
-      alert('âŒ El nombre del destinatario es obligatorio')
+      alert('❌ El nombre del destinatario es obligatorio')
       return
     }
     if (!telefonoDestinatario.trim()) {
-      alert('âŒ El teléfono del destinatario es obligatorio')
+      alert('❌ El tel�fono del destinatario es obligatorio')
       return
     }
 
@@ -204,11 +204,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       new_address: nuevaDireccion,
       recipient_name: nombreDestinatario,
       recipient_phone: telefonoDestinatario,
-      description: 'Cambio de dirección de entrega solicitado por novedad'
+      description: 'Cambio de direcci�n de entrega solicitado por novedad'
     })
   }
 
-  // 4. Devolución
+  // 4. Devoluci�n
   const handleDevolucion = () => {
     setShowDevolucionDialog(true)
   }
@@ -216,19 +216,19 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
   const confirmDevolucion = () => {
     // Validar campos requeridos
     if (!nombreRemitente.trim()) {
-      alert('âŒ El nombre del remitente es obligatorio')
+      alert('❌ El nombre del remitente es obligatorio')
       return
     }
     if (!telefonoRemitente.trim()) {
-      alert('âŒ El teléfono del remitente es obligatorio')
+      alert('❌ El tel�fono del remitente es obligatorio')
       return
     }
     if (!ciudadRemitente.trim()) {
-      alert('âŒ La ciudad del remitente es obligatoria')
+      alert('❌ La ciudad del remitente es obligatoria')
       return
     }
     if (!direccionRemitente.trim()) {
-      alert('❌ La dirección del remitente es obligatoria')
+      alert('? La direcci�n del remitente es obligatoria')
       return
     }
 
@@ -237,18 +237,18 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       sender_phone: telefonoRemitente,
       sender_city: ciudadRemitente,
       sender_address: direccionRemitente,
-      description: devolucionDesc || 'Solicitud de Devolución del pedido'
+      description: devolucionDesc || 'Solicitud de Devoluci�n del pedido'
     })
   }
 
-  // 5. Otro tipo de solución
+  // 5. Otro tipo de soluci�n
   const handleOtro = () => {
     setShowOtroDialog(true)
   }
 
   const confirmOtro = () => {
     if (!otroDesc.trim() || otroDesc.length < 6) {
-      alert('âŒ Debes ingresar una descripción de al menos 6 caracteres')
+      alert('❌ Debes ingresar una descripci�n de al menos 6 caracteres')
       return
     }
 
@@ -257,7 +257,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
     })
   }
 
-  // Bloqueo de scroll cuando el modal está abierto
+  // Bloqueo de scroll cuando el modal est� abierto
   useState(() => {
     if (typeof document !== 'undefined') {
       document.body.classList.toggle('overflow-hidden', open)
@@ -269,7 +269,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
   return (
     <div className="fixed inset-0 z-[100]">
-      {/* Backdrop - negro translúcido con blur */}
+      {/* Backdrop - negro transl�cido con blur */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
         onClick={onClose}
@@ -293,13 +293,13 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Playfair Display', serif" }}>
-                Novedad en Envío
+                Novedad en Env�o
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 <span className="inline-block px-3 py-1 rounded-full bg-white/10 border border-[#D4AF37]/30 text-xs font-medium text-[#D4AF37]">
                   Factura: {envio.factura || 'N/A'}
                 </span>
-                <span className="text-xs text-[#B8BDC7]">• {envio.envioId}</span>
+                <span className="text-xs text-[#B8BDC7]">� {envio.envioId}</span>
               </div>
             </div>
             <button
@@ -321,8 +321,8 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           </h3>
           <p className="text-[#F7F7F8] text-sm leading-6 mb-3">{envio.mipaqueteStatus || 'Novedad en entrega'}</p>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-block px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-white/80 hover:bg-white/15 cursor-default" title="Número de guía">
-              Guía: {envio.guia}
+            <span className="inline-block px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-white/80 hover:bg-white/15 cursor-default" title="N�mero de gu�a">
+              Gu�a: {envio.guia}
             </span>
             <span className="inline-block px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-white/80 hover:bg-white/15 cursor-default" title="Transportadora">
               {envio.transportadora}
@@ -330,11 +330,11 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           </div>
         </section>
 
-        {/* Información del Cliente - Card sólida */}
+        {/* Informaci�n del Cliente - Card s�lida */}
         <section className="rounded-xl bg-[#1A1A1C] border border-white/10 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#F7F7F8] mb-5 flex items-center gap-2">
             <Phone className="w-5 h-5 text-[#D4AF37]" />
-            Información del Cliente
+            Informaci�n del Cliente
           </h3>
 
           <div className="space-y-4">
@@ -348,7 +348,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
             {envio.telefono && (
               <>
                 <div className="flex items-start gap-4">
-                  <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Teléfono:</div>
+                  <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Tel�fono:</div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-[#F7F7F8]">{envio.telefono}</span>
                     <a
@@ -380,7 +380,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
               <>
                 <div className="h-px bg-[#FFFFFF14]"></div>
                 <div className="flex items-start gap-4">
-                  <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Dirección:</div>
+                  <div className="min-w-[90px] text-xs font-medium text-[#B8BDC7]">Direcci�n:</div>
                   <div className="text-sm text-[#F7F7F8] leading-6">{envio.direccion}</div>
                 </div>
               </>
@@ -388,7 +388,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
           </div>
         </section>
 
-        {/* Detalles del Pedido - Card sólida */}
+        {/* Detalles del Pedido - Card s�lida */}
         <section className="rounded-xl bg-[#1A1A1C] border border-white/10 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-semibold text-[#F7F7F8] mb-5 flex items-center gap-2">
             <Package className="w-5 h-5 text-[#D4AF37]" />
@@ -409,7 +409,7 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
                           </span>
                         )}
                         <span className="text-[#B8BDC7]">
-                          Cantidad: {prod.cantidad} × {formatCurrency(prod.precio)}
+                          Cantidad: {prod.cantidad} � {formatCurrency(prod.precio)}
                         </span>
                       </div>
                     </div>
@@ -424,14 +424,14 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
 
               <div className="space-y-3">
                 {envio.subtotal && (
-                  <div className="flex justify-between items-center text-sm px-2" title="Subtotal sin envío">
+                  <div className="flex justify-between items-center text-sm px-2" title="Subtotal sin env�o">
                     <span className="text-[#B8BDC7] font-medium">Subtotal:</span>
                     <span className="font-bold text-[#F7F7F8]">{formatCurrency(envio.subtotal)}</span>
                   </div>
                 )}
                 {envio.envioMonto && (
-                  <div className="flex justify-between items-center text-sm px-2" title="Costo de envío">
-                    <span className="text-[#B8BDC7] font-medium">Costo de Envío:</span>
+                  <div className="flex justify-between items-center text-sm px-2" title="Costo de env�o">
+                    <span className="text-[#B8BDC7] font-medium">Costo de Env�o:</span>
                     <span className="font-bold text-[#F7F7F8]">{formatCurrency(envio.envioMonto)}</span>
                   </div>
                 )}
@@ -484,377 +484,5 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
       </div>
     </div>
   )
+
 }
-
-
-      {showIndemnizacionDialog && (
-        <Dialog open={showIndemnizacionDialog} onOpenChange={setShowIndemnizacionDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-yellow-600" />
-                Solicitar indemnización
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
-                  💰 Esta solicitud se enviará directamente a MiPaquete para iniciar el proceso de indemnización.
-                </p>
-              </div>
-              <div>
-                <Label>descripción (opcional)</Label>
-                <Textarea
-                  value={indemnizacionDesc}
-                  onChange={(e) => setIndemnizacionDesc(e.target.value)}
-                  placeholder="Ej: Producto dañado, paquete perdido, etc."
-                  rows={4}
-                  className="mt-2"
-                />
-              </div>
-              <div className="text-xs text-neutral-500">
-                <p><strong>Guía:</strong> {envio.guia}</p>
-                <p><strong>Transportadora:</strong> {envio.transportadora}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowIndemnizacionDialog(false)}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmIndemnizacion}
-                  className="flex-1 bg-yellow-600 hover:bg-yellow-700"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Solicitar indemnización
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Diálogo 2: Volver a ofrecer */}
-      {showVolverOfrecerDialog && (
-        <Dialog open={showVolverOfrecerDialog} onOpenChange={setShowVolverOfrecerDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-orange-600" />
-                Volver a Ofrecer el Envío
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="text-sm text-orange-800">
-                  📦 El Envío será reprogramado para un nuevo intento de entrega.
-                </p>
-              </div>
-              <div>
-                <Label>descripción (opcional)</Label>
-                <Textarea
-                  value={volverOfrecerDesc}
-                  onChange={(e) => setVolverOfrecerDesc(e.target.value)}
-                  placeholder="Ej: Cliente disponible después de las 2pm"
-                  rows={3}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label>Soporte de dirección (opcional)</Label>
-                <Input
-                  value={volverOfrecerDireccion}
-                  onChange={(e) => setVolverOfrecerDireccion(e.target.value)}
-                  placeholder="Indicaciones adicionales sobre la dirección"
-                  className="mt-2"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowVolverOfrecerDialog(false)}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmVolverOfrecer}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Volver a Ofrecer
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Diálogo 3: Cambio de Dirección (CAMPOS REQUERIDOS POR MIPAQUETE) */}
-      {showCambioDireccionDialog && (
-        <Dialog open={showCambioDireccionDialog} onOpenChange={setShowCambioDireccionDialog}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-purple-600" />
-                Cambio de Dirección
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                <p className="text-sm text-purple-800">
-                  📍 Actualiza la dirección de entrega. Todos los campos son obligatorios.
-                </p>
-              </div>
-
-              <div>
-                <Label>Nueva Ciudad *</Label>
-                <Input
-                  value={nuevaCiudad}
-                  onChange={(e) => setNuevaCiudad(e.target.value)}
-                  placeholder="Ej: TURBACO-BOLÍVAR"
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>Nueva Dirección *</Label>
-                <Textarea
-                  value={nuevaDireccion}
-                  onChange={(e) => setNuevaDireccion(e.target.value)}
-                  placeholder="Ej: Bonanza vista manzana 9 lote 20"
-                  rows={2}
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>Nombre del Destinatario *</Label>
-                <Input
-                  value={nombreDestinatario}
-                  onChange={(e) => setNombreDestinatario(e.target.value)}
-                  placeholder="Ej: Greycy Salamanca"
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>teléfono del Destinatario *</Label>
-                <Input
-                  value={telefonoDestinatario}
-                  onChange={(e) => setTelefonoDestinatario(e.target.value)}
-                  placeholder="Ej: 3135948790"
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCambioDireccionDialog(false)}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmCambioDireccion}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Actualizar Dirección
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Diálogo 4: Devolución (CAMPOS REQUERIDOS POR MIPAQUETE) */}
-      {showDevolucionDialog && (
-        <Dialog open={showDevolucionDialog} onOpenChange={setShowDevolucionDialog}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                Solicitar Devolución
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-800">
-                  ⚠️ El pedido será devuelto a la dirección del remitente.
-                </p>
-              </div>
-
-              <div className="bg-neutral-50 rounded-lg p-3 space-y-2">
-                <p className="text-xs font-semibold text-neutral-700">Datos del Remitente:</p>
-                <div className="space-y-1 text-xs">
-                  <p><strong>Nombre:</strong> {nombreRemitente}</p>
-                  <p><strong>teléfono:</strong> {telefonoRemitente}</p>
-                  <p><strong>Ciudad:</strong> {ciudadRemitente}</p>
-                  <p><strong>Dirección:</strong> {direccionRemitente}</p>
-                </div>
-              </div>
-
-              <div>
-                <Label>Nombre del Remitente *</Label>
-                <Input
-                  value={nombreRemitente}
-                  onChange={(e) => setNombreRemitente(e.target.value)}
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>teléfono del Remitente *</Label>
-                <Input
-                  value={telefonoRemitente}
-                  onChange={(e) => setTelefonoRemitente(e.target.value)}
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>Ciudad del Remitente *</Label>
-                <Input
-                  value={ciudadRemitente}
-                  onChange={(e) => setCiudadRemitente(e.target.value)}
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>Dirección del Remitente *</Label>
-                <Textarea
-                  value={direccionRemitente}
-                  onChange={(e) => setDireccionRemitente(e.target.value)}
-                  rows={2}
-                  className="mt-2"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label>descripción (opcional)</Label>
-                <Textarea
-                  value={devolucionDesc}
-                  onChange={(e) => setDevolucionDesc(e.target.value)}
-                  placeholder="Motivo de la Devolución..."
-                  rows={2}
-                  className="mt-2"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDevolucionDialog(false)}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmDevolucion}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Solicitar Devolución
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Diálogo 5: Otro tipo de solución */}
-      {showOtroDialog && (
-        <Dialog open={showOtroDialog} onOpenChange={setShowOtroDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-blue-600" />
-                Otro Tipo de solución
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  💡 Describe la solución específica que necesitas para esta novedad.
-                </p>
-              </div>
-              <div>
-                <Label>Descripción de la solución * (mínimo 6 caracteres)</Label>
-                <Textarea
-                  value={otroDesc}
-                  onChange={(e) => setOtroDesc(e.target.value)}
-                  placeholder="Describe detalladamente la solución que necesitas..."
-                  rows={5}
-                  className="mt-2"
-                  required
-                />
-                <p className="text-xs text-neutral-500 mt-1">
-                  {otroDesc.length}/200 caracteres
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowOtroDialog(false)}
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={confirmOtro}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Enviar solución
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* ========== FIN DIÁLOGOS REALES ========== */}
-
-      {/* ========== MODAL PORTAL MIPAQUETE ========== */}
-      <MiPaquetePortalModal
-        open={showPortalModal}
-        onClose={() => {
-          setShowPortalModal(false)
-          // Cuando cierra el portal, cerrar también el modal principal y recargar
-          setTimeout(() => {
-            onClose()
-            window.location.reload()
-          }, 500)
-        }}
-        portalUrl={portalUrl}
-        trackingNumber={envio.guia}
-      />
-    </Dialog>
-  )
-}
-
-
