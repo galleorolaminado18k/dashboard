@@ -483,17 +483,10 @@ export default function NovedadModal({ open, onClose, envio }: NovedadModalProps
         </div>
       </div>
     </div>
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              Contactar por WhatsApp
-            </Button>
-          )}
-        </div>
-      </DialogContent>
+  )
+}
 
-      {/* ========== DIÁLOGOS REALES DE MIPAQUETE ========== */}
 
-      {/* Diálogo 1: Indemnización */}
       {showIndemnizacionDialog && (
         <Dialog open={showIndemnizacionDialog} onOpenChange={setShowIndemnizacionDialog}>
           <DialogContent className="max-w-md">
