@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # WAHA - WhatsApp HTTP API
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha-whatsapp
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./waha-sessions:/app/.sessions
+    environment:
+      # Webhook Configuration
+      - WHATSAPP_HOOK_URL=https://tu-dashboard.com/api/whatsapp/webhook
+      - WHATSAPP_HOOK_EVENTS=message,session.status,message.any
+
+      # API Configuration
+      - WHATSAPP_API_KEY=tu-api-key-secreta-aqui
+      - WHATSAPP_API_PORT=3000
+
+      # Session Configuration
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - WHATSAPP_RESTART_ALL_SESSIONS=True
+
+      # Security
+      - WHATSAPP_SWAGGER_ENABLED=false
+
+      # Logs
+      - DEBUG=false
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Dashboard (opcional - si quieres correr todo junto)
+  # dashboard:
+  #   build: .
+  #   container_name: dashboard
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - WAHA_URL=http://waha:3000
+  #     - WAHA_API_KEY=tu-api-key-secreta-aqui
+  #   depends_on:
+  #     - waha
+
+volumes:
+  waha-sessions:
+    driver: local
+
+networks:
+  default:
+    name: dashboard-network
+
