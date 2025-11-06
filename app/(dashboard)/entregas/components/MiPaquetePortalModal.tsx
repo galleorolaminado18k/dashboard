@@ -3,6 +3,7 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { X, ExternalLink } from "lucide-react"
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 interface MiPaquetePortalModalProps {
   open: boolean
@@ -12,8 +13,7 @@ interface MiPaquetePortalModalProps {
 }
 
 /**
- * Modal que abre el portal de MiPaquete en una NUEVA PESTAÑA
- * (Los iframes son bloqueados por MiPaquete por políticas de seguridad)
+ * Modal que navega al portal de MiPaquete en una subpágina interna
  */
 export default function MiPaquetePortalModal({
   open,
@@ -22,6 +22,8 @@ export default function MiPaquetePortalModal({
   trackingNumber
 }: MiPaquetePortalModalProps) {
 
+  const router = useRouter()
+
   // ✅ NO renderizar si no hay URL
   if (!portalUrl || portalUrl.trim() === '') {
     console.log('⚠️ [MiPaquetePortalModal] No hay URL, no renderizar modal')
@@ -29,22 +31,18 @@ export default function MiPaquetePortalModal({
   }
 
   useEffect(() => {
-    if (open && portalUrl) {
-      console.log('🌐 [MiPaquetePortalModal] Abriendo portal en nueva pestaña - URL:', portalUrl)
+    if (open && trackingNumber) {
+      console.log('🌐 [MiPaquetePortalModal] Navegando a portal interno - Guía:', trackingNumber)
 
-      // Abrir en nueva pestaña
-      const newWindow = window.open(portalUrl, '_blank', 'noopener,noreferrer')
+      // Navegar a la página interna del portal
+      router.push(`/portal-mipaquete/${trackingNumber}`)
 
-      if (!newWindow) {
-        alert('⚠️ Por favor, permite las ventanas emergentes para abrir el portal de MiPaquete')
-      }
-
-      // Cerrar el modal inmediatamente después de abrir la pestaña
+      // Cerrar el modal después de navegar
       setTimeout(() => {
         onClose()
-      }, 500)
+      }, 300)
     }
-  }, [open, portalUrl, onClose])
+  }, [open, trackingNumber, router, onClose])
 
   console.log('🌐 [MiPaquetePortalModal] Mostrando confirmación - Guía:', trackingNumber)
 
@@ -67,35 +65,18 @@ export default function MiPaquetePortalModal({
           </div>
 
           <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-            Portal de MiPaquete
+            Abriendo Portal de MiPaquete
           </h3>
 
           <p className="text-neutral-600 mb-6">
-            Se abrió el portal en una nueva pestaña para gestionar la guía <strong>{trackingNumber}</strong>
+            Cargando portal para gestionar la guía <strong>{trackingNumber}</strong>
           </p>
 
-          <div className="space-y-3">
-            <button
-              onClick={() => {
-                window.open(portalUrl, '_blank', 'noopener,noreferrer')
-              }}
-              className="w-full px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-            >
-              <ExternalLink className="w-5 h-5" />
-              Abrir Portal de Nuevo
-            </button>
-
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium transition-colors"
-            >
-              Cerrar
-            </button>
+          <div className="flex gap-1 justify-center">
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
-
-          <p className="text-xs text-neutral-500 mt-4">
-            💡 Si no se abrió, permite las ventanas emergentes en tu navegador
-          </p>
         </div>
       </DialogContent>
     </Dialog>
