@@ -45,9 +45,9 @@ export default function MiPaquetePortalModal({
         const handleLoad = () => {
           console.log('🌐 Iframe cargado, esperando que MiPaquete renderice...')
 
-          // Esperar 1 segundo para que MiPaquete cargue completamente
+          // Esperar 2 segundos para que MiPaquete cargue completamente
           setTimeout(() => {
-            console.log('🔐 Iniciando auto-login...')
+            console.log('🔍 Intentando auto-completar búsqueda de guía...')
 
             // Método 1: Intentar acceso directo al DOM del iframe (funcionará si no hay CORS)
             try {
@@ -56,15 +56,83 @@ export default function MiPaquetePortalModal({
               if (iframeDoc) {
                 console.log('✅ Acceso directo al iframe obtenido')
 
-                // Buscar campos cada 500ms
+                // Buscar campos cada 500ms (tanto login como búsqueda)
                 checkInterval = setInterval(() => {
                   try {
+                    // PRIORIDAD 1: Buscar campo de búsqueda de guía (si ya está logueado)
+                    const searchInput = iframeDoc.querySelector('input[placeholder*="Escribir" i], input[placeholder*="buscar" i], input[placeholder*="guía" i], input[name="search"], input[type="search"]') as HTMLInputElement
+
+                    if (searchInput) {
+                      console.log('✅ Campo de búsqueda encontrado!')
+                      clearInterval(checkInterval)
+
+                      // Llenar campo de búsqueda con el número de guía
+                      searchInput.value = trackingNumber
+                      searchInput.focus()
+
+                      // Disparar eventos
+                      const events = ['input', 'change', 'keyup', 'keydown']
+                      events.forEach(eventType => {
+                        const event = new Event(eventType, { bubbles: true, cancelable: true })
+                        searchInput.dispatchEvent(event)
+                      })
+
+                      // También disparar evento Enter para buscar
+                      const enterEvent = new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                      })
+                      searchInput.dispatchEvent(enterEvent)
+
+                      console.log(`✅ Búsqueda auto-completada con guía: ${trackingNumber}`)
+                      return
+                    }
+
+                    // PRIORIDAD 2: Si no está logueado, hacer auto-login primero
+                    // PRIORIDAD 1: Buscar campo de búsqueda de guía (si ya está logueado)
+                    const searchInput = iframeDoc.querySelector('input[placeholder*="Escribir" i], input[placeholder*="buscar" i], input[placeholder*="guía" i], input[name="search"], input[type="search"]') as HTMLInputElement
+
+                    if (searchInput) {
+                      console.log('✅ Campo de búsqueda encontrado!')
+                      console.log('✅ Campos de login encontrados - Auto-login iniciando...')
+
+                      // Llenar campo de búsqueda con el número de guía
+                      searchInput.value = trackingNumber
+                      searchInput.focus()
+
+                      // Disparar eventos
+                      const events = ['input', 'change', 'keyup', 'keydown']
+                      events.forEach(eventType => {
+                        const event = new Event(eventType, { bubbles: true, cancelable: true })
+                        searchInput.dispatchEvent(event)
+                      })
+
+                      // También disparar evento Enter para buscar
+                      const enterEvent = new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                      })
+                      searchInput.dispatchEvent(enterEvent)
+
+                      console.log(`✅ Búsqueda auto-completada con guía: ${trackingNumber}`)
+                      return
+                    }
+
+                    // PRIORIDAD 2: Si no está logueado, hacer auto-login primero
                     const emailInput = iframeDoc.querySelector('input[type="email"], input[name="email"], input[placeholder*="correo" i], input[placeholder*="email" i]') as HTMLInputElement
                     const passwordInput = iframeDoc.querySelector('input[type="password"], input[name="password"], input[placeholder*="contraseña" i], input[placeholder*="password" i]') as HTMLInputElement
                     const submitButton = iframeDoc.querySelector('button[type="submit"], button:not([type="button"]):not([disabled])') as HTMLButtonElement
 
                     if (emailInput && passwordInput) {
-                      console.log('✅ Campos de login encontrados!')
+                      console.log('✅ Campos de login encontrados - Auto-login iniciando...')
                       clearInterval(checkInterval)
 
                       // Llenar campos
@@ -82,7 +150,7 @@ export default function MiPaquetePortalModal({
 
                       // Auto-submit después de 1.5 segundos
                       setTimeout(() => {
-                        if (submitButton) {
+          }, 2000)
                           console.log('🚀 Haciendo click en botón de submit...')
                           submitButton.click()
                         } else {
@@ -102,13 +170,13 @@ export default function MiPaquetePortalModal({
                   }
                 }, 500)
 
-                // Timeout de seguridad: detener búsqueda después de 10 segundos
+                // Timeout de seguridad: detener búsqueda después de 15 segundos
                 setTimeout(() => {
                   if (checkInterval) {
                     console.log('⏱️ Timeout alcanzado, deteniendo búsqueda de campos')
                     clearInterval(checkInterval)
                   }
-                }, 10000)
+                }, 15000)
               } else {
                 console.log('⚠️ No se pudo acceder al documento del iframe (posible CORS)')
               }

@@ -11,7 +11,10 @@ import { createClient } from '@/lib/supabase/server'
  * 3. Abre automáticamente el portal para que el usuario complete la acción
  */
 
+// URL del portal de MiPaquete - Centro de Novedades
+// Al incluir el número de guía en la URL, MiPaquete debería filtrar/buscar automáticamente esa guía
 const MIPAQUETE_PORTAL_URL = 'https://centrodenovedades.mipaquete.com/novedades'
+const MIPAQUETE_SEARCH_URL = 'https://centrodenovedades.mipaquete.com/novedades/envios-con-novedad'
 
 export async function POST(request: Request) {
   try {
@@ -126,8 +129,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Construir URL del portal de MiPaquete con la guía pre-cargada
-    const portalUrl = `${MIPAQUETE_PORTAL_URL}?guia=${encodeURIComponent(tracking_number)}`
+    // Construir URL del portal de MiPaquete
+    // ESTRATEGIA: Usar la URL de "Envíos con novedad" + parámetros de búsqueda
+    // MiPaquete podría reconocer: ?search=GUIA o ?guia=GUIA o ?tracking=GUIA
+    // Probamos múltiples parámetros para aumentar probabilidad de que alguno funcione
+    const portalUrl = `${MIPAQUETE_SEARCH_URL}?search=${encodeURIComponent(tracking_number)}&guia=${encodeURIComponent(tracking_number)}&tracking=${encodeURIComponent(tracking_number)}`
 
     // Mapear tipo de solución a label en español
     const solutionLabels: Record<string, string> = {
