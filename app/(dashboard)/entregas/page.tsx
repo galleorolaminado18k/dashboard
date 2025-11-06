@@ -198,9 +198,8 @@ export default function EntregasPage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#111] via-[#111] to-[rgba(216,189,128,0.8)]">
                 ENTREGAS
               </span>
-              <sup className="text-xs text-green-600 ml-2">v3.0-FIXED</sup>
             </h1>
-            <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS • Build 2025-11-04 15:25</p>
+            <p className="text-sm text-neutral-500 mt-1">SEGUIMIENTO DE ENVIOS</p>
           </div>
           <div className="flex items-center gap-2">
             <Button
