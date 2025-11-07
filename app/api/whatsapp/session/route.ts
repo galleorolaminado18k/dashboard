@@ -84,16 +84,16 @@ export async function POST() {
         status: data.state || data.status || 'STARTING',
         message: 'Sesión iniciada. Obtén el código QR para conectar.',
       },
-    console.error('[API] WAHA_URL configurada:', WAHA_URL)
     })
   } catch (error: any) {
+    console.error('[API] Error fatal:', error)
+    console.error('[API] WAHA_URL configurada:', WAHA_URL)
+    return NextResponse.json({
+      ok: false,
       error: `No se pudo conectar con WAHA: fetch failed. Verifica que Docker esté corriendo.`,
       hint: 'En producción, configura WAHA_BASE_URL en Vercel con tu URL pública de WAHA',
       wahaUrl: WAHA_URL,
     }, { status: 502 })
-      ok: false,
-      error: `No se pudo conectar con WAHA: ${error.message}. Verifica que Docker esté corriendo.`,
-    }, { status: 500 })
   }
 }
 
