@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
-const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3000'
+// ✅ FIX PRODUCCIÓN: Lee desde variable de entorno para Vercel
+const WAHA_URL = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
 
 /**
  * GET /api/whatsapp/qr
@@ -49,13 +50,15 @@ export async function GET() {
       message: 'Escanea este código QR con tu WhatsApp Business',
     })
   } catch (error: any) {
+    console.error('[API QR] WAHA_URL configurada:', WAHA_URL)
     console.error('[API QR] Error fatal:', error)
 
     return NextResponse.json({
-      ok: false,
-      error: `No se pudo conectar con WAHA: ${error.message}`,
+      error: `No se pudo conectar con WAHA: fetch failed`,
+      hint: 'En producción, configura WAHA_BASE_URL en Vercel con tu URL pública de WAHA',
+      wahaUrl: WAHA_URL,
       hint: 'Verifica que WAHA esté corriendo: docker ps | grep waha',
-    },
+    { status: 502 })
     { status: 500 })
   }
 }

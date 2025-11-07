@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 
-const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3000'
+// ✅ FIX PRODUCCIÓN: Lee desde variable de entorno para Vercel
+// En desarrollo: http://127.0.0.1:3000
+// En producción: https://waha.tudominio.com (debes configurarlo en Vercel)
+const WAHA_URL = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
 
 /**
  * GET /api/whatsapp/session
@@ -81,10 +84,13 @@ export async function POST() {
         status: data.state || data.status || 'STARTING',
         message: 'Sesión iniciada. Obtén el código QR para conectar.',
       },
+    console.error('[API] WAHA_URL configurada:', WAHA_URL)
     })
   } catch (error: any) {
-    console.error('[API] Error fatal:', error)
-    return NextResponse.json({
+      error: `No se pudo conectar con WAHA: fetch failed. Verifica que Docker esté corriendo.`,
+      hint: 'En producción, configura WAHA_BASE_URL en Vercel con tu URL pública de WAHA',
+      wahaUrl: WAHA_URL,
+    }, { status: 502 })
       ok: false,
       error: `No se pudo conectar con WAHA: ${error.message}. Verifica que Docker esté corriendo.`,
     }, { status: 500 })

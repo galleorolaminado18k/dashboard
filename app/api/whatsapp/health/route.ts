@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
-const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3000'
+// ✅ FIX PRODUCCIÓN: Lee desde variable de entorno para Vercel
+const WAHA_URL = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
 
 /**
  * GET /api/whatsapp/health
