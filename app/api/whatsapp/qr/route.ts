@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server'
 
+const WAHA_URL = process.env.WAHA_URL || 'http://127.0.0.1:3000'
+
 /**
  * GET /api/whatsapp/qr
  * Obtener código QR REAL de WhatsApp Web desde WAHA
  */
 export async function GET() {
   try {
-    const WAHA_URL = process.env.WAHA_URL || 'http://localhost:3000'
+    console.log('[API QR] Solicitando QR a WAHA...')
 
     // Obtener el QR REAL de WAHA
-    const response = await fetch(`${WAHA_URL}/api/sessions/default/qr`, {
+    const response = await fetch(`${WAHA_URL}/api/session/default/qr`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -18,23 +20,25 @@ export async function GET() {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Error de WAHA:', errorText)
+      console.error('[API QR] Error de WAHA:', response.status, errorText)
 
       return NextResponse.json({
         ok: false,
-        error: `Error obteniendo QR de WAHA: ${response.status}`,
-        hint: 'Asegúrate de que WAHA esté corriendo en Docker y que hayas iniciado una sesión.',
+        error: `Error obteniendo QR: ${response.status}`,
+        hint: 'La sesión puede no estar lista aún. Espera unos segundos e intenta de nuevo.',
         needsSessionStart: true,
       }, { status: response.status })
     }
 
     const data = await response.json()
+    console.log('[API QR] QR recibido de WAHA')
 
-    // data.qr contiene el QR en formato base64
+    // data.qr contiene el QR en formato base64 o data URL
     if (!data.qr) {
+      console.warn('[API QR] No hay QR en la respuesta:', data)
       return NextResponse.json({
         ok: false,
-        error: 'No se pudo obtener el código QR. La sesión puede estar ya conectada o en otro estado.',
+        error: 'QR no disponible. La sesión puede estar ya conectada.',
         currentState: data.state || 'UNKNOWN',
       }, { status: 404 })
     }
@@ -45,11 +49,11 @@ export async function GET() {
       message: 'Escanea este código QR con tu WhatsApp Business',
     })
   } catch (error: any) {
-    console.error('Error conectando con WAHA:', error)
+    console.error('[API QR] Error fatal:', error)
 
     return NextResponse.json({
       ok: false,
-      error: error.message,
+      error: `No se pudo conectar con WAHA: ${error.message}`,
       hint: 'Verifica que WAHA esté corriendo: docker ps | grep waha',
     },
     { status: 500 })
