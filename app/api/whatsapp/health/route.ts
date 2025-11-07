@@ -14,6 +14,7 @@ export async function GET() {
     environment: process.env.NODE_ENV || 'unknown'
   })
 }
+
 # 🔴 DIAGNÓSTICO COMPLETO - PROBLEMA ENCONTRADO
 
 ## ✅ LO QUE FUNCIONA
