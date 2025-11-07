@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 
 // ✅ WAHA_BASE_URL desde variable de entorno (Railway/Vercel)
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
+const WAHA_API_KEY = process.env.WAHA_API_KEY || '4876d997cc954b7d8b966b9fd4863f73'
 
 // Timeout para evitar colgarse (60 segundos)
 const FETCH_TIMEOUT = 60000
@@ -63,6 +64,7 @@ export async function GET() {
     const response = await fetchWithTimeout(`${WAHA}/api/session/default/qr`, {
       method: 'GET',
       headers: {
+        'X-Api-Key': WAHA_API_KEY,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',

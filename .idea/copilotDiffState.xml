@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/✅_PROBLEMA_IDENTIFICADO.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/✅_PROBLEMA_IDENTIFICADO.md" />
+              <option name="updatedContent" value="# ✅ PROBLEMA IDENTIFICADO - SOLUCIÓN FINAL&#10;&#10;##  DIAGNÓSTICO COMPLETO LÍNEA POR LÍNEA&#10;&#10;### **1. Contenedor Docker:**&#10;✅ Corriendo correctamente en puerto 3000&#10;&#10;### **2. Variables de entorno configuradas:**&#10;✅ Todas las variables están correctas&#10;&#10;### **3. EL VERDADERO PROBLEMA:**&#10;❌ **WAHA versión 2025.10.5 SIEMPRE genera credenciales**&#10;❌ Ignora `WAHA_SECURITY_ENABLE=false`&#10;❌ Ignora `WAHA_API_KEY=&quot;&quot;`&#10;❌ Genera nuevo API KEY en cada inicio&#10;&#10;### **4. LOGS DEL PROBLEMA:**&#10;```&#10;WAHA_API_KEY=4876d997cc954b7d8b966b9fd4863f73&#10;```&#10;&#10;## ✅ 2 SOLUCIONES POSIBLES&#10;&#10;### **SOLUCIÓN A: Usar API KEY en Vercel (MÁS RÁPIDO)**&#10;&#10;1. Usar el API KEY generado: `4876d997cc954b7d8b966b9fd4863f73`&#10;2. Configurar en Vercel con header de autorización&#10;&#10;### **SOLUCIÓN B: Downgrade a versión sin auth (MÁS LIMPIO)**&#10;&#10;Usar versión anterior de WAHA que sí respeta `WAHA_SECURITY_ENABLE`&#10;&#10;---&#10;&#10;##  EJECUTAR SOLUCIÓN A (RECOMENDADO - 5 MIN)&#10;&#10;```bash&#10;ssh root@31.220.58.83&#10;```&#10;&#10;```bash&#10;cd /opt/waha&#10;docker logs waha-production 2&gt;&amp;1 | grep WAHA_API_KEY | tail -1&#10;```&#10;&#10;**Copiar el API KEY que aparece**&#10;&#10;Luego YO configuraré las APIs de Vercel para usar ese API KEY automáticamente.&#10;&#10;---&#10;&#10;##  O EJECUTAR SOLUCIÓN B (15 MIN)&#10;&#10;Usar imagen específica sin autenticación:&#10;&#10;```bash&#10;ssh root@31.220.58.83&#10;```&#10;&#10;```bash&#10;cd /opt/waha&#10;docker-compose down&#10;cat &gt; docker-compose.yml &lt;&lt; 'ENDCONFIG'&#10;version: '3.8'&#10;services:&#10;  waha:&#10;    image: devlikeapro/waha:2024.10.2&#10;    container_name: waha-production&#10;    restart: unless-stopped&#10;    ports:&#10;      - &quot;3000:3000&quot;&#10;    volumes:&#10;      - ./data:/app/data&#10;    environment:&#10;      WAHA_HTTP_API_HOST: &quot;0.0.0.0&quot;&#10;ENDCONFIG&#10;docker-compose up -d&#10;sleep 30&#10;curl http://localhost:3000/health&#10;```&#10;&#10;---&#10;&#10;##  MI RECOMENDACIÓN&#10;&#10;**SOLUCIÓN A** - Es más rápido. WAHA está funcionando, solo necesitamos agregar el header de autorización en las llamadas API desde Vercel.&#10;&#10;Avísame qué opción prefieres o dame el API KEY y lo configuro YO automáticamente.&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
