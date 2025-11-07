@@ -1,0 +1,352 @@
+app = "waha-production"
+primary_region = "mia"
+
+[build]
+  dockerfile = "Dockerfile.waha"
+
+[env]
+  WAHA_HTTP_API_HOST = "0.0.0.0"
+  WAHA_MULTI_DEVICE = "true"
+  WAHA_LOG_LEVEL = "info"
+  PORT = "3000"
+
+[[services]]
+  http_checks = []
+  internal_port = 3000
+  processes = ["app"]
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "30s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "5s"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+# ⚡ DEPLOY AUTOMÁTICO RAILWAY - EJECUTAR AHORA
+
+## 🎯 SOLUCIÓN DEFINITIVA VPS 24/7
+
+**Error actual:** `WAHA_UNREACHABLE` - Vercel no puede conectar con WAHA
+**Solución:** Deploy WAHA en Railway.app (VPS gratis $5 crédito/mes)
+
+---
+
+## 🔴 OPCIÓN 1: DEPLOY MANUAL RAILWAY (5 MINUTOS)
+
+### **Paso 1: Ir a Railway**
+```
+https://railway.app/new
+```
+
+### **Paso 2: Login con GitHub**
+```
+Click: "Login with GitHub"
+Autorizar Railway
+```
+
+### **Paso 3: Deploy desde GitHub**
+```
+1. Click: "Deploy from GitHub repo"
+2. Buscar: "dashboard"
+3. Seleccionar: galleorolaminado18k/dashboard
+4. Click: "Deploy Now"
+```
+
+### **Paso 4: Configurar Servicio WAHA**
+```
+Railway detectará el proyecto automáticamente.
+
+En el Dashboard:
+1. Click en el servicio creado
+2. Settings → Variables
+3. Agregar estas variables:
+
+WAHA_HTTP_API_HOST = 0.0.0.0
+WAHA_MULTI_DEVICE = true
+WAHA_LOG_LEVEL = info
+PORT = 3000
+```
+
+### **Paso 5: Generar Dominio Público**
+```
+1. Settings → Networking
+2. Click: "Generate Domain"
+3. Se creará algo como: waha-production-xyz123.up.railway.app
+4. ✅ COPIAR ESTA URL
+```
+
+### **Paso 6: Configurar en Vercel**
+```
+1. Ir a: https://vercel.com/dashboard
+2. Seleccionar: tu proyecto dashboard
+3. Settings → Environment Variables
+4. Click: "Add New"
+
+Name:  WAHA_BASE_URL
+Value: https://waha-production-xyz123.up.railway.app
+        (PEGAR LA URL DE RAILWAY AQUÍ)
+
+Apply to:
+☑ Production
+☑ Preview
+☑ Development
+
+5. Click: "Save"
+6. Vercel hará redeploy automático (esperar 1-2 min)
+```
+
+### **Paso 7: VERIFICAR FUNCIONANDO**
+```
+1. Esperar 2-3 minutos a que Railway despliegue WAHA
+2. Ir a: https://dashboard-galle.vercel.app/configuracion
+3. Ingresar: +57 3012439596
+4. Click: "Conectar WhatsApp"
+5. ✅ DEBE APARECER QR SIN ERROR
+6. Escanear QR con WhatsApp Business
+7. ✅ LISTO - FUNCIONA 24/7
+```
+
+---
+
+## 🔴 OPCIÓN 2: FLY.IO (100% GRATIS, MÁS RÁPIDO)
+
+Si Railway no funciona, usa Fly.io (también 24/7 gratis):
+
+### **Paso 1: Instalar Fly CLI**
+```powershell
+# Abrir PowerShell como Administrador
+iwr https://fly.io/install.ps1 -useb | iex
+```
+
+### **Paso 2: Login**
+```bash
+fly auth signup
+# Crear cuenta con email
+# Verificar email
+```
+
+### **Paso 3: Crear fly.toml**
+
+Crear archivo `fly.toml` en la raíz del proyecto:
+
+```toml
+app = "waha-production"
+primary_region = "mia"
+
+[build]
+  dockerfile = "Dockerfile.waha"
+
+[env]
+  WAHA_HTTP_API_HOST = "0.0.0.0"
+  WAHA_MULTI_DEVICE = "true"
+  WAHA_LOG_LEVEL = "info"
+  PORT = "3000"
+
+[[services]]
+  http_checks = []
+  internal_port = 3000
+  processes = ["app"]
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    grace_period = "30s"
+    interval = "15s"
+    restart_limit = 0
+    timeout = "5s"
+```
+
+### **Paso 4: Deploy**
+```bash
+cd C:\Users\USUARIO\WebstormProjects\dashboard
+fly launch --no-deploy
+fly deploy
+```
+
+### **Paso 5: Obtener URL**
+```bash
+fly status
+# Copiar URL: https://waha-production.fly.dev
+```
+
+### **Paso 6: Configurar en Vercel**
+```
+WAHA_BASE_URL = https://waha-production.fly.dev
+```
+
+---
+
+## 🔴 OPCIÓN 3: RENDER.COM (100% GRATIS, DUERME)
+
+Si quieres 100% gratis (pero duerme después de 15 min sin uso):
+
+### **Paso 1: Ir a Render**
+```
+https://render.com/
+```
+
+### **Paso 2: Sign Up**
+```
+Click: "Get Started for Free"
+Login con GitHub
+```
+
+### **Paso 3: New Web Service**
+```
+1. Dashboard → New → Web Service
+2. Connect GitHub repo: dashboard
+3. En configuración:
+
+Name: waha-production
+Region: Oregon (Free)
+Branch: feature/meta-ads-integration-v2
+Root Directory: . (dejar vacío)
+Runtime: Docker
+Dockerfile Path: Dockerfile.waha
+Instance Type: Free
+
+4. Environment Variables:
+WAHA_HTTP_API_HOST = 0.0.0.0
+WAHA_MULTI_DEVICE = true
+PORT = 3000
+
+5. Click: "Create Web Service"
+```
+
+### **Paso 4: Esperar Deploy**
+```
+Tarda 3-5 minutos
+URL se generará automáticamente: https://waha-production.onrender.com
+```
+
+### **Paso 5: Configurar en Vercel**
+```
+WAHA_BASE_URL = https://waha-production.onrender.com
+```
+
+⚠️ **IMPORTANTE:** Render FREE duerme después de 15 min. Primera petición tardará 30s en despertar.
+
+---
+
+## 📊 COMPARACIÓN RÁPIDA
+
+| Opción | Gratis | Siempre Activo | Setup | Velocidad | Recomendado |
+|--------|--------|----------------|-------|-----------|-------------|
+| **Railway** | $5/mes crédito | ✅ Sí | 5 min | ⚡ Rápido | ⭐⭐⭐⭐⭐ |
+| **Fly.io** | ✅ 100% | ✅ Sí | 10 min | ⚡⚡ Muy rápido | ⭐⭐⭐⭐ |
+| **Render** | ✅ 100% | ❌ Duerme | 5 min | 🐌 Lento | ⭐⭐⭐ |
+
+---
+
+## ✅ CHECKLIST
+
+Después de elegir una opción:
+
+- [ ] WAHA desplegado en Railway/Fly/Render
+- [ ] URL pública generada
+- [ ] Variable `WAHA_BASE_URL` en Vercel
+- [ ] Redeploy Vercel completado
+- [ ] Test: `curl https://tu-waha-url.com/health` responde OK
+- [ ] UI: https://dashboard-galle.vercel.app/configuracion
+- [ ] QR aparece sin error `WAHA_UNREACHABLE`
+- [ ] QR escaneado con WhatsApp
+- [ ] ✅ Conexión exitosa 24/7
+
+---
+
+## 🆘 SI ALGO FALLA
+
+### **Railway: No aparece el repo**
+```
+1. Ir a GitHub → Settings → Applications
+2. Railway → Configure
+3. Repository access → Seleccionar dashboard
+4. Save
+5. Volver a Railway y refrescar
+```
+
+### **Fly: Error de instalación CLI**
+```
+# PowerShell como Administrador
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+iwr https://fly.io/install.ps1 -useb | iex
+```
+
+### **Vercel: Sigue error después de configurar**
+```
+1. Verificar variable WAHA_BASE_URL existe
+2. Verificar URL es HTTPS (no HTTP)
+3. Deployments → último → "Redeploy"
+4. Esperar 2 minutos
+5. Probar de nuevo
+```
+
+### **WAHA no responde en Railway/Fly**
+```
+# Test
+curl https://tu-waha-url.com/health
+
+# Ver logs
+Railway: Dashboard → View Logs
+Fly: fly logs
+Render: Dashboard → Logs
+
+# Buscar: "Server started on port 3000"
+```
+
+---
+
+## 🎯 MI RECOMENDACIÓN
+
+**Usar Railway.app:**
+- ✅ Más fácil (sin CLI)
+- ✅ Deploy en 5 minutos
+- ✅ Siempre activo 24/7
+- ✅ HTTPS automático
+- ✅ $2-3/mes (muy barato)
+- ✅ Primer mes gratis con $5 crédito
+
+**Si quieres 100% gratis:**
+- Fly.io es mejor que Render (no duerme)
+
+---
+
+## 📞 ENLACES DIRECTOS
+
+**Railway:** https://railway.app/new
+**Fly.io:** https://fly.io/
+**Render:** https://render.com/
+**Vercel Dashboard:** https://vercel.com/dashboard
+
+---
+
+**Tiempo total:** 5-10 minutos
+**Resultado:** ✅ WAHA 24/7 activo, error WAHA_UNREACHABLE resuelto
+**Costo:** $0-3/mes
+
+---
+
+**Última actualización:** 2025-11-06
+**Prioridad:** 🔴 CRÍTICO - Ejecutar AHORA
+
