@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/app/api/whatsapp/health/route.ts">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/app/api/whatsapp/health/route.ts" />
+              <option name="updatedContent" value="import { NextResponse } from 'next/server'&#10;&#10;export const runtime = 'edge'&#10;export const dynamic = 'force-dynamic'&#10;&#10;export async function GET() {&#10;  const waha = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'NOT_CONFIGURED'&#10;  const apiKey = process.env.WAHA_API_KEY || 'NOT_CONFIGURED'&#10;  &#10;  return NextResponse.json({&#10;    ok: true,&#10;    waha_url: waha,&#10;    has_api_key: apiKey !== 'NOT_CONFIGURED',&#10;    environment: process.env.NODE_ENV || 'unknown'&#10;  })&#10;}&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/_DIAGNOSTICO_DEFINITIVO.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/_DIAGNOSTICO_DEFINITIVO.md" />
+              <option name="updatedContent" value="#  DIAGNÓSTICO COMPLETO - PROBLEMA ENCONTRADO&#10;&#10;## ✅ LO QUE FUNCIONA&#10;&#10;1. ✅ **VPS WAHA funcionando:** http://31.220.58.83:3000&#10;2. ✅ **API Key correcto:** 4876d997cc954b7d8b966b9fd4863f73&#10;3. ✅ **Accesible desde internet:** Status 200 OK&#10;4. ✅ **Código actualizado en GitHub:** Headers con X-Api-Key&#10;&#10;## ❌ EL PROBLEMA&#10;&#10;**Vercel NO tiene las variables configuradas.**&#10;&#10;Cuando Vercel ejecuta el código, usa:&#10;```typescript&#10;const WAHA = process.env.WAHA_BASE_URL || 'http://127.0.0.1:3000'  // ← Usa localhost&#10;```&#10;&#10;Como `WAHA_BASE_URL` no está en Vercel, intenta conectar a `127.0.0.1:3000` (localhost de Vercel), que obviamente falla → **WAHA_UNREACHABLE**.&#10;&#10;---&#10;&#10;## ✅ SOLUCIÓN DEFINITIVA&#10;&#10;### **DEBES configurar estas variables en Vercel:**&#10;&#10;1. **Ir a:** https://vercel.com/dashboard&#10;2. Seleccionar tu proyecto&#10;3. **Settings** → **Environment Variables**&#10;4. **Add New:**&#10;&#10;```&#10;Name:  WAHA_BASE_URL&#10;Value: http://31.220.58.83:3000&#10;Environment: ☑ Production ☑ Preview ☑ Development&#10;```&#10;&#10;**Save**&#10;&#10;```&#10;Name:  WAHA_API_KEY&#10;Value: 4876d997cc954b7d8b966b9fd4863f73&#10;Environment: ☑ Production ☑ Preview ☑ Development&#10;```&#10;&#10;**Save**&#10;&#10;5. **Vercel hará redeploy automático (2-3 minutos)**&#10;&#10;---&#10;&#10;##  CÓMO VERIFICAR SI ESTÁ CONFIGURADO&#10;&#10;Después de configurar, ve a:&#10;```&#10;https://dashboard-galle.vercel.app/api/whatsapp/health&#10;```&#10;&#10;Debe mostrar:&#10;```json&#10;{&quot;ok&quot;: true, &quot;waha&quot;: &quot;http://31.220.58.83:3000&quot;}&#10;```&#10;&#10;Si muestra `http://127.0.0.1:3000` → Las variables NO están configuradas.&#10;&#10;---&#10;&#10;##  ESTADO ACTUAL&#10;&#10;| Componente | Estado | Verificado |&#10;|-----------|--------|------------|&#10;| VPS WAHA | ✅ Funcionando | `curl http://31.220.58.83:3000/api/server/status` |&#10;| API Key | ✅ Correcto | Status 200 con header |&#10;| Acceso público | ✅ Abierto | Test desde PC OK |&#10;| Código GitHub | ✅ Actualizado | Commit 0715dc0 |&#10;| **Variables Vercel** | ❌ **FALTA** | **← ESTO ES EL PROBLEMA** |&#10;&#10;---&#10;&#10;##  ACCIÓN INMEDIATA&#10;&#10;**CONFIGURA LAS 2 VARIABLES EN VERCEL AHORA.**&#10;&#10;Sin esas variables, Vercel intentará conectar a `localhost` en lugar de tu VPS.&#10;&#10;El código está perfecto, solo falta la configuración.&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
