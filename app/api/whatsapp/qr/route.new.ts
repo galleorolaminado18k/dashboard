@@ -59,7 +59,6 @@ export async function GET() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    // Obtener el QR REAL de WAHA
     const response = await fetchWithTimeout(`${WAHA}/api/session/default/qr`, {
       method: 'GET',
       headers: {
@@ -69,24 +68,12 @@ export async function GET() {
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[API QR] Error de WAHA:', response.status, errorText)
-
-      return NextResponse.json({
-        ok: false,
-        error: `WAHA_QR_${response.status}`,
-        hint: 'La sesión puede no estar lista aún. Espera unos segundos e intenta de nuevo.',
-        needsSessionStart: true,
-      }, {
-        status: response.status,
-        headers: corsHeaders()
-      })
+      throw new Error(`WAHA_QR_${response.status}`)
     }
 
     const data = await response.json()
     console.log('[API QR] QR recibido de WAHA')
 
-    // data.qr contiene el QR en formato base64 o data URL
     if (!data.qr) {
       console.warn('[API QR] No hay QR en la respuesta:', data)
       return NextResponse.json({
@@ -99,7 +86,6 @@ export async function GET() {
       })
     }
 
-    // Retornar QR directamente (data:image/png;base64,...)
     return NextResponse.json({
       ok: true,
       qr: data.qr,

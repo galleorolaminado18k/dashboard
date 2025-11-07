@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
 
-// ✅ FIX PRODUCCIÓN DEFINITIVO: Cloudflare Tunnel o ngrok
-// En desarrollo: http://127.0.0.1:3000
-// En producción: https://xxxxx.trycloudflare.com (o ngrok)
-const WAHA_URL = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
+// ✅ Runtime Node.js serverless (mejor para timeouts largos)
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-// Timeout para evitar colgarse (30 segundos)
-const FETCH_TIMEOUT = 30000
+// ✅ WAHA_BASE_URL desde variable de entorno (Railway/Vercel)
+const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
+
+// Timeout para evitar colgarse (60 segundos)
+const FETCH_TIMEOUT = 60000
 
 // Helper para fetch con timeout
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {
@@ -51,13 +53,13 @@ export async function OPTIONS() {
  */
 export async function GET() {
   try {
-    console.log('[API] Verificando estado de sesión en WAHA:', WAHA_URL)
+    console.log('[API] Verificando estado de sesión en WAHA:', WAHA)
 
-    if (!WAHA_URL || WAHA_URL === '') {
+    if (!WAHA || WAHA === '') {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    const response = await fetchWithTimeout(`${WAHA_URL}/api/session/default/state`, {
+    const response = await fetchWithTimeout(`${WAHA}/api/session/default/state`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -97,7 +99,7 @@ export async function GET() {
       error: 'WAHA_UNREACHABLE',
       detail: error.message || String(error),
       needsSetup: true,
-      wahaUrl: WAHA_URL,
+      wahaUrl: WAHA,
     }, {
       status: 502,
       headers: corsHeaders()
@@ -111,33 +113,31 @@ export async function GET() {
  */
 export async function POST() {
   try {
-    console.log('[API] Iniciando sesión de WhatsApp en WAHA:', WAHA_URL)
+    console.log('[API] Iniciando sesión de WhatsApp en WAHA:', WAHA)
 
-    if (!WAHA_URL || WAHA_URL === '') {
+    if (!WAHA || WAHA === '') {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
     // 1. Iniciar sesión
-    const startResponse = await fetchWithTimeout(`${WAHA_URL}/api/session/default/start`, {
+    const start = await fetchWithTimeout(`${WAHA}/api/session/default/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
-    if (!startResponse.ok) {
-      const errorText = await startResponse.text()
-      console.error('[API] Error de WAHA al iniciar:', errorText)
-      throw new Error(`WAHA_START_${startResponse.status}`)
+    if (!start.ok) {
+      throw new Error(`WAHA_START_${start.status}`)
     }
 
-    console.log('[API] Sesión iniciada, obteniendo QR...')
+    console.log('[API] Sesión iniciada, esperando QR...')
 
-    // 2. Esperar un momento para que genere el QR
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // 2. Esperar generación del QR (3 segundos)
+    await new Promise(resolve => setTimeout(resolve, 3000))
 
     // 3. Obtener QR
-    const qrResponse = await fetchWithTimeout(`${WAHA_URL}/api/session/default/qr`, {
+    const qr = await fetchWithTimeout(`${WAHA}/api/session/default/qr`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -145,30 +145,29 @@ export async function POST() {
       cache: 'no-store',
     })
 
-    if (!qrResponse.ok) {
-      throw new Error(`WAHA_QR_${qrResponse.status}`)
+    if (!qr.ok) {
+      throw new Error(`WAHA_QR_${qr.status}`)
     }
 
-    const qrData = await qrResponse.json()
+    const data = await qr.json()
     console.log('[API] QR obtenido exitosamente')
 
+    // Retornar QR directamente (data:image/png;base64,...)
     return NextResponse.json({
       ok: true,
-      qr: qrData.qr,
-      message: 'Sesión iniciada. Escanea el código QR con WhatsApp Business.',
+      qr: data.qr,
+      message: 'Escanea el código QR con WhatsApp Business',
     }, {
       headers: corsHeaders()
     })
   } catch (error: any) {
     console.error('[API] Error fatal:', error.message || error)
-    console.error('[API] WAHA_URL configurada:', WAHA_URL)
 
     return NextResponse.json({
       ok: false,
       error: 'WAHA_UNREACHABLE',
       detail: error.message || String(error),
-      hint: 'En producción: configura WAHA_BASE_URL con Cloudflare Tunnel (https://xxxxx.trycloudflare.com)',
-      wahaUrl: WAHA_URL,
+      wahaUrl: WAHA || 'undefined',
     }, {
       status: 502,
       headers: corsHeaders()
@@ -185,7 +184,7 @@ export async function DELETE() {
     console.log('[API] Deteniendo sesión...')
 
     // Detener la sesión
-    const response = await fetch(`${WAHA_URL}/api/session/default/stop`, {
+    const response = await fetch(`${WAHA}/api/session/default/stop`, {
       method: 'POST',
     })
 
@@ -205,4 +204,3 @@ export async function DELETE() {
     }, { status: 500 })
   }
 }
-
