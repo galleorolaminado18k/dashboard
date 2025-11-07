@@ -8,10 +8,12 @@ ssh root@31.220.58.83
 
 ---
 
-## 🔴 PASO 2: COPIAR TODO ESTE COMANDO
+## 🔴 PASO 2: CORREGIR CONFIGURACIÓN (ERROR 401 SOLUCIONADO)
+
+Ya instalaste WAHA pero tiene error de autenticación. **COPIA ESTE COMANDO CORREGIDO:**
 
 ```bash
-apt update -y && apt install -y curl docker.io docker-compose ufw && systemctl start docker && systemctl enable docker && ufw --force enable && ufw allow 22/tcp && ufw allow 3000/tcp && mkdir -p /opt/waha && cd /opt/waha && cat > docker-compose.yml <<'ENDOFFILE'
+cd /opt/waha && docker-compose down && cat > docker-compose.yml <<'ENDOFFILE'
 version: '3.8'
 services:
   waha:
@@ -27,9 +29,12 @@ services:
       - WAHA_LICENSE_ACCEPT=true
       - WAHA_LOG_LEVEL=info
       - WAHA_MULTI_DEVICE=true
+      - WAHA_SECURITY_ENABLE=false
 ENDOFFILE
-docker-compose up -d && sleep 30 && curl http://localhost:3000/health && echo "" && echo "✅ URL: http://31.220.58.83:3000"
+docker-compose up -d && sleep 30 && curl http://localhost:3000/health && echo "" && echo "✅ WAHA CORREGIDO: http://31.220.58.83:3000"
 ```
+
+**IMPORTANTE:** El cambio clave es `WAHA_SECURITY_ENABLE=false` que desactiva la autenticación.
 
 Presionar ENTER y esperar 5-10 minutos.
 
