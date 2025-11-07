@@ -1,9 +1,49 @@
 import { NextResponse } from 'next/server'
 
-// ✅ FIX PRODUCCIÓN: Lee desde variable de entorno para Vercel
+// ✅ FIX PRODUCCIÓN DEFINITIVO: Cloudflare Tunnel o ngrok
 // En desarrollo: http://127.0.0.1:3000
-// En producción: https://waha.tudominio.com (debes configurarlo en Vercel)
+// En producción: https://xxxxx.trycloudflare.com (o ngrok)
 const WAHA_URL = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
+
+// Timeout para evitar colgarse (30 segundos)
+const FETCH_TIMEOUT = 30000
+
+// Helper para fetch con timeout
+async function fetchWithTimeout(url: string, options: RequestInit = {}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
+    return response
+  } catch (error) {
+    clearTimeout(timeout)
+    throw error
+  }
+}
+
+// Helper CORS
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  }
+}
+
+/**
+ * OPTIONS - CORS preflight
+ */
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    status: 204,
+    headers: corsHeaders()
+  })
+}
 
 /**
  * GET /api/whatsapp/session
@@ -11,18 +51,29 @@ const WAHA_URL = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://12
  */
 export async function GET() {
   try {
-    console.log('[API] Verificando estado de sesión en WAHA...')
-    const response = await fetch(`${WAHA_URL}/api/session/default/state`, {
+    console.log('[API] Verificando estado de sesión en WAHA:', WAHA_URL)
+
+    if (!WAHA_URL || WAHA_URL === '') {
+      throw new Error('ENV_WAHA_BASE_URL_MISSING')
+    }
+
+    const response = await fetchWithTimeout(`${WAHA_URL}/api/session/default/state`, {
       method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
 
     if (!response.ok) {
       console.error('[API] Error obteniendo estado:', response.status)
       return NextResponse.json({
         ok: false,
-        error: 'No se pudo obtener el estado de la sesión',
+        error: `WAHA_STATE_${response.status}`,
         needsSetup: true,
-      }, { status: 500 })
+      }, {
+        status: response.status,
+        headers: corsHeaders()
+      })
     }
 
     const data = await response.json()
@@ -36,64 +87,92 @@ export async function GET() {
         connected: data.state === 'WORKING' || data.status === 'WORKING',
         needsQR: data.state === 'SCAN_QR_CODE' || data.state === 'STARTING',
       },
+    }, {
+      headers: corsHeaders()
     })
   } catch (error: any) {
-    console.error('[API] Error conectando con WAHA:', error)
+    console.error('[API] Error conectando con WAHA:', error.message || error)
     return NextResponse.json({
       ok: false,
-      error: `WAHA no responde. ¿Está corriendo? Error: ${error.message}`,
+      error: 'WAHA_UNREACHABLE',
+      detail: error.message || String(error),
       needsSetup: true,
-    }, { status: 500 })
+      wahaUrl: WAHA_URL,
+    }, {
+      status: 502,
+      headers: corsHeaders()
+    })
   }
 }
 
 /**
  * POST /api/whatsapp/session
- * Crear o iniciar una nueva sesión en WAHA
+ * Crear o iniciar una nueva sesión en WAHA + Obtener QR
  */
 export async function POST() {
   try {
-    console.log('[API] Iniciando sesión de WhatsApp en WAHA...')
+    console.log('[API] Iniciando sesión de WhatsApp en WAHA:', WAHA_URL)
 
-    // Intentar iniciar la sesión
-    const response = await fetch(`${WAHA_URL}/api/session/default/start`, {
+    if (!WAHA_URL || WAHA_URL === '') {
+      throw new Error('ENV_WAHA_BASE_URL_MISSING')
+    }
+
+    // 1. Iniciar sesión
+    const startResponse = await fetchWithTimeout(`${WAHA_URL}/api/session/default/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
-    console.log('[API] Respuesta de WAHA:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[API] Error de WAHA:', errorText)
-      return NextResponse.json({
-        ok: false,
-        error: `WAHA respondió con error: ${errorText}`,
-      }, { status: response.status })
+    if (!startResponse.ok) {
+      const errorText = await startResponse.text()
+      console.error('[API] Error de WAHA al iniciar:', errorText)
+      throw new Error(`WAHA_START_${startResponse.status}`)
     }
 
-    const data = await response.json()
-    console.log('[API] Sesión iniciada:', data)
+    console.log('[API] Sesión iniciada, obteniendo QR...')
+
+    // 2. Esperar un momento para que genere el QR
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    // 3. Obtener QR
+    const qrResponse = await fetchWithTimeout(`${WAHA_URL}/api/session/default/qr`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!qrResponse.ok) {
+      throw new Error(`WAHA_QR_${qrResponse.status}`)
+    }
+
+    const qrData = await qrResponse.json()
+    console.log('[API] QR obtenido exitosamente')
 
     return NextResponse.json({
       ok: true,
-      session: {
-        name: 'default',
-        status: data.state || data.status || 'STARTING',
-        message: 'Sesión iniciada. Obtén el código QR para conectar.',
-      },
+      qr: qrData.qr,
+      message: 'Sesión iniciada. Escanea el código QR con WhatsApp Business.',
+    }, {
+      headers: corsHeaders()
     })
   } catch (error: any) {
-    console.error('[API] Error fatal:', error)
+    console.error('[API] Error fatal:', error.message || error)
     console.error('[API] WAHA_URL configurada:', WAHA_URL)
+
     return NextResponse.json({
       ok: false,
-      error: `No se pudo conectar con WAHA: fetch failed. Verifica que Docker esté corriendo.`,
-      hint: 'En producción, configura WAHA_BASE_URL en Vercel con tu URL pública de WAHA',
+      error: 'WAHA_UNREACHABLE',
+      detail: error.message || String(error),
+      hint: 'En producción: configura WAHA_BASE_URL con Cloudflare Tunnel (https://xxxxx.trycloudflare.com)',
       wahaUrl: WAHA_URL,
-    }, { status: 502 })
+    }, {
+      status: 502,
+      headers: corsHeaders()
+    })
   }
 }
 
