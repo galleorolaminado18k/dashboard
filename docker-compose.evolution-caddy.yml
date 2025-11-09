@@ -1,17 +1,47 @@
 version: '3.8'
 
+# 🚀 Evolution API + Caddy (HTTPS automático)
+#
+# Este archivo configura Evolution API con Caddy como reverse proxy
+# Caddy obtiene certificados SSL automáticamente de Let's Encrypt
+#
+# REQUISITOS:
+# 1. Dominio configurado en DNS apuntando a tu VPS
+# 2. Puertos 80 y 443 abiertos en el firewall
+# 3. Archivo Caddyfile configurado con tu dominio
+
 services:
+  postgres:
+    image: postgres:15
+    container_name: evolution-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution_pass_2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-network
+
   evolution:
     image: atendai/evolution-api:latest
     container_name: evolution-api
     restart: always
     expose:
       - "8080"
+    depends_on:
+      - postgres
     volumes:
       - ./evolution-data:/evolution/store
     environment:
       - SERVER_PORT=8080
       - LOG_LEVEL=INFO
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://evolution:evolution_pass_2024@postgres:5432/evolution?schema=public
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
     networks:
       - evolution-network
 
@@ -22,6 +52,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"  # HTTP/3
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
@@ -32,6 +63,7 @@ services:
       - evolution-network
 
 volumes:
+  postgres_data:
   caddy_data:
   caddy_config:
 

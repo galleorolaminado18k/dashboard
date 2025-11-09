@@ -1,19 +1,46 @@
-# Caddyfile para Evolution API
-# Reemplaza whats.tudominio.com con tu dominio real
+# Caddyfile para Evolution API con HTTPS automático
+#
+# 📋 INSTRUCCIONES DE CONFIGURACIÓN:
+#
+# 1. Reemplaza "whats.tudominio.com" con tu dominio real
+# 2. Configura DNS tipo A: whats → 31.220.58.83
+# 3. Espera 5-10 minutos para propagación DNS
+# 4. Caddy obtendrá certificado SSL automáticamente de Let's Encrypt
+#
+# Ejemplo de configuración DNS:
+# ┌─────────┬────────┬──────────────────┬──────┐
+# │ Tipo    │ Nombre │ Valor            │ TTL  │
+# ├─────────┼────────┼──────────────────┼──────┤
+# │ A       │ whats  │ 31.220.58.83     │ 3600 │
+# └─────────┴────────┴──────────────────┴──────┘
 
 whats.tudominio.com {
+    # Reverse proxy a Evolution API
     reverse_proxy evolution-api:8080
 
-    # Headers CORS
+    # Headers CORS para permitir peticiones desde Vercel
     header {
         Access-Control-Allow-Origin *
         Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
         Access-Control-Allow-Headers "Content-Type, Authorization"
     }
 
-    # Log
+    # Logs para debugging
     log {
         output file /var/log/caddy/evolution.log
+        level INFO
+    }
+
+    # Compresión gzip
+    encode gzip
+
+    # Timeouts largos para WebSocket (WhatsApp)
+    reverse_proxy {
+        to evolution-api:8080
+        transport http {
+            read_timeout 300s
+            write_timeout 300s
+        }
     }
 }
 
