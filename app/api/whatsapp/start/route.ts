@@ -109,14 +109,13 @@ export async function POST() {
     }
 
     // Iniciar sesión en WAHA
-    // WAHA por defecto NO requiere autenticación
-    // Solo enviar X-Api-Key si está configurada explícitamente
+    // Intentar /start primero, si falla con 404 intentar /create
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
 
-    // Solo agregar API key si existe en variables de entorno
+    // Agregar API key si está configurada
     if (WAHA_API_KEY) {
       headers['X-Api-Key'] = WAHA_API_KEY
       console.log('[START] Usando autenticación con API Key')
@@ -124,19 +123,33 @@ export async function POST() {
       console.log('[START] Sin autenticación (modo por defecto de WAHA)')
     }
 
-    const response = await fetch(`${WAHA}/api/sessions/default/start`, {
+    const sessionConfig = {
+      name: 'default',
+      config: {
+        proxy: null,
+        webhooks: [],
+      }
+    }
+
+    // Intentar START
+    let response = await fetch(`${WAHA}/api/sessions/default/start`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        name: 'default',
-        config: {
-          proxy: null,
-          webhooks: [],
-        }
-      })
+      body: JSON.stringify(sessionConfig)
     })
 
-    console.log('[START] Status de inicio:', response.status)
+    console.log('[START] Status de /start:', response.status)
+
+    // Si 404, intentar CREATE
+    if (!response.ok && response.status === 404) {
+      console.log('[START] /start no disponible, intentando /create')
+      response = await fetch(`${WAHA}/api/sessions/default`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(sessionConfig)
+      })
+      console.log('[START] Status de /create:', response.status)
+    }
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -153,12 +166,26 @@ export async function POST() {
         })
       }
 
+      // Error 401 - problema de autenticación
+      if (response.status === 401) {
+        return NextResponse.json({
+          ok: false,
+          error: 'WAHA_AUTH_FAILED',
+          detail: 'WAHA rechazó la API key. La clave enviada NO coincide con el hash configurado en WAHA.',
+          wahaUrl: WAHA,
+          suggestion: 'Verifica que:\n1. WAHA tenga configurado: WAHA_API_KEY=sha512:402d5e20c143...\n2. Tu .env.local tenga: WAHA_API_KEY=d8c776b78aee40d4b9bf75c633d175c8\n3. Reinicia WAHA: docker-compose down && docker-compose up -d',
+        }, {
+          status: 401,
+          headers: corsHeaders()
+        })
+      }
+
       // Error 403 - problema de autenticación
       if (response.status === 403) {
         return NextResponse.json({
           ok: false,
           error: 'WAHA_AUTH_FAILED',
-          detail: 'Error de autenticación con WAHA. Verifica que la API key sea correcta y que WAHA esté configurado para aceptar conexiones externas.',
+          detail: 'Error de autenticación con WAHA. La API key no es válida.',
           wahaUrl: WAHA,
           suggestion: 'Si estás en Vercel, asegúrate de que WAHA_BASE_URL apunte a una URL pública HTTPS y que WAHA_API_KEY sea correcta.',
         }, {
