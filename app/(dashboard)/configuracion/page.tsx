@@ -91,7 +91,7 @@ export default function ConfiguracionPage() {
     console.log('🚀 Iniciando sesión de WhatsApp...')
     setSessionStatus('connecting')
     setError("")
-    setQrCode(null)
+    setQrCodeImage("")
 
     try {
       console.log('📡 Llamando a /api/whatsapp/session-unified (Health → Start → QR)...')
@@ -116,7 +116,7 @@ export default function ConfiguracionPage() {
 
       // QR obtenido exitosamente
       console.log('✅ QR obtenido exitosamente')
-      setQrCode(data.qr)
+      setQrCodeImage(data.qr)
       setSessionStatus('connecting')
 
     } catch (err: any) {
