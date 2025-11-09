@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # WAHA - WhatsApp HTTP API
+  # WAHA - WhatsApp HTTP API con seguridad habilitada
   waha:
     image: devlikeapro/waha:latest
     container_name: waha-whatsapp
@@ -16,6 +16,10 @@ services:
       - WAHA_LICENSE_ACCEPT=true
       - WAHA_LOG_LEVEL=info
       - WAHA_MULTI_DEVICE=true
+
+      # Security: API Key (usa hash SHA-512, NO la clave en texto)
+      # Generada con: scripts/generate-waha-apikey.ps1
+      - WAHA_API_KEY=sha512:402d5e20c143748ded38e13e72c543b200bd75615944ba033b44e1d718eb920128f14b6dd886c6440d9513ffb1dd530dbc426f46f29c26cc2c23aaf3f6fc50ec
 
       # Webhook Configuration (opcional)
       - WHATSAPP_HOOK_URL=https://tu-dashboard.com/api/whatsapp/webhook

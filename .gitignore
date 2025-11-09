@@ -19,6 +19,10 @@ yarn-error.log*
 # env files
 .env*
 
+# WAHA configuration (API keys y datos sensibles)
+/waha-config/
+/waha-data/
+
 # vercel
 .vercel
 

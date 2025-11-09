@@ -4,10 +4,10 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
-const WAHA_API_KEY = process.env.WAHA_API_KEY // Sin fallback - WAHA por defecto NO requiere autenticación
+const WAHA_API_KEY = process.env.WAHA_API_KEY // OBLIGATORIO - generado con scripts/generate-waha-apikey.ps1
 
 console.log('[START] Usando WAHA:', WAHA)
-console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI' : 'NO (sin autenticación)')
+console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI (obligatoria para seguridad)' : 'NO - ERROR')
 
 // Helper CORS
 function corsHeaders() {
@@ -36,6 +36,19 @@ export async function POST() {
 
     if (!WAHA || WAHA === '') {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
+    }
+
+    // Validar API Key (OBLIGATORIA según configuración segura de WAHA)
+    if (!WAHA_API_KEY) {
+      return NextResponse.json({
+        ok: false,
+        error: 'WAHA_API_KEY_MISSING',
+        detail: 'API Key no configurada. WAHA requiere autenticación para seguridad.',
+        solution: 'Ejecuta: powershell scripts/generate-waha-apikey.ps1\nLuego configura WAHA_API_KEY en .env.local',
+      }, {
+        status: 500,
+        headers: corsHeaders()
+      })
     }
 
     // Detectar si estamos en Vercel/producción sin WAHA configurado
@@ -188,4 +201,3 @@ export async function POST() {
     })
   }
 }
-

@@ -106,14 +106,16 @@ export default function ConfiguracionPage() {
         // Mensajes de error específicos
         let errorMessage = 'Error al iniciar sesión en WAHA'
 
-        if (startData.error === 'WAHA_NOT_CONFIGURED_PRODUCTION') {
+        if (startData.error === 'WAHA_API_KEY_MISSING') {
+          errorMessage = `🔒 API KEY NO CONFIGURADA\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}`
+        } else if (startData.error === 'WAHA_NOT_CONFIGURED_PRODUCTION') {
           errorMessage = `🚨 WAHA NO ESTÁ CONFIGURADO EN VERCEL\n\n${startData.detail}\n\n📋 ${startData.solution || ''}\n\n🔗 Guía: ${startData.guide || ''}\n\n📍 URL actual: ${startData.currentUrl || 'No configurada'}`
         } else if (startData.error === 'WAHA_UNAVAILABLE') {
           errorMessage = `⚠️ WAHA NO ESTÁ DISPONIBLE\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}`
         } else if (startData.error === 'WAHA_UNREACHABLE') {
           errorMessage = `❌ NO SE PUEDE CONECTAR CON WAHA\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}\n\n📍 Intentando conectar a: ${startData.wahaUrl}`
         } else if (startData.error === 'WAHA_AUTH_FAILED') {
-          errorMessage = `🔒 Error de autenticación con WAHA\n\n${startData.detail}\n\nNOTA: WAHA por defecto NO requiere API key. Si ves este error:\n1. Verifica que WAHA esté corriendo (docker ps)\n2. Si estás en Vercel: configura WAHA_BASE_URL con URL pública`
+          errorMessage = `🔒 Error de autenticación con WAHA\n\n${startData.detail}\n\n💡 Verifica que la API key sea correcta:\n1. Revisa .env.local (debe tener la clave en texto)\n2. Revisa docker-compose (debe tener el hash sha512:...)\n3. Si es Vercel: configura WAHA_API_KEY con la clave en texto`
         } else if (startData.detail) {
           errorMessage = `${startData.error}\n\n${startData.detail}`
         } else {
