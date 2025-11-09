@@ -31,35 +31,46 @@ export async function OPTIONS() {
 export async function POST() {
   try {
     console.log('[START] Iniciando sesión en WAHA:', WAHA)
+    console.log('[START] Entorno:', process.env.VERCEL ? 'Vercel' : 'Local')
 
     if (!WAHA || WAHA === '') {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
     // Detectar si estamos en Vercel/producción sin WAHA configurado
-    if (WAHA.includes('127.0.0.1') || WAHA.includes('localhost')) {
-      const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production'
-      if (isProduction) {
-        return NextResponse.json({
-          ok: false,
-          error: 'WAHA_NOT_CONFIGURED_PRODUCTION',
-          detail: 'WAHA no está configurado para producción. Necesitas desplegar WAHA en un VPS o servicio externo (Railway, DigitalOcean, etc.) y configurar la variable de entorno WAHA_BASE_URL con la URL pública HTTPS.',
-          guide: 'Ver: https://waha.devlike.pro/docs/how-to/deploy/ para opciones de despliegue',
-        }, {
-          status: 503,
-          headers: corsHeaders()
-        })
-      }
+    const isLocalhost = WAHA.includes('127.0.0.1') || WAHA.includes('localhost')
+    const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production'
+
+    if (isLocalhost && isProduction) {
+      return NextResponse.json({
+        ok: false,
+        error: 'WAHA_NOT_CONFIGURED_PRODUCTION',
+        detail: '🚨 WAHA no está configurado para producción. Estás en Vercel intentando conectar a localhost (127.0.0.1:3000) que no existe.',
+        solution: 'Opciones:\n1. Desarrollo Local: Ejecuta "docker-compose -f docker-compose.waha.yml up -d"\n2. Producción: Despliega WAHA en VPS/Railway y configura WAHA_BASE_URL en Vercel',
+        guide: 'https://waha.devlike.pro/docs/how-to/deploy/',
+      }, {
+        status: 503,
+        headers: corsHeaders()
+      })
     }
 
     // Iniciar sesión en WAHA
+    // WAHA por defecto NO requiere autenticación, solo enviar headers si está configurada
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+
+    // Solo agregar API key si está configurada explícitamente (no usar el fallback)
+    if (process.env.WAHA_API_KEY) {
+      headers['X-Api-Key'] = process.env.WAHA_API_KEY
+    }
+
+    console.log('[START] Headers:', Object.keys(headers))
+
     const response = await fetch(`${WAHA}/api/sessions/default/start`, {
       method: 'POST',
-      headers: {
-        'X-Api-Key': WAHA_API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         name: 'default',
         config: {

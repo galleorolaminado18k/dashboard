@@ -107,11 +107,11 @@ export default function ConfiguracionPage() {
         let errorMessage = 'Error al iniciar sesión en WAHA'
 
         if (startData.error === 'WAHA_NOT_CONFIGURED_PRODUCTION') {
-          errorMessage = '⚠️ WAHA no está configurado para producción. Necesitas desplegar WAHA en un servidor externo (VPS, Railway, DigitalOcean, etc.) y configurar la variable WAHA_BASE_URL. Más info: https://waha.devlike.pro/docs/how-to/deploy/'
+          errorMessage = `🚨 WAHA no está configurado para producción\n\n${startData.detail}\n\n${startData.solution || ''}`
         } else if (startData.error === 'WAHA_AUTH_FAILED') {
-          errorMessage = '🔒 Error de autenticación con WAHA. Verifica que la API key sea correcta y que WAHA esté configurado para aceptar conexiones.'
+          errorMessage = `🔒 Error de autenticación con WAHA\n\n${startData.detail}\n\nNOTA: WAHA por defecto NO requiere API key. Si ves este error:\n1. Verifica que WAHA esté corriendo (docker ps)\n2. Si estás en Vercel: configura WAHA_BASE_URL con URL pública`
         } else if (startData.detail) {
-          errorMessage = `${startData.error}: ${startData.detail}`
+          errorMessage = `${startData.error}\n\n${startData.detail}`
         } else {
           errorMessage = startData.error
         }
