@@ -102,7 +102,21 @@ export default function ConfiguracionPage() {
 
       if (!startData.ok && !startData.alreadyStarted) {
         console.error('❌ Error al iniciar sesión:', startData.error)
-        setError(startData.error || 'Error al iniciar sesión en WAHA')
+
+        // Mensajes de error específicos
+        let errorMessage = 'Error al iniciar sesión en WAHA'
+
+        if (startData.error === 'WAHA_NOT_CONFIGURED_PRODUCTION') {
+          errorMessage = '⚠️ WAHA no está configurado para producción. Necesitas desplegar WAHA en un servidor externo (VPS, Railway, DigitalOcean, etc.) y configurar la variable WAHA_BASE_URL. Más info: https://waha.devlike.pro/docs/how-to/deploy/'
+        } else if (startData.error === 'WAHA_AUTH_FAILED') {
+          errorMessage = '🔒 Error de autenticación con WAHA. Verifica que la API key sea correcta y que WAHA esté configurado para aceptar conexiones.'
+        } else if (startData.detail) {
+          errorMessage = `${startData.error}: ${startData.detail}`
+        } else {
+          errorMessage = startData.error
+        }
+
+        setError(errorMessage)
         setSessionStatus('disconnected')
         return
       }
@@ -127,7 +141,7 @@ export default function ConfiguracionPage() {
       }
     } catch (err: any) {
       console.error('❌ Error conectando con WAHA:', err)
-      setError(`Error al iniciar sesión: ${err.message || 'WAHA_UNREACHABLE'}. Verifica que Docker esté corriendo.`)
+      setError(`Error de red: ${err.message || 'No se pudo conectar con WAHA'}. Si estás en desarrollo local, verifica que Docker esté corriendo con: docker-compose -f docker-compose.waha.yml up -d`)
       setSessionStatus('disconnected')
     }
   }
@@ -309,13 +323,27 @@ export default function ConfiguracionPage() {
                       <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5" />
                         <div className="text-xs text-blue-800">
-                          <p className="font-semibold mb-1">Requisitos:</p>
-                          <ol className="list-decimal list-inside space-y-1">
-                            <li>Docker corriendo con WAHA: <code className="bg-blue-100 px-1 rounded text-[10px]">docker-compose -f docker-compose.waha.yml up -d</code></li>
-                            <li>Ingresa tu número de WhatsApp Business</li>
-                            <li>Click en "Conectar WhatsApp"</li>
-                            <li>Escanea el QR REAL de WhatsApp Web</li>
-                          </ol>
+                          <p className="font-semibold mb-1">🚀 Requisitos para Conectar WhatsApp:</p>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="font-semibold text-[11px] mb-1">📍 Desarrollo Local:</p>
+                              <ol className="list-decimal list-inside space-y-1 ml-2">
+                                <li>Docker corriendo: <code className="bg-blue-100 px-1 rounded text-[10px]">docker-compose -f docker-compose.waha.yml up -d</code></li>
+                                <li>Ingresa tu número de WhatsApp Business</li>
+                                <li>Click en "Conectar WhatsApp"</li>
+                                <li>Escanea el QR REAL de WhatsApp Web</li>
+                              </ol>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-[11px] mb-1">☁️ Producción (Vercel):</p>
+                              <ol className="list-decimal list-inside space-y-1 ml-2">
+                                <li>Despliega WAHA en VPS/Railway/DigitalOcean</li>
+                                <li>Configura variable <code className="bg-blue-100 px-1 rounded text-[10px]">WAHA_BASE_URL</code> con URL HTTPS</li>
+                                <li>Configura <code className="bg-blue-100 px-1 rounded text-[10px]">WAHA_API_KEY</code> si usas autenticación</li>
+                                <li>Guía: <a href="https://waha.devlike.pro/docs/how-to/deploy/" target="_blank" className="underline">waha.devlike.pro/docs</a></li>
+                              </ol>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
