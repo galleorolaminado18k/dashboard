@@ -1,32 +1,18 @@
 import { NextResponse } from 'next/server'
 
-// ✅ Runtime Node.js serverless (mejor para timeouts largos)
-export const runtime = 'nodejs'
+// ✅ Runtime Edge (permite HTTP desde Vercel HTTPS)
+export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 // ✅ WAHA_BASE_URL desde variable de entorno (Railway/Vercel)
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
 const WAHA_API_KEY = process.env.WAHA_API_KEY || '4876d997cc954b7d8b966b9fd4863f73'
 
-// Timeout para evitar colgarse (60 segundos)
-const FETCH_TIMEOUT = 60000
+console.log('[SESSION] Usando WAHA:', WAHA)
 
-// Helper para fetch con timeout
+// Helper para fetch con timeout para edge runtime
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT)
-
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    })
-    clearTimeout(timeout)
-    return response
-  } catch (error) {
-    clearTimeout(timeout)
-    throw error
-  }
+  return fetch(url, options)
 }
 
 // Helper CORS
