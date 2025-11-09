@@ -47,8 +47,48 @@ export async function POST() {
         ok: false,
         error: 'WAHA_NOT_CONFIGURED_PRODUCTION',
         detail: '🚨 WAHA no está configurado para producción. Estás en Vercel intentando conectar a localhost (127.0.0.1:3000) que no existe.',
-        solution: 'Opciones:\n1. Desarrollo Local: Ejecuta "docker-compose -f docker-compose.waha.yml up -d"\n2. Producción: Despliega WAHA en VPS/Railway y configura WAHA_BASE_URL en Vercel',
+        solution: 'Opciones:\n1. Desarrollo Local: Ejecuta "docker-compose -f docker-compose.waha.yml up -d" y abre http://localhost:3000\n2. Producción: Despliega WAHA en VPS/Railway y configura WAHA_BASE_URL en Vercel',
         guide: 'https://waha.devlike.pro/docs/how-to/deploy/',
+        currentUrl: WAHA,
+      }, {
+        status: 503,
+        headers: corsHeaders()
+      })
+    }
+
+    // Verificar disponibilidad de WAHA primero
+    console.log('[START] Verificando disponibilidad de WAHA...')
+    try {
+      const healthCheck = await fetch(`${WAHA}/api/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000), // 5 segundos timeout
+      })
+
+      if (!healthCheck.ok) {
+        console.error('[START] WAHA no responde correctamente')
+        return NextResponse.json({
+          ok: false,
+          error: 'WAHA_UNAVAILABLE',
+          detail: `WAHA no está disponible en ${WAHA}. El servidor respondió con status ${healthCheck.status}.`,
+          solution: isLocalhost
+            ? 'Ejecuta: docker-compose -f docker-compose.waha.yml up -d'
+            : 'Verifica que WAHA esté corriendo en tu servidor',
+        }, {
+          status: 503,
+          headers: corsHeaders()
+        })
+      }
+      console.log('[START] ✅ WAHA está disponible')
+    } catch (healthError: any) {
+      console.error('[START] Error conectando con WAHA:', healthError.message)
+      return NextResponse.json({
+        ok: false,
+        error: 'WAHA_UNREACHABLE',
+        detail: `No se puede conectar con WAHA en ${WAHA}. Error: ${healthError.message}`,
+        solution: isLocalhost
+          ? '1. Ejecuta: docker-compose -f docker-compose.waha.yml up -d\n2. Verifica con: docker ps | findstr waha'
+          : '1. Verifica que WAHA_BASE_URL sea correcta\n2. Verifica que WAHA esté corriendo\n3. Verifica el firewall/CORS',
+        wahaUrl: WAHA,
       }, {
         status: 503,
         headers: corsHeaders()

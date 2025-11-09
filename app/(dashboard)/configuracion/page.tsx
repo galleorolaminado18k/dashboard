@@ -107,7 +107,11 @@ export default function ConfiguracionPage() {
         let errorMessage = 'Error al iniciar sesión en WAHA'
 
         if (startData.error === 'WAHA_NOT_CONFIGURED_PRODUCTION') {
-          errorMessage = `🚨 WAHA no está configurado para producción\n\n${startData.detail}\n\n${startData.solution || ''}`
+          errorMessage = `🚨 WAHA NO ESTÁ CONFIGURADO EN VERCEL\n\n${startData.detail}\n\n📋 ${startData.solution || ''}\n\n🔗 Guía: ${startData.guide || ''}\n\n📍 URL actual: ${startData.currentUrl || 'No configurada'}`
+        } else if (startData.error === 'WAHA_UNAVAILABLE') {
+          errorMessage = `⚠️ WAHA NO ESTÁ DISPONIBLE\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}`
+        } else if (startData.error === 'WAHA_UNREACHABLE') {
+          errorMessage = `❌ NO SE PUEDE CONECTAR CON WAHA\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}\n\n📍 Intentando conectar a: ${startData.wahaUrl}`
         } else if (startData.error === 'WAHA_AUTH_FAILED') {
           errorMessage = `🔒 Error de autenticación con WAHA\n\n${startData.detail}\n\nNOTA: WAHA por defecto NO requiere API key. Si ves este error:\n1. Verifica que WAHA esté corriendo (docker ps)\n2. Si estás en Vercel: configura WAHA_BASE_URL con URL pública`
         } else if (startData.detail) {
