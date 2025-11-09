@@ -6,10 +6,10 @@ services:
     container_name: waha
     restart: always
     environment:
+      # IMPRESCINDIBLE: Escuchar en 0.0.0.0 para aceptar conexiones externas
       WAHA_HTTP_API_HOST: "0.0.0.0"
-      WAHA_LICENSE_ACCEPT: "true"
-      WAHA_LOG_LEVEL: "info"
       WAHA_MULTI_DEVICE: "true"
+      # NO PONER WAHA_API_KEY en CORE/WEBJS (no funciona)
     ports:
       - "3000:3000"
     volumes:
