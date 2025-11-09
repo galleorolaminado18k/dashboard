@@ -4,11 +4,11 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
-const WAHA_API_KEY = process.env.WAHA_API_KEY // OPCIONAL - Solo funciona en WAHA Plus, no en CORE/WEBJS
+const WAHA_API_KEY = process.env.WAHA_API_KEY // WAHA genera API key automáticamente
 
 console.log('[START] Usando WAHA:', WAHA)
-console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI (solo funciona en Plus)' : 'NO (modo CORE/WEBJS - proteger con firewall)')
-console.log('[START] IMPORTANTE: WAHA CORE/WEBJS no soporta X-Api-Key, devuelve 422. Usar firewall para proteger.')
+console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI (WAHA la generó automáticamente)' : 'NO')
+console.log('[START] NOTA: WAHA genera credenciales automáticas si no las configuras')
 
 // Helper CORS
 function corsHeaders() {
@@ -100,23 +100,18 @@ export async function POST() {
     }
 
     // Iniciar sesión en WAHA
-    // IMPORTANTE: Endpoints correctos según logs de WAHA
-    // - POST /api/sessions/:session/start (plural "sessions")
-    // - GET /api/:session/auth/qr
+    // WAHA genera API key automáticamente en el primer inicio
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
 
-    // API Key OPCIONAL - Solo funciona en WAHA Plus, no en CORE/WEBJS
-    // CORE/WEBJS devuelve 422 si intentas usar X-Api-Key
-    // Proteger con firewall en su lugar
+    // Usar API key si está disponible (WAHA la genera automáticamente)
     if (WAHA_API_KEY) {
-      // Solo agregar si está configurada Y no estamos en CORE/WEBJS
-      // headers['X-Api-Key'] = WAHA_API_KEY
-      console.log('[START] API Key disponible pero NO se usa (WAHA CORE/WEBJS no la soporta)')
+      headers['X-Api-Key'] = WAHA_API_KEY
+      console.log('[START] Usando API Key generada por WAHA')
     } else {
-      console.log('[START] Sin API Key (proteger con firewall)')
+      console.log('[START] Sin API Key - verifica los logs de WAHA para obtenerla')
     }
 
     const sessionConfig = {
@@ -127,7 +122,7 @@ export async function POST() {
       }
     }
 
-    // Intentar START (endpoint correcto: /api/sessions/ con 's')
+    // Endpoint correcto: /api/sessions/:session/start (plural "sessions")
     let response = await fetch(`${WAHA}/api/sessions/default/start`, {
       method: 'POST',
       headers,
@@ -136,11 +131,6 @@ export async function POST() {
 
     console.log('[START] Status de /api/sessions/default/start:', response.status)
 
-    // Si 404, la ruta no existe
-    if (!response.ok && response.status === 404) {
-      console.log('[START] Endpoint /api/sessions/default/start no encontrado')
-      // No intentar /create ya que el endpoint correcto es /api/sessions/
-    }
 
     if (!response.ok) {
       const errorText = await response.text()

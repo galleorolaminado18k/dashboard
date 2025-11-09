@@ -1,24 +1,28 @@
 # Script para verificar WAHA en VPS (Windows PowerShell)
-# VERSIÓN CORREGIDA - Sin API Key, endpoints correctos
+# VERSIÓN ACTUALIZADA - Con API Key generada automáticamente por WAHA
 # Ejecutar: powershell scripts\check-waha-vps.ps1
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  VERIFICACION WAHA EN VPS (CORREGIDO)" -ForegroundColor Cyan
+Write-Host "  VERIFICACION WAHA EN VPS" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 $VPS_IP = "31.220.58.83"
+$API_KEY = "1fecdcf9f5ec4dd885a2be7e22b27ff4"  # Generada automáticamente por WAHA
 
-Write-Host "IMPORTANTE: WAHA CORE/WEBJS NO usa API Key" -ForegroundColor Yellow
-Write-Host "Probando sin X-Api-Key header..." -ForegroundColor Yellow
+Write-Host "NOTA: WAHA generó API key automáticamente" -ForegroundColor Yellow
+Write-Host "API Key: $API_KEY" -ForegroundColor Gray
 Write-Host ""
 
-Write-Host "1. Test de salud (debe dar 200)..." -ForegroundColor Yellow
-Write-Host "   curl http://$VPS_IP:3000/health" -ForegroundColor Gray
+Write-Host "1. Test de salud CON API Key (debe dar 200)..." -ForegroundColor Yellow
+Write-Host "   curl -H 'X-Api-Key: $API_KEY' http://$VPS_IP:3000/health" -ForegroundColor Gray
 Write-Host ""
 
 try {
-    $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/health" -Method Get
+    $headers = @{
+        "X-Api-Key" = $API_KEY
+    }
+    $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/health" -Headers $headers -Method Get
     Write-Host "STATUS: $($response.StatusCode)" -ForegroundColor Green
     Write-Host "BODY: $($response.Content)" -ForegroundColor Green
 } catch {
@@ -29,9 +33,10 @@ try {
 }
 
 Write-Host ""
-Write-Host "2. Test /api/sessions/default/start (debe dar 200 o 409)..." -ForegroundColor Yellow
+Write-Host "2. Test /api/sessions/default/start CON API Key..." -ForegroundColor Yellow
 try {
     $headers = @{
+        "X-Api-Key" = $API_KEY
         "Content-Type" = "application/json"
     }
     $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/api/sessions/default/start" -Headers $headers -Method Post
@@ -40,17 +45,21 @@ try {
 } catch {
     Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
     if ($_.Exception.Response) {
-        Write-Host "STATUS: $($_.Exception.Response.StatusCode.value__)" -ForegroundColor Red
-        $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-        $body = $reader.ReadToEnd()
-        Write-Host "BODY: $body" -ForegroundColor Red
+        $statusCode = $_.Exception.Response.StatusCode.value__
+        Write-Host "STATUS: $statusCode" -ForegroundColor $(if ($statusCode -eq 409) { "Green" } else { "Red" })
+        if ($statusCode -eq 409) {
+            Write-Host "409 = Sesión ya iniciada (esto es OK)" -ForegroundColor Green
+        }
     }
 }
 
 Write-Host ""
-Write-Host "3. Test /api/default/auth/qr (debe dar 200)..." -ForegroundColor Yellow
+Write-Host "3. Test /api/default/auth/qr CON API Key..." -ForegroundColor Yellow
 try {
-    $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/api/default/auth/qr" -Method Get
+    $headers = @{
+        "X-Api-Key" = $API_KEY
+    }
+    $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/api/default/auth/qr" -Headers $headers -Method Get
     Write-Host "STATUS: $($response.StatusCode)" -ForegroundColor Green
     Write-Host "BODY (primeros 100 caracteres): $($response.Content.Substring(0, [Math]::Min(100, $response.Content.Length)))..." -ForegroundColor Green
 } catch {
@@ -61,9 +70,12 @@ try {
 }
 
 Write-Host ""
-Write-Host "4. Test /api/sessions/default (debe dar 200)..." -ForegroundColor Yellow
+Write-Host "4. Test /api/sessions/default CON API Key..." -ForegroundColor Yellow
 try {
-    $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/api/sessions/default" -Method Get
+    $headers = @{
+        "X-Api-Key" = $API_KEY
+    }
+    $response = Invoke-WebRequest -Uri "http://${VPS_IP}:3000/api/sessions/default" -Headers $headers -Method Get
     Write-Host "STATUS: $($response.StatusCode)" -ForegroundColor Green
     Write-Host "BODY: $($response.Content)" -ForegroundColor Green
 } catch {
@@ -75,14 +87,11 @@ try {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  RESULTADOS ESPERADOS" -ForegroundColor Cyan
+Write-Host "  RESULTADOS" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "/health: 200 OK" -ForegroundColor Green
-Write-Host "/api/sessions/default/start: 200 OK o 409 (ya existe)" -ForegroundColor Green
-Write-Host "/api/default/auth/qr: 200 OK con QR code" -ForegroundColor Green
-Write-Host "/api/sessions/default: 200 OK con status de sesion" -ForegroundColor Green
 Write-Host ""
-Write-Host "Si ves 401/403/422: WAHA tiene API Key activada (no debe)" -ForegroundColor Red
-Write-Host "Si ves timeout: WAHA no esta escuchando en 0.0.0.0" -ForegroundColor Red
+Write-Host "Si todos dan 200 OK: ✅ WAHA está funcionando correctamente" -ForegroundColor Green
+Write-Host "Si ves 401: ❌ API Key incorrecta" -ForegroundColor Red
+Write-Host "Si ves 409 en /start: ✅ Sesión ya iniciada (esto es OK)" -ForegroundColor Green
 Write-Host ""
 

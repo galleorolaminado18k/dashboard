@@ -47,19 +47,18 @@ export async function GET() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    // Headers sin API Key (WAHA CORE/WEBJS no la soporta)
+    // Headers con API Key (WAHA la genera automáticamente)
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
 
-    // NO usar API key en CORE/WEBJS (devuelve 422)
-    // if (WAHA_API_KEY) {
-    //   headers['X-Api-Key'] = WAHA_API_KEY
-    // }
+    if (WAHA_API_KEY) {
+      headers['X-Api-Key'] = WAHA_API_KEY
+      console.log('[API QR] Usando API Key')
+    }
 
-    // Obtener el QR REAL de WAHA
-    // Endpoint correcto según logs: GET /api/:session/auth/qr
+    // Endpoint correcto: GET /api/:session/auth/qr
     const response = await fetchWithTimeout(`${WAHA}/api/default/auth/qr`, {
       method: 'GET',
       headers,

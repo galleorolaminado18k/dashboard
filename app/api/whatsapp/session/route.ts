@@ -47,16 +47,16 @@ export async function GET() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    // Headers sin API Key (WAHA CORE/WEBJS no la soporta)
+    // Headers con API Key (WAHA la genera automáticamente)
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
 
-    // NO usar API key en CORE/WEBJS
-    // if (WAHA_API_KEY) {
-    //   headers['X-Api-Key'] = WAHA_API_KEY
-    // }
+    // Usar API key si está disponible
+    if (WAHA_API_KEY) {
+      headers['X-Api-Key'] = WAHA_API_KEY
+    }
 
     // Endpoint correcto: /api/sessions/:session (plural)
     const url = `${WAHA}/api/sessions/default`
