@@ -4,7 +4,7 @@
  */
 
 const WAHA_URL = process.env.WAHA_URL || 'http://localhost:3000'
-const WAHA_API_KEY = process.env.WAHA_API_KEY || ''
+const WAHA_API_KEY = process.env.WAHA_API_KEY // Sin fallback - autenticación opcional
 
 export interface WAHASession {
   name: string
@@ -29,19 +29,23 @@ export interface WAHAMessagePayload {
 
 class WAHAClient {
   private baseUrl: string
-  private apiKey: string
+  private apiKey?: string
 
-  constructor(baseUrl: string = WAHA_URL, apiKey: string = WAHA_API_KEY) {
+  constructor(baseUrl: string = WAHA_URL, apiKey?: string) {
     this.baseUrl = baseUrl
-    this.apiKey = apiKey
+    this.apiKey = apiKey || WAHA_API_KEY
   }
 
   private async fetch(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseUrl}${endpoint}`
-    const headers = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Api-Key': this.apiKey,
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
+    }
+
+    // Solo agregar API key si está configurada
+    if (this.apiKey) {
+      headers['X-Api-Key'] = this.apiKey
     }
 
     const response = await fetch(url, { ...options, headers })

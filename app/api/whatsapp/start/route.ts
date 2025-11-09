@@ -4,9 +4,10 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
-const WAHA_API_KEY = process.env.WAHA_API_KEY || '4876d997cc954b7d8b966b9fd4863f73'
+const WAHA_API_KEY = process.env.WAHA_API_KEY // Sin fallback - WAHA por defecto NO requiere autenticación
 
 console.log('[START] Usando WAHA:', WAHA)
+console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI' : 'NO (sin autenticación)')
 
 // Helper CORS
 function corsHeaders() {
@@ -55,18 +56,20 @@ export async function POST() {
     }
 
     // Iniciar sesión en WAHA
-    // WAHA por defecto NO requiere autenticación, solo enviar headers si está configurada
+    // WAHA por defecto NO requiere autenticación
+    // Solo enviar X-Api-Key si está configurada explícitamente
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
 
-    // Solo agregar API key si está configurada explícitamente (no usar el fallback)
-    if (process.env.WAHA_API_KEY) {
-      headers['X-Api-Key'] = process.env.WAHA_API_KEY
+    // Solo agregar API key si existe en variables de entorno
+    if (WAHA_API_KEY) {
+      headers['X-Api-Key'] = WAHA_API_KEY
+      console.log('[START] Usando autenticación con API Key')
+    } else {
+      console.log('[START] Sin autenticación (modo por defecto de WAHA)')
     }
-
-    console.log('[START] Headers:', Object.keys(headers))
 
     const response = await fetch(`${WAHA}/api/sessions/default/start`, {
       method: 'POST',

@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic'
 
 // ✅ WAHA_BASE_URL desde variable de entorno (Railway/Vercel)
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
-const WAHA_API_KEY = process.env.WAHA_API_KEY || '4876d997cc954b7d8b966b9fd4863f73'
+const WAHA_API_KEY = process.env.WAHA_API_KEY // Sin fallback - autenticación opcional
 
 console.log('[SESSION] Usando WAHA:', WAHA)
+console.log('[SESSION] API Key configurada:', WAHA_API_KEY ? 'SI' : 'NO')
 
 // Helper para fetch con timeout para edge runtime
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {
@@ -46,14 +47,23 @@ export async function GET() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    const response = await fetchWithTimeout(`${WAHA}/api/session/default/state?apiKey=${WAHA_API_KEY}`, {
+    // Preparar headers opcionales
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+
+    // Solo agregar API key si está configurada
+    if (WAHA_API_KEY) {
+      headers['X-Api-Key'] = WAHA_API_KEY
+    }
+
+    // Construir URL sin query params (WAHA usa headers para auth)
+    const url = `${WAHA}/api/sessions/default`
+
+    const response = await fetchWithTimeout(url, {
       method: 'GET',
-      headers: {
-        'X-Api-Key': WAHA_API_KEY,
-        'Authorization': `Bearer ${WAHA_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
