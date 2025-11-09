@@ -1,0 +1,19 @@
+# Caddyfile para Evolution API
+# Reemplaza whats.tudominio.com con tu dominio real
+
+whats.tudominio.com {
+    reverse_proxy evolution-api:8080
+
+    # Headers CORS
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+
+    # Log
+    log {
+        output file /var/log/caddy/evolution.log
+    }
+}
+

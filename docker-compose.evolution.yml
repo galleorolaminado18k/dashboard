@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  evolution:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./evolution-data:/evolution/store
+    environment:
+      - SERVER_PORT=8080
+      - LOG_LEVEL=INFO
+      - WEBHOOK_URL=
+    networks:
+      - evolution-network
+
+networks:
+  evolution-network:
+    driver: bridge
+

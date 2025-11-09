@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  evolution:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    restart: always
+    expose:
+      - "8080"
+    volumes:
+      - ./evolution-data:/evolution/store
+    environment:
+      - SERVER_PORT=8080
+      - LOG_LEVEL=INFO
+    networks:
+      - evolution-network
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - evolution
+    networks:
+      - evolution-network
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  evolution-network:
+    driver: bridge
+

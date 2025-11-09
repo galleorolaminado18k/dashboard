@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import QRCode from "qrcode"
 
 interface CRMConfig {
   whatsappBusinessPhone: string
@@ -70,7 +69,7 @@ export default function ConfiguracionPage() {
 
   const checkSessionStatus = async () => {
     try {
-      const res = await fetch('/api/whatsapp/session')
+      const res = await fetch('/api/whatsapp/evolution')
       if (res.ok) {
         const data = await res.json()
         if (data.ok && data.session) {
@@ -88,15 +87,15 @@ export default function ConfiguracionPage() {
   }
 
   const startWhatsAppSession = async () => {
-    console.log('🚀 Iniciando sesión de WhatsApp...')
+    console.log('🚀 Iniciando sesión de WhatsApp con Evolution API...')
     setSessionStatus('connecting')
     setError("")
     setQrCodeImage("")
 
     try {
-      console.log('📡 Llamando a /api/whatsapp/session-unified (Health → Start → QR)...')
+      console.log('📡 Llamando a /api/whatsapp/evolution (Start → QR)...')
 
-      const response = await fetch('/api/whatsapp/session-unified', {
+      const response = await fetch('/api/whatsapp/evolution', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -109,32 +108,32 @@ export default function ConfiguracionPage() {
 
       if (!response.ok || !data.ok) {
         console.error('❌ Error:', data.error, data.detail)
-        setError(data.detail || data.error || 'Error conectando con WAHA')
+        setError(data.detail || data.error || 'Error conectando con Evolution API')
         setSessionStatus('disconnected')
         return
       }
 
       // QR obtenido exitosamente
-      console.log('✅ QR obtenido exitosamente')
-      setQrCodeImage(data.qr)
+      console.log('✅ QR obtenido exitosamente de Evolution API')
+      setQrCodeImage(data.qr) // Evolution retorna data:image/png;base64,...
       setSessionStatus('connecting')
+
+      // Iniciar polling para verificar cuando se escanee
+      startPollingStatus()
 
     } catch (err: any) {
       console.error('❌ Error de red:', err)
-      setError(`Error de red: ${err.message || 'No se pudo conectar con WAHA'}`)
+      setError(`Error de red: ${err.message || 'No se pudo conectar con Evolution API'}`)
       setSessionStatus('disconnected')
     }
   }
 
-  const startPollingQR = () => {
+  const startPollingStatus = () => {
     // Limpiar interval anterior si existe
     if (pollingInterval) clearInterval(pollingInterval)
 
-    // Obtener QR inmediatamente
-    fetchQRCode()
-
-    // Y luego cada 5 segundos
-    const interval = setInterval(fetchQRCode, 5000)
+    // Verificar estado cada 3 segundos
+    const interval = setInterval(checkConnectionStatus, 3000)
     setPollingInterval(interval)
 
     // Timeout de 2 minutos
@@ -147,24 +146,39 @@ export default function ConfiguracionPage() {
     }, 120000)
   }
 
+  const checkConnectionStatus = async () => {
+    try {
+      console.log('🔄 Verificando estado de conexión...')
+      const res = await fetch('/api/whatsapp/evolution')
+      const data = await res.json()
+
+      console.log('📥 Estado:', data)
+
+      if (data.ok && data.session) {
+        if (data.session.connected) {
+          // Ya está conectado!
+          console.log('✅ WhatsApp conectado!')
+          setSessionStatus('connected')
+          setQrCodeImage("")
+          if (pollingInterval) clearInterval(pollingInterval)
+        }
+      }
+    } catch (err) {
+      console.error('❌ Error verificando estado:', err)
+    }
+  }
+
   const fetchQRCode = async () => {
     try {
-      console.log('🔄 Obteniendo QR...')
-      const res = await fetch('/api/whatsapp/qr')
+      console.log('🔄 Obteniendo QR de Evolution API...')
+      const res = await fetch('/api/whatsapp/evolution', { method: 'POST' })
       const data = await res.json()
 
       console.log('📥 Respuesta QR:', data)
 
       if (data.ok && data.qr) {
-        // QR REAL de WhatsApp Web en base64
         console.log('✅ QR recibido!')
         setQrCodeImage(data.qr)
-      } else if (data.currentState === 'WORKING') {
-        // Ya está conectado
-        console.log('✅ WhatsApp ya está conectado!')
-        setSessionStatus('connected')
-        if (pollingInterval) clearInterval(pollingInterval)
-        setQrCodeImage("")
       } else {
         console.log('⏳ QR no disponible aún:', data.error || 'esperando...')
       }
@@ -175,24 +189,13 @@ export default function ConfiguracionPage() {
 
   const disconnectWhatsApp = async () => {
     try {
-      await fetch('/api/whatsapp/session', { method: 'DELETE' })
+      await fetch('/api/whatsapp/evolution', { method: 'DELETE' })
       setSessionStatus('disconnected')
       setQrCodeImage("")
       if (pollingInterval) clearInterval(pollingInterval)
     } catch (err) {
       setError('Error al desconectar')
     }
-  }
-
-  const generateQRCode = async (phone: string) => {
-    // Esta función ahora inicia la sesión de WAHA
-    if (!phone || phone.length < 10) return
-
-    // Guardar el número en la config
-    setConfig({ ...config, whatsappBusinessPhone: phone })
-
-    // Iniciar sesión de WhatsApp con WAHA
-    await startWhatsAppSession()
   }
 
   const handlePhoneChange = (phone: string) => {
@@ -308,7 +311,8 @@ export default function ConfiguracionPage() {
                             <div>
                               <p className="font-semibold text-[11px] mb-1">📍 Desarrollo Local:</p>
                               <ol className="list-decimal list-inside space-y-1 ml-2">
-                                <li>Docker corriendo: <code className="bg-blue-100 px-1 rounded text-[10px]">docker-compose -f docker-compose.waha.yml up -d</code></li>
+                                <li>Docker corriendo: <code className="bg-blue-100 px-1 rounded text-[10px]">docker compose -f docker-compose.evolution.yml up -d</code></li>
+                                <li>Verifica: <code className="bg-blue-100 px-1 rounded text-[10px]">curl http://localhost:8080/health</code></li>
                                 <li>Ingresa tu número de WhatsApp Business</li>
                                 <li>Click en "Conectar WhatsApp"</li>
                                 <li>Escanea el QR REAL de WhatsApp Web</li>
@@ -317,10 +321,11 @@ export default function ConfiguracionPage() {
                             <div>
                               <p className="font-semibold text-[11px] mb-1">☁️ Producción (Vercel):</p>
                               <ol className="list-decimal list-inside space-y-1 ml-2">
-                                <li>Despliega WAHA en VPS/Railway/DigitalOcean</li>
-                                <li>Configura variable <code className="bg-blue-100 px-1 rounded text-[10px]">WAHA_BASE_URL</code> con URL HTTPS</li>
-                                <li>Configura <code className="bg-blue-100 px-1 rounded text-[10px]">WAHA_API_KEY</code> si usas autenticación</li>
-                                <li>Guía: <a href="https://waha.devlike.pro/docs/how-to/deploy/" target="_blank" className="underline">waha.devlike.pro/docs</a></li>
+                                <li>Despliega Evolution API en VPS/Railway/DigitalOcean</li>
+                                <li>Con dominio (Caddy): <code className="bg-blue-100 px-1 rounded text-[10px]">docker compose -f docker-compose.evolution-caddy.yml up -d</code></li>
+                                <li>O solo IP: <code className="bg-blue-100 px-1 rounded text-[10px]">docker run -d -p 8080:8080 atendai/evolution-api</code></li>
+                                <li>Configura variable <code className="bg-blue-100 px-1 rounded text-[10px]">EVO_BASE_URL</code> en Vercel</li>
+                                <li>Guía: <a href="https://github.com/EvolutionAPI/evolution-api" target="_blank" className="underline">github.com/EvolutionAPI/evolution-api</a></li>
                               </ol>
                             </div>
                           </div>
