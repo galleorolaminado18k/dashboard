@@ -46,11 +46,13 @@ export async function GET() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    const response = await fetchWithTimeout(`${WAHA}/api/session/default/state`, {
+    const response = await fetchWithTimeout(`${WAHA}/api/session/default/state?apiKey=${WAHA_API_KEY}`, {
       method: 'GET',
       headers: {
         'X-Api-Key': WAHA_API_KEY,
+        'Authorization': `Bearer ${WAHA_API_KEY}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
     })
 

@@ -47,11 +47,13 @@ export async function GET() {
     }
 
     // Obtener el QR REAL de WAHA
-    const response = await fetchWithTimeout(`${WAHA}/api/session/default/qr`, {
+    const response = await fetchWithTimeout(`${WAHA}/api/session/default/qr?apiKey=${WAHA_API_KEY}`, {
       method: 'GET',
       headers: {
         'X-Api-Key': WAHA_API_KEY,
+        'Authorization': `Bearer ${WAHA_API_KEY}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       cache: 'no-store',
     })

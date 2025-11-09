@@ -93,25 +93,41 @@ export default function ConfiguracionPage() {
     setError("")
 
     try {
-      // Iniciar sesión en WAHA
-      console.log('📡 Llamando a /api/whatsapp/session...')
-      const res = await fetch('/api/whatsapp/session', { method: 'POST' })
-      const data = await res.json()
+      // PASO 1: Iniciar sesión en WAHA primero
+      console.log('📡 Paso 1: Iniciando sesión en WAHA...')
+      const startRes = await fetch('/api/whatsapp/start', { method: 'POST' })
+      const startData = await startRes.json()
 
-      console.log('📥 Respuesta de sesión:', data)
+      console.log('📥 Respuesta de start:', startData)
 
-      if (data.ok) {
-        console.log('✅ Sesión iniciada, comenzando polling...')
+      if (!startData.ok && !startData.alreadyStarted) {
+        console.error('❌ Error al iniciar sesión:', startData.error)
+        setError(startData.error || 'Error al iniciar sesión en WAHA')
+        setSessionStatus('disconnected')
+        return
+      }
+
+      console.log('✅ Sesión iniciada (o ya existía)')
+
+      // PASO 2: Verificar estado de la sesión
+      console.log('📡 Paso 2: Verificando estado...')
+      const sessionRes = await fetch('/api/whatsapp/session')
+      const sessionData = await sessionRes.json()
+
+      console.log('📥 Respuesta de sesión:', sessionData)
+
+      if (sessionData.ok) {
+        console.log('✅ Estado verificado, comenzando polling del QR...')
         // Empezar a obtener el QR
         startPollingQR()
       } else {
-        console.error('❌ Error al iniciar sesión:', data.error)
-        setError(data.error || 'Error al iniciar sesión. Verifica que WAHA esté corriendo.')
+        console.error('❌ Error al verificar sesión:', sessionData.error)
+        setError(sessionData.error || 'Error al verificar sesión')
         setSessionStatus('disconnected')
       }
     } catch (err: any) {
       console.error('❌ Error conectando con WAHA:', err)
-      setError('Error conectando con WAHA. ¿Está corriendo Docker? Ejecuta: docker-compose -f docker-compose.waha.yml up -d')
+      setError(`Error al iniciar sesión: ${err.message || 'WAHA_UNREACHABLE'}. Verifica que Docker esté corriendo.`)
       setSessionStatus('disconnected')
     }
   }
