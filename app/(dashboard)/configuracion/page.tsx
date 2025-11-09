@@ -91,63 +91,37 @@ export default function ConfiguracionPage() {
     console.log('🚀 Iniciando sesión de WhatsApp...')
     setSessionStatus('connecting')
     setError("")
+    setQrCode(null)
 
     try {
-      // PASO 1: Iniciar sesión en WAHA primero
-      console.log('📡 Paso 1: Iniciando sesión en WAHA...')
-      const startRes = await fetch('/api/whatsapp/start', { method: 'POST' })
-      const startData = await startRes.json()
+      console.log('📡 Llamando a /api/whatsapp/session-unified (Health → Start → QR)...')
 
-      console.log('📥 Respuesta de start:', startData)
-
-      if (!startData.ok && !startData.alreadyStarted) {
-        console.error('❌ Error al iniciar sesión:', startData.error)
-
-        // Mensajes de error específicos
-        let errorMessage = 'Error al iniciar sesión en WAHA'
-
-        if (startData.error === 'WAHA_API_KEY_MISSING') {
-          errorMessage = `🔒 API KEY NO CONFIGURADA\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}`
-        } else if (startData.error === 'WAHA_NOT_CONFIGURED_PRODUCTION') {
-          errorMessage = `🚨 WAHA NO ESTÁ CONFIGURADO EN VERCEL\n\n${startData.detail}\n\n📋 ${startData.solution || ''}\n\n🔗 Guía: ${startData.guide || ''}\n\n📍 URL actual: ${startData.currentUrl || 'No configurada'}`
-        } else if (startData.error === 'WAHA_UNAVAILABLE') {
-          errorMessage = `⚠️ WAHA NO ESTÁ DISPONIBLE\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}`
-        } else if (startData.error === 'WAHA_UNREACHABLE') {
-          errorMessage = `❌ NO SE PUEDE CONECTAR CON WAHA\n\n${startData.detail}\n\n💡 Solución:\n${startData.solution}\n\n📍 Intentando conectar a: ${startData.wahaUrl}`
-        } else if (startData.error === 'WAHA_AUTH_FAILED') {
-          errorMessage = `🔒 Error de autenticación con WAHA\n\n${startData.detail}\n\n💡 Verifica que la API key sea correcta:\n1. Revisa .env.local (debe tener la clave en texto)\n2. Revisa docker-compose (debe tener el hash sha512:...)\n3. Si es Vercel: configura WAHA_API_KEY con la clave en texto`
-        } else if (startData.detail) {
-          errorMessage = `${startData.error}\n\n${startData.detail}`
-        } else {
-          errorMessage = startData.error
+      const response = await fetch('/api/whatsapp/session-unified', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         }
+      })
 
-        setError(errorMessage)
+      const data = await response.json()
+
+      console.log('📥 Respuesta completa:', data)
+
+      if (!response.ok || !data.ok) {
+        console.error('❌ Error:', data.error, data.detail)
+        setError(data.detail || data.error || 'Error conectando con WAHA')
         setSessionStatus('disconnected')
         return
       }
 
-      console.log('✅ Sesión iniciada (o ya existía)')
+      // QR obtenido exitosamente
+      console.log('✅ QR obtenido exitosamente')
+      setQrCode(data.qr)
+      setSessionStatus('connecting')
 
-      // PASO 2: Verificar estado de la sesión
-      console.log('📡 Paso 2: Verificando estado...')
-      const sessionRes = await fetch('/api/whatsapp/session')
-      const sessionData = await sessionRes.json()
-
-      console.log('📥 Respuesta de sesión:', sessionData)
-
-      if (sessionData.ok) {
-        console.log('✅ Estado verificado, comenzando polling del QR...')
-        // Empezar a obtener el QR
-        startPollingQR()
-      } else {
-        console.error('❌ Error al verificar sesión:', sessionData.error)
-        setError(sessionData.error || 'Error al verificar sesión')
-        setSessionStatus('disconnected')
-      }
     } catch (err: any) {
-      console.error('❌ Error conectando con WAHA:', err)
-      setError(`Error de red: ${err.message || 'No se pudo conectar con WAHA'}. Si estás en desarrollo local, verifica que Docker esté corriendo con: docker-compose -f docker-compose.waha.yml up -d`)
+      console.error('❌ Error de red:', err)
+      setError(`Error de red: ${err.message || 'No se pudo conectar con WAHA'}`)
       setSessionStatus('disconnected')
     }
   }
