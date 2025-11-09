@@ -4,10 +4,11 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const WAHA = process.env.WAHA_BASE_URL || process.env.WAHA_URL || 'http://127.0.0.1:3000'
-const WAHA_API_KEY = process.env.WAHA_API_KEY // OBLIGATORIO - generado con scripts/generate-waha-apikey.ps1
+const WAHA_API_KEY = process.env.WAHA_API_KEY // OPCIONAL - Solo funciona en WAHA Plus, no en CORE/WEBJS
 
 console.log('[START] Usando WAHA:', WAHA)
-console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI (obligatoria para seguridad)' : 'NO - ERROR')
+console.log('[START] API Key configurada:', WAHA_API_KEY ? 'SI (solo funciona en Plus)' : 'NO (modo CORE/WEBJS - proteger con firewall)')
+console.log('[START] IMPORTANTE: WAHA CORE/WEBJS no soporta X-Api-Key, devuelve 422. Usar firewall para proteger.')
 
 // Helper CORS
 function corsHeaders() {
@@ -38,18 +39,8 @@ export async function POST() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    // Validar API Key (OBLIGATORIA según configuración segura de WAHA)
-    if (!WAHA_API_KEY) {
-      return NextResponse.json({
-        ok: false,
-        error: 'WAHA_API_KEY_MISSING',
-        detail: 'API Key no configurada. WAHA requiere autenticación para seguridad.',
-        solution: 'Ejecuta: powershell scripts/generate-waha-apikey.ps1\nLuego configura WAHA_API_KEY en .env.local',
-      }, {
-        status: 500,
-        headers: corsHeaders()
-      })
-    }
+    // NOTA: API Key NO funciona en WAHA CORE/WEBJS (devuelve 422)
+    // Solo funciona en WAHA Plus. Proteger con firewall en su lugar.
 
     // Detectar si estamos en Vercel/producción sin WAHA configurado
     const isLocalhost = WAHA.includes('127.0.0.1') || WAHA.includes('localhost')
@@ -59,8 +50,8 @@ export async function POST() {
       return NextResponse.json({
         ok: false,
         error: 'WAHA_NOT_CONFIGURED_PRODUCTION',
-        detail: '🚨 WAHA no está configurado para producción. Estás en Vercel intentando conectar a localhost (127.0.0.1:3000) que no existe.',
-        solution: 'Opciones:\n1. Desarrollo Local: Ejecuta "docker-compose -f docker-compose.waha.yml up -d" y abre http://localhost:3000\n2. Producción: Despliega WAHA en VPS/Railway y configura WAHA_BASE_URL en Vercel',
+        detail: 'WAHA no está configurado para producción. Estás en Vercel intentando conectar a localhost (127.0.0.1:3000) que no existe.',
+        solution: 'Opciones:\n1. Desarrollo Local: Ejecuta "docker-compose -f docker-compose.waha.yml up -d" y abre http://localhost:3000\n2. Producción: Despliega WAHA en VPS con docker-compose y configura WAHA_BASE_URL en Vercel',
         guide: 'https://waha.devlike.pro/docs/how-to/deploy/',
         currentUrl: WAHA,
       }, {
@@ -109,18 +100,23 @@ export async function POST() {
     }
 
     // Iniciar sesión en WAHA
-    // Intentar /start primero, si falla con 404 intentar /create
+    // IMPORTANTE: Endpoints correctos según logs de WAHA
+    // - POST /api/sessions/:session/start (plural "sessions")
+    // - GET /api/:session/auth/qr
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     }
 
-    // Agregar API key si está configurada
+    // API Key OPCIONAL - Solo funciona en WAHA Plus, no en CORE/WEBJS
+    // CORE/WEBJS devuelve 422 si intentas usar X-Api-Key
+    // Proteger con firewall en su lugar
     if (WAHA_API_KEY) {
-      headers['X-Api-Key'] = WAHA_API_KEY
-      console.log('[START] Usando autenticación con API Key')
+      // Solo agregar si está configurada Y no estamos en CORE/WEBJS
+      // headers['X-Api-Key'] = WAHA_API_KEY
+      console.log('[START] API Key disponible pero NO se usa (WAHA CORE/WEBJS no la soporta)')
     } else {
-      console.log('[START] Sin autenticación (modo por defecto de WAHA)')
+      console.log('[START] Sin API Key (proteger con firewall)')
     }
 
     const sessionConfig = {
@@ -131,24 +127,19 @@ export async function POST() {
       }
     }
 
-    // Intentar START
+    // Intentar START (endpoint correcto: /api/sessions/ con 's')
     let response = await fetch(`${WAHA}/api/sessions/default/start`, {
       method: 'POST',
       headers,
       body: JSON.stringify(sessionConfig)
     })
 
-    console.log('[START] Status de /start:', response.status)
+    console.log('[START] Status de /api/sessions/default/start:', response.status)
 
-    // Si 404, intentar CREATE
+    // Si 404, la ruta no existe
     if (!response.ok && response.status === 404) {
-      console.log('[START] /start no disponible, intentando /create')
-      response = await fetch(`${WAHA}/api/sessions/default`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(sessionConfig)
-      })
-      console.log('[START] Status de /create:', response.status)
+      console.log('[START] Endpoint /api/sessions/default/start no encontrado')
+      // No intentar /create ya que el endpoint correcto es /api/sessions/
     }
 
     if (!response.ok) {
@@ -166,14 +157,28 @@ export async function POST() {
         })
       }
 
+      // Error 422 - Feature no disponible en CORE/WEBJS
+      if (response.status === 422) {
+        return NextResponse.json({
+          ok: false,
+          error: 'WAHA_FEATURE_NOT_AVAILABLE',
+          detail: 'WAHA CORE/WEBJS no soporta autenticación con API Key. Esta feature solo está disponible en WAHA Plus.',
+          wahaUrl: WAHA,
+          suggestion: 'Opciones:\n1. Usar WAHA sin API Key y proteger con firewall\n2. Actualizar a WAHA Plus para usar autenticación\n3. Cambiar motor a BAILEYS',
+        }, {
+          status: 422,
+          headers: corsHeaders()
+        })
+      }
+
       // Error 401 - problema de autenticación
       if (response.status === 401) {
         return NextResponse.json({
           ok: false,
           error: 'WAHA_AUTH_FAILED',
-          detail: 'WAHA rechazó la API key. La clave enviada NO coincide con el hash configurado en WAHA.',
+          detail: 'WAHA rechazó la petición. Si estás usando CORE/WEBJS, NO envíes API Key (devuelve 401/422).',
           wahaUrl: WAHA,
-          suggestion: 'Verifica que:\n1. WAHA tenga configurado: WAHA_API_KEY=sha512:402d5e20c143...\n2. Tu .env.local tenga: WAHA_API_KEY=d8c776b78aee40d4b9bf75c633d175c8\n3. Reinicia WAHA: docker-compose down && docker-compose up -d',
+          suggestion: 'Verifica que:\n1. NO estés enviando X-Api-Key en CORE/WEBJS\n2. WAHA esté escuchando en 0.0.0.0 (no en [::1])\n3. El firewall permita conexiones al puerto 3000',
         }, {
           status: 401,
           headers: corsHeaders()
