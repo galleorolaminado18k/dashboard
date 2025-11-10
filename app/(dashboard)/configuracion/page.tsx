@@ -119,19 +119,16 @@ export default function ConfiguracionPage() {
       setSessionStatus('connecting')
 
       // Iniciar polling para verificar cuando se escanee
-      startPollingStatus()
+      startPollingForConnection()
 
     } catch (err: any) {
       console.error('❌ Error de red:', err)
       setError(err?.message || 'Error de red')
       setSessionStatus('disconnected')
-    } finally {
-      // Garantizar que el loading se detenga siempre
-      console.log('🏁 Finalizando carga...')
     }
   }
 
-  const startPollingStatus = () => {
+  const startPollingForConnection = () => {
     // Limpiar interval anterior si existe
     if (pollingInterval) clearInterval(pollingInterval)
 

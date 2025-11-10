@@ -7,14 +7,17 @@ export const dynamic = 'force-dynamic'
 // ✅ Configuración desde variables de entorno
 const BASE = process.env.EVO_BASE_URL!
 const APIKEY = process.env.EVO_API_KEY || ''
+const BEARER = process.env.EVO_BEARER || ''
 
 console.log('[EVOLUTION] Base URL:', BASE)
 console.log('[EVOLUTION] API Key:', APIKEY ? 'Configurada' : 'No configurada')
+console.log('[EVOLUTION] Bearer:', BEARER ? 'Configurado' : 'No configurado')
 
 // Helper para headers con autenticación opcional
 function h(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (APIKEY) headers['apikey'] = APIKEY
+  if (BEARER) headers['Authorization'] = `Bearer ${BEARER}`
   return headers
 }
 
