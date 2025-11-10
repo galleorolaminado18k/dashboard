@@ -50,15 +50,49 @@ curl http://localhost:8080/health
 
 1. Ve a tu proyecto en Vercel
 2. **Settings** → **Environment Variables**
-3. Agregar:
-   ```
-   EVO_BASE_URL = http://31.220.58.83:8080
-   ```
-4. Si activaste auth en Evolution, agregar también:
-   ```
-   EVO_API_KEY = tu-clave-aqui
-   ```
-5. **Redeploy** desde Deployments
+3. Agregar variables según tu setup:
+
+#### Opción A: Caddy expone directo la raíz (SIN prefijo)
+```
+EVO_BASE_URL = https://whats.tudominio.com
+EVO_PATH = 
+```
+(Dejar `EVO_PATH` vacío o no agregarlo)
+
+#### Opción B: Caddy usa prefijo (ej. /api)
+```
+EVO_BASE_URL = https://whats.tudominio.com
+EVO_PATH = /api
+```
+(Sin `/` final)
+
+#### Opción C: IP directa sin dominio
+```
+EVO_BASE_URL = http://31.220.58.83:8080
+EVO_PATH = 
+```
+(Dejar `EVO_PATH` vacío)
+
+#### Si activaste autenticación en Evolution:
+```
+EVO_API_KEY = tu-clave-secreta-aqui
+```
+
+4. **Redeploy** desde Deployments
+
+### 🔍 ¿Cómo saber si necesitas EVO_PATH?
+
+Si tu Caddy/Nginx hace proxy así:
+```
+# Caddyfile
+whats.tudominio.com {
+  reverse_proxy evolution:8080  # ✅ NO necesitas EVO_PATH
+}
+
+whats.tudominio.com {
+  reverse_proxy /api/* evolution:8080  # ⚠️ Necesitas EVO_PATH=/api
+}
+```
 
 ### PASO 3: Probar Localmente (Opcional)
 
@@ -132,6 +166,26 @@ curl -i http://31.220.58.83:8080/health \
 ---
 
 ## ❌ TROUBLESHOOTING
+
+### Error: "EVO_START_404" - Ruta no encontrada
+**Causa**: La URL base o las rutas no coinciden con tu versión de Evolution
+
+**Solución**: ✅ YA IMPLEMENTADA - El código ahora auto-detecta las rutas correctas:
+- Intenta `/sessions/start`, `/session/start`, `/instance/create`
+- Intenta `/sessions/default/qrcode`, `/session/default/qrcode`, `/instance/qr/default`
+
+Si aún falla, verifica:
+```bash
+# Desde tu PC, probar manualmente las rutas:
+curl -i http://31.220.58.83:8080/health
+curl -i http://31.220.58.83:8080/sessions/start -X POST -H "Content-Type: application/json" -d '{"sessionName":"default"}'
+curl -i http://31.220.58.83:8080/session/start -X POST -H "Content-Type: application/json" -d '{"sessionName":"default"}'
+curl -i http://31.220.58.83:8080/instance/create -X POST -H "Content-Type: application/json" -d '{"sessionName":"default"}'
+```
+
+Si alguna responde 200 o 409, copia esa ruta y verifica que:
+- `EVO_BASE_URL` apunte correctamente (sin `/` final)
+- `EVO_PATH` esté configurado si usas prefijo
 
 ### Error: "EVO_START_502" o "Connection refused"
 **Causa**: Evolution API no está corriendo o no es accesible
