@@ -93,7 +93,7 @@ export default function ConfiguracionPage() {
     setQrCodeImage("")
 
     try {
-      console.log('📡 Llamando a /api/whatsapp/evolution (Start → QR)...')
+      console.log('📡 Llamando a /api/whatsapp/evolution...')
 
       const response = await fetch('/api/whatsapp/evolution', {
         method: 'POST',
@@ -102,31 +102,20 @@ export default function ConfiguracionPage() {
         }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('❌ Error:', errorData.error, errorData.detail)
-        setError(errorData.detail || errorData.error || 'Error conectando con Evolution API')
-        setSessionStatus('disconnected')
-        return
-      }
-
       const data = await response.json()
-      console.log('📥 Respuesta completa:', data)
+      console.log('📥 Respuesta:', data)
 
-      // Evolution retorna: { qrcode: "data:image/png;base64,..." }
-      // Aceptar múltiples formatos: qrcode, qr, QR
-      const qr = data.qrcode || data.qr || data.QR || ''
-
-      if (!qr) {
-        console.error('❌ QR vacío en respuesta')
-        setError('QR no disponible - puede que la sesión ya esté conectada')
+      if (!response.ok || !data?.qrcode) {
+        const errorMsg = data?.error || 'No se pudo obtener QR'
+        console.error('❌ Error:', errorMsg)
+        setError(errorMsg)
         setSessionStatus('disconnected')
         return
       }
 
       // QR obtenido exitosamente
-      console.log('✅ QR obtenido exitosamente de Evolution API')
-      setQrCodeImage(qr) // data:image/png;base64,...
+      console.log('✅ QR obtenido exitosamente')
+      setQrCodeImage(data.qrcode)
       setSessionStatus('connecting')
 
       // Iniciar polling para verificar cuando se escanee
@@ -134,8 +123,11 @@ export default function ConfiguracionPage() {
 
     } catch (err: any) {
       console.error('❌ Error de red:', err)
-      setError(`Error de red: ${err.message || 'No se pudo conectar con Evolution API'}`)
+      setError(err?.message || 'Error de red')
       setSessionStatus('disconnected')
+    } finally {
+      // Garantizar que el loading se detenga siempre
+      console.log('🏁 Finalizando carga...')
     }
   }
 
