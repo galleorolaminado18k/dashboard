@@ -36,16 +36,17 @@ export default function ConfiguracionPage() {
   })
 
   const [qrCodeImage, setQrCodeImage] = useState<string>("")
+  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string>("")
   const [sessionStatus, setSessionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected')
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null)
 
-  // Cargar configuración guardada
+  // Cargar configuración guardada (SIN checkSessionStatus automático)
   useEffect(() => {
     loadConfig()
-    checkSessionStatus()
+    // ✅ NO llamar checkSessionStatus aquí - causa spinner infinito
   }, [])
 
   // Limpiar interval al desmontar
@@ -87,19 +88,17 @@ export default function ConfiguracionPage() {
   }
 
   const startWhatsAppSession = async () => {
-    console.log('🚀 Iniciando sesión de WhatsApp con Evolution API...')
-    setSessionStatus('connecting')
-    setError("")
-    setQrCodeImage("")
-
     try {
+      setLoading(true)
+      setQrCodeImage("")
+      setError("")
+      setSessionStatus('connecting')
+
       console.log('📡 Llamando a /api/whatsapp/evolution...')
 
       const response = await fetch('/api/whatsapp/evolution', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       })
 
       const data = await response.json()
@@ -108,13 +107,11 @@ export default function ConfiguracionPage() {
       if (!response.ok || !data?.qrcode) {
         const errorMsg = data?.error || 'No se pudo obtener QR'
         console.error('❌ Error:', errorMsg)
-        setError(errorMsg)
-        setSessionStatus('disconnected')
-        return
+        throw new Error(errorMsg)
       }
 
-      // QR obtenido exitosamente
-      console.log('✅ QR obtenido exitosamente')
+      // ✅ QR obtenido exitosamente
+      console.log('✅ QR obtenido!')
       setQrCodeImage(data.qrcode)
       setSessionStatus('connecting')
 
@@ -122,9 +119,12 @@ export default function ConfiguracionPage() {
       startPollingForConnection()
 
     } catch (err: any) {
-      console.error('❌ Error de red:', err)
-      setError(err?.message || 'Error de red')
+      console.error('❌ Error:', err)
+      setError(err?.message || 'Error generando QR')
       setSessionStatus('disconnected')
+      setQrCodeImage("")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -335,13 +335,38 @@ export default function ConfiguracionPage() {
 
                     {/* Botón de Conectar */}
                     {sessionStatus === 'disconnected' && config.whatsappBusinessPhone && (
-                      <Button
-                        onClick={startWhatsAppSession}
-                        className="w-full bg-[#12B886] hover:bg-[#0F9D72] text-white"
-                      >
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Conectar WhatsApp
-                      </Button>
+                      <div className="space-y-3">
+                        <Button
+                          onClick={startWhatsAppSession}
+                          disabled={loading}
+                          className="w-full bg-[#12B886] hover:bg-[#0F9D72] text-white disabled:opacity-50"
+                        >
+                          {loading ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Conectando...
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Conectar WhatsApp
+                            </>
+                          )}
+                        </Button>
+
+                        {/* ✅ Mostrar errores claramente */}
+                        {error && (
+                          <div className="p-3 bg-red-50 border border-red-300 rounded-lg">
+                            <div className="flex items-start gap-2 text-red-800">
+                              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                              <div className="text-sm">
+                                <p className="font-semibold mb-1">Error al conectar</p>
+                                <p className="text-xs">{error}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {sessionStatus === 'connected' && (
@@ -364,17 +389,24 @@ export default function ConfiguracionPage() {
                   </div>
 
                   <div className="flex flex-col items-center justify-center">
-                    {sessionStatus === 'connecting' && qrCodeImage ? (
+                    {/* ✅ Mostrar loading mientras se genera el QR */}
+                    {loading && !qrCodeImage ? (
+                      <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
+                        <RefreshCw className="w-16 h-16 mb-4 animate-spin" />
+                        <p className="text-sm">Generando código QR...</p>
+                        <p className="text-xs mt-2">Conectando con Evolution API</p>
+                      </div>
+                    ) : sessionStatus === 'connecting' && qrCodeImage ? (
                       <div className="space-y-4">
                         <div className="p-4 bg-white border-2 border-[#D8BD80] rounded-2xl shadow-lg">
-                          <img src={qrCodeImage} alt="QR WhatsApp Web REAL" className="w-64 h-64" />
+                          <img src={qrCodeImage} alt="QR WhatsApp Web" className="w-64 h-64" />
                         </div>
                         <div className="text-center">
                           <p className="text-sm font-semibold text-neutral-700 mb-1">
                             Escanea con WhatsApp Business
                           </p>
                           <p className="text-xs text-neutral-500">
-                            QR REAL de WhatsApp Web
+                            Abre WhatsApp → Dispositivos vinculados → Vincular dispositivo
                           </p>
                           <div className="flex items-center justify-center gap-2 mt-2 text-orange-600">
                             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -389,12 +421,6 @@ export default function ConfiguracionPage() {
                         </div>
                         <p className="text-lg font-semibold">WhatsApp Conectado</p>
                         <p className="text-sm text-neutral-500 mt-2">+57 {config.whatsappBusinessPhone}</p>
-                      </div>
-                    ) : sessionStatus === 'connecting' && !qrCodeImage ? (
-                      <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
-                        <RefreshCw className="w-16 h-16 mb-4 animate-spin" />
-                        <p className="text-sm">Generando código QR...</p>
-                        <p className="text-xs mt-2">Esto puede tardar unos segundos</p>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-64 text-neutral-400">

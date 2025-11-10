@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   evolution:
     image: atendai/evolution-api:latest
@@ -10,18 +8,8 @@ services:
     volumes:
       - ./evolution-data:/evolution/store
     environment:
-      - SERVER_PORT=8080
-      - LOG_LEVEL=INFO
-      - WEBHOOK_URL=
-      - DATABASE_ENABLED=true
-      - DATABASE_PROVIDER=sqlite
-      - DATABASE_CONNECTION_URI=file:./store/evolution.db
-      - DATABASE_SAVE_DATA_INSTANCE=true
-      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
-    networks:
-      - evolution-network
-
-networks:
-  evolution-network:
-    driver: bridge
+      # Desactivar autenticación (más simple para empezar)
+      - AUTHENTICATION_API_KEY=
+      # O si quieres activar autenticación, pon una clave:
+      # - AUTHENTICATION_API_KEY=tu-clave-secreta-aqui
 

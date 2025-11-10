@@ -1,5 +1,3 @@
-import { NextResponse } from 'next/server'
-
 // ✅ Forzar Node.js runtime (obligatorio)
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -7,39 +5,23 @@ export const dynamic = 'force-dynamic'
 // ✅ Configuración desde variables de entorno
 const BASE = process.env.EVO_BASE_URL!
 const APIKEY = process.env.EVO_API_KEY || ''
-const BEARER = process.env.EVO_BEARER || ''
 
 console.log('[EVOLUTION] Base URL:', BASE)
 console.log('[EVOLUTION] API Key:', APIKEY ? 'Configurada' : 'No configurada')
-console.log('[EVOLUTION] Bearer:', BEARER ? 'Configurado' : 'No configurado')
 
 // Helper para headers con autenticación opcional
-function h(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (APIKEY) headers['apikey'] = APIKEY
-  if (BEARER) headers['Authorization'] = `Bearer ${BEARER}`
-  return headers
-}
+const H = () => ({
+  'Content-Type': 'application/json',
+  ...(APIKEY ? { apikey: APIKEY } : {})
+})
 
 // Helper para llamadas a Evolution API
-async function evo(path: string, init: RequestInit = {}) {
-  const url = `${BASE}${path}`
-  console.log(`[EVOLUTION] Llamando: ${url}`)
-
-  const response = await fetch(url, {
+const evo = (path: string, init: RequestInit = {}) =>
+  fetch(`${BASE}${path}`, {
     ...init,
-    headers: { ...h(), ...(init.headers || {}) },
+    headers: { ...H(), ...(init.headers || {}) },
     cache: 'no-store',
   })
-
-  const text = await response.text()
-
-  return {
-    ok: response.ok,
-    status: response.status,
-    text,
-  }
-}
 
 // CORS headers
 function corsHeaders() {
@@ -47,7 +29,7 @@ function corsHeaders() {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
   }
 }
 
@@ -61,6 +43,7 @@ export async function OPTIONS() {
   })
 }
 
+
 /**
  * POST /api/whatsapp/evolution
  * Iniciar sesión y obtener QR
@@ -69,7 +52,7 @@ export async function POST() {
   try {
     console.log('[EVOLUTION] POST: Iniciando sesión y obteniendo QR...')
 
-    // Paso 1: Iniciar/crear sesión (idempotente)
+    // Paso 1: Iniciar/crear sesión (idempotente, 409 = ya existe)
     const s = await evo('/sessions/start', {
       method: 'POST',
       body: JSON.stringify({
@@ -78,26 +61,33 @@ export async function POST() {
       }),
     })
 
-    // 409 = sesión ya existe, es OK
     if (!s.ok && s.status !== 409) {
-      console.error(`[EVOLUTION] Error start: ${s.status} - ${s.text}`)
-      throw new Error(`EVO_START_${s.status}:${s.text}`)
+      const errorText = await s.text()
+      console.error(`[EVOLUTION] Error start: ${s.status} - ${errorText}`)
+      return new Response(
+        JSON.stringify({ error: `EVO_START_${s.status}` }),
+        { status: 502, headers: corsHeaders() }
+      )
     }
 
     console.log(`[EVOLUTION] Sesión iniciada/existente (${s.status})`)
 
     // Paso 2: Obtener QR
     const q = await evo('/sessions/default/qrcode')
+    const txt = await q.text()
 
     if (!q.ok) {
-      console.error(`[EVOLUTION] Error QR: ${q.status} - ${q.text}`)
-      throw new Error(`EVO_QR_${q.status}:${q.text}`)
+      console.error(`[EVOLUTION] Error QR: ${q.status} - ${txt}`)
+      return new Response(
+        JSON.stringify({ error: `EVO_QR_${q.status}:${txt}` }),
+        { status: 502, headers: corsHeaders() }
+      )
     }
 
-    // Normalizar respuesta - Evolution puede usar diferentes campos
+    // Parsear respuesta JSON
     let data: any = {}
     try {
-      data = JSON.parse(q.text)
+      data = JSON.parse(txt)
     } catch (e) {
       console.error('[EVOLUTION] Error parsing JSON:', e)
     }
@@ -106,28 +96,25 @@ export async function POST() {
     const qr = data.qrcode || data.qrCode || data.image || data.base64 || ''
 
     if (!qr) {
-      console.error(`[EVOLUTION] QR vacío. Respuesta: ${q.text.slice(0, 200)}`)
-      throw new Error(`EVO_QR_EMPTY:${q.text.slice(0, 200)}`)
+      console.error(`[EVOLUTION] QR vacío. Respuesta: ${txt.substring(0, 200)}`)
+      return new Response(
+        JSON.stringify({ error: 'EVO_QR_EMPTY', raw: txt.substring(0, 200) }),
+        { status: 502, headers: corsHeaders() }
+      )
     }
 
-    console.log('[EVOLUTION] QR obtenido exitosamente')
+    console.log('[EVOLUTION] ✅ QR obtenido exitosamente')
 
-    // Retornar siempre con campo normalizado "qrcode"
+    // ✅ Retornar siempre con campo normalizado "qrcode"
     return new Response(
       JSON.stringify({ qrcode: qr }),
-      {
-        status: 200,
-        headers: corsHeaders(),
-      }
+      { status: 200, headers: corsHeaders() }
     )
   } catch (e: any) {
     console.error('[EVOLUTION] Error:', e)
     return new Response(
-      JSON.stringify({ ok: false, error: String(e) }),
-      {
-        status: 502,
-        headers: corsHeaders(),
-      }
+      JSON.stringify({ error: String(e) }),
+      { status: 502, headers: corsHeaders() }
     )
   }
 }
