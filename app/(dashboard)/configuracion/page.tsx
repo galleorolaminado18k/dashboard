@@ -77,7 +77,7 @@ export default function ConfiguracionPage() {
             setSessionStatus('connected')
           } else if (data.session.needsQR) {
             setSessionStatus('connecting')
-            startPollingQR()
+            // No llamar startPollingQR - solo marcar como connecting
           }
         }
       }
@@ -102,20 +102,31 @@ export default function ConfiguracionPage() {
         }
       })
 
-      const data = await response.json()
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ Error:', errorData.error, errorData.detail)
+        setError(errorData.detail || errorData.error || 'Error conectando con Evolution API')
+        setSessionStatus('disconnected')
+        return
+      }
 
+      const data = await response.json()
       console.log('📥 Respuesta completa:', data)
 
-      if (!response.ok || !data.ok) {
-        console.error('❌ Error:', data.error, data.detail)
-        setError(data.detail || data.error || 'Error conectando con Evolution API')
+      // Evolution retorna: { qrcode: "data:image/png;base64,..." }
+      // Aceptar múltiples formatos: qrcode, qr, QR
+      const qr = data.qrcode || data.qr || data.QR || ''
+
+      if (!qr) {
+        console.error('❌ QR vacío en respuesta')
+        setError('QR no disponible - puede que la sesión ya esté conectada')
         setSessionStatus('disconnected')
         return
       }
 
       // QR obtenido exitosamente
       console.log('✅ QR obtenido exitosamente de Evolution API')
-      setQrCodeImage(data.qr) // Evolution retorna data:image/png;base64,...
+      setQrCodeImage(qr) // data:image/png;base64,...
       setSessionStatus('connecting')
 
       // Iniciar polling para verificar cuando se escanee

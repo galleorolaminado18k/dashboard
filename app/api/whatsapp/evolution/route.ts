@@ -4,10 +4,54 @@ import { NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// ✅ Evolution API URL desde variable de entorno
+// ✅ Evolution API configuración desde variables de entorno
 const EVO_BASE_URL = process.env.EVO_BASE_URL || 'http://127.0.0.1:8080'
+const EVO_API_KEY = process.env.EVO_API_KEY || ''
+const EVO_BEARER = process.env.EVO_BEARER || ''
 
 console.log('[EVOLUTION] Usando base URL:', EVO_BASE_URL)
+console.log('[EVOLUTION] API Key configurada:', EVO_API_KEY ? 'Sí' : 'No')
+console.log('[EVOLUTION] Bearer configurado:', EVO_BEARER ? 'Sí' : 'No')
+
+// Helper para agregar headers de autenticación
+function withAuth(customHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...customHeaders,
+  }
+
+  // Evolution API acepta 'apikey' header
+  if (EVO_API_KEY) {
+    headers['apikey'] = EVO_API_KEY
+  }
+
+  // O Bearer token
+  if (EVO_BEARER) {
+    headers['Authorization'] = `Bearer ${EVO_BEARER}`
+  }
+
+  return headers
+}
+
+// Helper para hacer fetch a Evolution API con autenticación
+async function evoFetch(path: string, init: RequestInit = {}) {
+  const url = `${EVO_BASE_URL}${path}`
+  console.log(`[EVOLUTION] Llamando a: ${url}`)
+
+  const response = await fetch(url, {
+    ...init,
+    headers: withAuth(init.headers as Record<string, string>),
+    cache: 'no-store',
+  })
+
+  const text = await response.text()
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    text,
+  }
+}
 
 // Helper CORS
 function corsHeaders() {
@@ -44,21 +88,18 @@ export async function GET() {
     }
 
     // Endpoint: GET /sessions/default/status
-    const response = await fetch(`${EVO_BASE_URL}/sessions/default/status`, {
-      cache: 'no-store',
-    })
+    const result = await evoFetch('/sessions/default/status')
 
-    if (!response.ok && response.status !== 404) {
-      const errorText = await response.text()
-      console.error('[EVOLUTION] Error obteniendo estado:', response.status, errorText)
+    if (!result.ok && result.status !== 404) {
+      console.error('[EVOLUTION] Error obteniendo estado:', result.status, result.text)
       return NextResponse.json(
-        { ok: false, error: `EVO_STATE_${response.status}`, detail: errorText, needsSetup: true },
-        { status: response.status, headers: corsHeaders() }
+        { ok: false, error: `EVO_STATE_${result.status}`, detail: result.text, needsSetup: true },
+        { status: result.status, headers: corsHeaders() }
       )
     }
 
     // Si es 404, la sesión no existe aún
-    if (response.status === 404) {
+    if (result.status === 404) {
       console.log('[EVOLUTION] Sesión no existe aún')
       return NextResponse.json(
         {
@@ -69,7 +110,7 @@ export async function GET() {
       )
     }
 
-    const data = await response.json()
+    const data = JSON.parse(result.text)
     console.log('[EVOLUTION] Estado de sesión:', data)
 
     // Evolution API retorna: { state: "open" | "connecting" | "close" }
@@ -109,49 +150,41 @@ export async function POST() {
 
     // Paso 1: Iniciar/crear sesión
     console.log('[EVOLUTION] Paso 1: Crear sesión...')
-    const startResponse = await fetch(`${EVO_BASE_URL}/sessions/start`, {
+    const startResult = await evoFetch('/sessions/start', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
       body: JSON.stringify({
         sessionName: 'default',
         whatsappVersion: 'v2',
       }),
     })
 
-    // 409 significa que la sesión ya existe - esto es OK
-    if (!startResponse.ok && startResponse.status !== 409) {
-      const errorText = await startResponse.text()
-      console.error('[EVOLUTION] Error creando sesión:', startResponse.status, errorText)
+    // 409 significa que la sesión ya existe - esto es OK (idempotente)
+    if (!startResult.ok && startResult.status !== 409) {
+      console.error('[EVOLUTION] Error creando sesión:', startResult.status, startResult.text)
       return NextResponse.json(
-        { ok: false, error: `EVO_START_${startResponse.status}`, detail: errorText },
+        { ok: false, error: `EVO_START_${startResult.status}`, detail: startResult.text },
         { status: 502, headers: corsHeaders() }
       )
     }
 
-    console.log('[EVOLUTION] Sesión creada/existente:', startResponse.status)
+    console.log('[EVOLUTION] Sesión creada/existente:', startResult.status)
 
     // Paso 2: Obtener QR
     console.log('[EVOLUTION] Paso 2: Obtener QR...')
-    const qrResponse = await fetch(`${EVO_BASE_URL}/sessions/default/qrcode`, {
-      cache: 'no-store',
-    })
+    const qrResult = await evoFetch('/sessions/default/qrcode')
 
-    if (!qrResponse.ok) {
-      const errorText = await qrResponse.text()
-      console.error('[EVOLUTION] Error obteniendo QR:', qrResponse.status, errorText)
+    if (!qrResult.ok) {
+      console.error('[EVOLUTION] Error obteniendo QR:', qrResult.status, qrResult.text)
       return NextResponse.json(
-        { ok: false, error: `EVO_QR_${qrResponse.status}`, detail: errorText },
+        { ok: false, error: `EVO_QR_${qrResult.status}`, detail: qrResult.text },
         { status: 502, headers: corsHeaders() }
       )
     }
 
-    // Obtener el JSON con el QR
-    const qrText = await qrResponse.text()
     console.log('[EVOLUTION] QR obtenido exitosamente')
 
-    // Evolution retorna: { qrcode: "data:image/png;base64,..." }
-    return new Response(qrText, {
+    // Retornar el JSON tal cual { qrcode: "data:image/png;base64,..." }
+    return new Response(qrResult.text, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -183,16 +216,14 @@ export async function DELETE() {
     }
 
     // Endpoint: DELETE /sessions/default
-    const response = await fetch(`${EVO_BASE_URL}/sessions/default`, {
+    const result = await evoFetch('/sessions/default', {
       method: 'DELETE',
-      cache: 'no-store',
     })
 
-    if (!response.ok && response.status !== 404) {
-      const errorText = await response.text()
-      console.error('[EVOLUTION] Error eliminando sesión:', response.status, errorText)
+    if (!result.ok && result.status !== 404) {
+      console.error('[EVOLUTION] Error eliminando sesión:', result.status, result.text)
       return NextResponse.json(
-        { ok: false, error: `EVO_DELETE_${response.status}`, detail: errorText },
+        { ok: false, error: `EVO_DELETE_${result.status}`, detail: result.text },
         { status: 502, headers: corsHeaders() }
       )
     }
