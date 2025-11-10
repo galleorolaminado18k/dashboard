@@ -282,7 +282,4 @@ export async function DELETE() {
     )
   }
 }
-    )
-  }
-}
 
