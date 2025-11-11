@@ -1,6 +1,30 @@
 # 🚀 COMANDOS VPS - EVOLUTION API CON HTTP/HTTPS
 
-## 🎯 OPCIÓN A: HTTP Simple (Más rápido)
+## 🎯 MÉTODO RECOMENDADO: Usar scripts automatizados
+
+### Opción 1: Script completo (MÁS FÁCIL) ⭐
+
+```bash
+# 1. Conectar al VPS
+ssh root@31.220.58.83
+
+# 2. Descargar y ejecutar script
+curl -o setup-evolution-vps.sh https://raw.githubusercontent.com/galleorolaminado18k/dashboard/feature/meta-ads-integration-v2/setup-evolution-vps.sh
+chmod +x setup-evolution-vps.sh
+bash setup-evolution-vps.sh
+```
+
+El script automáticamente:
+- ✅ Detiene contenedores anteriores
+- ✅ Crea docker-compose.yml con configuración correcta
+- ✅ Levanta Evolution API
+- ✅ Configura firewall
+- ✅ Ejecuta pruebas de conectividad
+- ✅ Te dice exactamente qué configurar en Vercel
+
+---
+
+## 🎯 OPCIÓN A: HTTP Simple (Manual - Paso a paso)
 
 ### 1. Levantar Evolution API:
 
@@ -8,28 +32,75 @@
 # Conectar al VPS
 ssh root@31.220.58.83
 
-# Crear docker-compose.evolution.yml
-cd ~
-docker compose -f docker-compose.evolution.yml up -d
+# Detener contenedores anteriores
+docker stop evolution-api evolution 2>/dev/null || true
+docker rm evolution-api evolution 2>/dev/null || true
+
+# Levantar Evolution con configuración correcta
+docker run -d --name evolution --restart unless-stopped \
+  -p 8080:8080 \
+  -v ~/evolution-data:/evolution/store \
+  -e SERVER_PORT=8080 \
+  -e SERVER_HOST=0.0.0.0 \
+  -e AUTHENTICATION=true \
+  -e API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb \
+  -e AUTHENTICATION_API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb \
+  -e DATABASE_ENABLED=false \
+  atendai/evolution-api:latest
 
 # Abrir firewall
 ufw allow 8080/tcp
+ufw reload
 
 # Verificar
-docker ps
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 docker logs evolution --tail 30
 ```
 
-### 2. Probar desde el VPS:
+### 2. Probar desde el VPS (CRÍTICO):
 
 ```bash
+# ✅ PRUEBA 1: Desde localhost (127.0.0.1)
 curl -i http://127.0.0.1:8080/health
+
+# ✅ PRUEBA 2: Desde IP pública (31.220.58.83)
 curl -i http://31.220.58.83:8080/health
+
+# ✅ PRUEBA 3: Con API Key
+curl -i http://127.0.0.1:8080/health \
+  -H "apikey: 81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
+
+# ✅ PRUEBA 4: Start session
+curl -i -X POST http://127.0.0.1:8080/sessions/start \
+  -H "Content-Type: application/json" \
+  -H "apikey: 81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb" \
+  -d '{"sessionName":"default","whatsappVersion":"v2"}'
 ```
 
-**Resultado esperado**: `200 OK` ✅
+**TODAS las pruebas DEBEN responder `200 OK` o `409 Conflict`** ✅
 
-### 3. Configurar en Vercel:
+**Si PRUEBA 1 funciona pero PRUEBA 2 NO**:
+- ❌ Problema de firewall o Security Groups
+- 🔧 Solución: Usar HTTPS con Caddy (ver Opción B)
+
+### 3. Probar desde tu PC (Windows):
+
+```bash
+# Desde tu PowerShell/CMD
+curl.exe -i http://31.220.58.83:8080/health
+```
+
+**Debe responder `200 OK`** ✅
+
+### 4. Configurar en Vercel (CRÍTICO - Sin esto no funciona):
+
+**⚠️ IMPORTANTE**: Después de agregar las variables, DEBES hacer Redeploy
+
+1. Ve a: https://vercel.com/dashboard
+2. Selecciona tu proyecto
+3. **Settings** → **Environment Variables**
+4. Click **Add New**
+5. Agregar:
 
 ```
 Name: EVO_BASE_URL
@@ -39,7 +110,24 @@ Name: EVO_API_KEY
 Value: 81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb
 ```
 
-**Redeploy** en Vercel
+6. Click **Save**
+7. **Deployments** → Click en los 3 puntos del último deployment → **Redeploy**
+8. Esperar 2-3 minutos
+
+### 5. Verificar en logs de Vercel:
+
+1. **Deployments** → Click en el último deployment
+2. **Function Logs** (pestaña)
+3. Buscar líneas como:
+
+```
+[EVOLUTION] 🚀 Iniciando sesión de WhatsApp...
+[EVOLUTION] 🔗 Llamando: http://31.220.58.83:8080/health
+[EVOLUTION] ✅ Health check OK
+```
+
+**Si ves `EVO_UNREACHABLE`**: Evolution no es accesible desde Vercel
+- 🔧 Solución: Usar HTTPS con Caddy (ver Opción B abajo)
 
 ---
 
