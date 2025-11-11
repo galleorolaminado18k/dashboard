@@ -1,27 +1,23 @@
 services:
   evolution:
     image: atendai/evolution-api:latest
-    container_name: evolution-api
-    restart: always
+    container_name: evolution
+    restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
-      - ./evolution-data:/evolution/store
+      - ~/evolution-data:/evolution/store
     environment:
-      # ✅ CONFIGURAR AUTENTICACIÓN (obligatorio para producción)
-      # Evolution API acepta diferentes nombres de variable según la versión:
+      # ✅ Server configuration - Escuchar en todas las interfaces
+      SERVER_PORT: "8080"
+      SERVER_HOST: "0.0.0.0"
 
-      # Opción 1: API_KEY (más común)
-      API_KEY: "galle-super-key"
+      # ✅ Authentication
+      AUTHENTICATION: "true"
+      API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
+      AUTHENTICATION_API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
 
-      # Opción 2: AUTHENTICATION_API_KEY (algunas versiones)
-      # AUTHENTICATION_API_KEY: "galle-super-key"
+      # ✅ Database (disabled para simplicidad)
+      DATABASE_ENABLED: "false"
 
-      # Opción 3: Sin autenticación (SOLO para desarrollo local)
-      # API_KEY: ""
-
-      # ⚠️ IMPORTANTE:
-      # 1. Cambia "galle-super-key" por una clave segura personalizada
-      # 2. La MISMA clave debe configurarse en Vercel como EVO_API_KEY
-      # 3. Para ver qué variable usa tu versión: docker logs evolution-api | grep -i auth
 

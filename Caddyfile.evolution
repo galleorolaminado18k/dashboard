@@ -1,31 +1,13 @@
-# Reemplaza "api.tudominio.com" con tu dominio real
+# ✅ Reemplaza "api.tudominio.com" con tu dominio real
 # Ejemplo: api.galle.com, whatsapp.miempresa.com, etc.
 
-api.tudominio.com {
-  # Compresión automática
-  encode gzip
+api.galle.tu-dominio.com {
+  # Proxy inverso a Evolution API en localhost:8080
+  reverse_proxy 127.0.0.1:8080
 
-  # Reverse proxy a Evolution API
-  reverse_proxy evo:8080 {
-    # Pasar headers de autenticación al backend
-    header_up apikey {http.request.header.apikey}
-    header_up X-API-KEY {http.request.header.X-API-KEY}
-    header_up x-api-key {http.request.header.x-api-key}
-    header_up Authorization {http.request.header.Authorization}
-    header_up Content-Type {http.request.header.Content-Type}
-  }
-
-  # Headers CORS para permitir acceso desde Vercel
-  header {
-    Access-Control-Allow-Origin *
-    Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-    Access-Control-Allow-Headers "Content-Type, Authorization, apikey, X-API-KEY, x-api-key"
-  }
-
-  # Logs (opcional, útil para debugging)
-  log {
-    output file /var/log/caddy/evolution.log
-    level INFO
-  }
+  # Headers CORS
+  header Access-Control-Allow-Origin *
+  header Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+  header Access-Control-Allow-Headers "Content-Type, Authorization, apikey"
 }
 
