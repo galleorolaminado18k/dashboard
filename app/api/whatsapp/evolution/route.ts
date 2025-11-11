@@ -14,16 +14,25 @@ console.log('[EVOLUTION] Path Prefix:', PATH || '(ninguno)')
 console.log('[EVOLUTION] API Key:', APIKEY ? 'Configurada ✅' : 'No configurada ⚠️')
 console.log('[EVOLUTION] Bearer Token:', BEARER ? 'Configurado ✅' : 'No configurado')
 
-// Helper para headers con autenticación opcional (soporta apikey y Bearer)
+// Construir URL completa con prefijo
+const url = (p: string) => `${BASE}${PATH}${p}`
+
+// Helper para headers con autenticación - soporta TODAS las variantes
 const H = () => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (APIKEY) headers['apikey'] = APIKEY                       // ← Evolution suele validar este header
-  if (BEARER) headers['Authorization'] = `Bearer ${BEARER}`    // ← Por si tu build usa Bearer
+  // ✅ Enviar la API Key en TODAS las variantes posibles que Evolution puede usar
+  if (APIKEY) {
+    headers['apikey'] = APIKEY           // Variante común en Evolution
+    headers['X-API-KEY'] = APIKEY        // Variante con prefijo X-
+    headers['x-api-key'] = APIKEY        // Variante lowercase
+  }
+  // ✅ Bearer token si está configurado
+  if (BEARER) {
+    headers['Authorization'] = `Bearer ${BEARER}`
+  }
   return headers
 }
 
-// Construir URL completa con prefijo
-const url = (p: string) => `${BASE}${PATH}${p}`
 
 // Helper para llamadas a Evolution API con parse JSON automático
 async function jfetch(path: string, init: RequestInit = {}) {
@@ -47,28 +56,52 @@ async function jfetch(path: string, init: RequestInit = {}) {
   return { ok: r.ok, status: r.status, text, json }
 }
 
-// Reintentos por versión - Evolution tiene diferentes convenciones de rutas
+// Reintentos por versión - Evolution tiene diferentes convenciones de rutas Y autenticación
 async function startSession() {
-  const body = JSON.stringify({ sessionName: NAME, whatsappVersion: 'v2' })
+  const bodyStd = JSON.stringify({ sessionName: NAME, whatsappVersion: 'v2' })
 
-  // v1/v2 común: /sessions/start
-  let r = await jfetch('/sessions/start', { method: 'POST', body })
+  // 1) /sessions/start con headers (método estándar)
+  let r = await jfetch('/sessions/start', { method: 'POST', body: bodyStd })
   if (r.ok || r.status === 409) {
-    console.log('[EVOLUTION] ✅ Sesión iniciada con /sessions/start')
+    console.log('[EVOLUTION] ✅ Sesión iniciada con /sessions/start (headers)')
     return r
   }
 
-  // Algunas builds usan singular: /session/start
-  r = await jfetch('/session/start', { method: 'POST', body })
+  // 2) /sessions/start con apikey en query string (fallback)
+  if (APIKEY) {
+    r = await jfetch(`/sessions/start?apikey=${encodeURIComponent(APIKEY)}`, {
+      method: 'POST',
+      body: bodyStd
+    })
+    if (r.ok || r.status === 409) {
+      console.log('[EVOLUTION] ✅ Sesión iniciada con /sessions/start (query)')
+      return r
+    }
+  }
+
+  // 3) /session/start (singular) con headers
+  r = await jfetch('/session/start', { method: 'POST', body: bodyStd })
   if (r.ok || r.status === 409) {
-    console.log('[EVOLUTION] ✅ Sesión iniciada con /session/start')
+    console.log('[EVOLUTION] ✅ Sesión iniciada con /session/start (headers)')
     return r
   }
 
-  // Otras usan: /instance/create
+  // 4) /session/start con apikey en query
+  if (APIKEY) {
+    r = await jfetch(`/session/start?apikey=${encodeURIComponent(APIKEY)}`, {
+      method: 'POST',
+      body: bodyStd
+    })
+    if (r.ok || r.status === 409) {
+      console.log('[EVOLUTION] ✅ Sesión iniciada con /session/start (query)')
+      return r
+    }
+  }
+
+  // 5) /instance/create (versiones antiguas, puede necesitar secretKey)
   r = await jfetch('/instance/create', {
     method: 'POST',
-    body: JSON.stringify({ sessionName: NAME })
+    body: JSON.stringify({ sessionName: NAME, secretKey: APIKEY || undefined })
   })
   console.log('[EVOLUTION] Intento con /instance/create:', r.status)
   return r
