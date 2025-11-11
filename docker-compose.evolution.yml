@@ -8,15 +8,20 @@ services:
     volumes:
       - ./evolution-data:/evolution/store
     environment:
-      # ✅ Configurar autenticación (recomendado para producción)
-      # Opción 1: Sin autenticación (solo desarrollo local)
-      # API_KEY:
+      # ✅ CONFIGURAR AUTENTICACIÓN (obligatorio para producción)
+      # Evolution API acepta diferentes nombres de variable según la versión:
 
-      # Opción 2: Con autenticación (recomendado)
-      API_KEY: galle-super-key              # ← Cambia esto por tu clave personalizada
+      # Opción 1: API_KEY (más común)
+      API_KEY: "galle-super-key"
 
-      # Nota: Algunas versiones de Evolution usan:
-      # AUTHENTICATION_API_KEY: galle-super-key
+      # Opción 2: AUTHENTICATION_API_KEY (algunas versiones)
+      # AUTHENTICATION_API_KEY: "galle-super-key"
 
-      # ⚠️ Importante: La misma clave debe configurarse en Vercel como EVO_API_KEY
+      # Opción 3: Sin autenticación (SOLO para desarrollo local)
+      # API_KEY: ""
+
+      # ⚠️ IMPORTANTE:
+      # 1. Cambia "galle-super-key" por una clave segura personalizada
+      # 2. La MISMA clave debe configurarse en Vercel como EVO_API_KEY
+      # 3. Para ver qué variable usa tu versión: docker logs evolution-api | grep -i auth
 
