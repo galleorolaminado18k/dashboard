@@ -14,9 +14,6 @@ console.log('[EVOLUTION] Path Prefix:', PATH || '(ninguno)')
 console.log('[EVOLUTION] API Key:', APIKEY ? 'Configurada ✅' : 'No configurada ⚠️')
 console.log('[EVOLUTION] Bearer Token:', BEARER ? 'Configurado ✅' : 'No configurado')
 
-// Construir URL completa con prefijo
-const url = (p: string) => `${BASE}${PATH}${p}`
-
 // Helper para headers con autenticación - soporta TODAS las variantes
 const H = () => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -34,26 +31,42 @@ const H = () => {
 }
 
 
-// Helper para llamadas a Evolution API con parse JSON automático
+// Helper para llamadas a Evolution API con parse JSON automático y manejo de errores
 async function jfetch(path: string, init: RequestInit = {}) {
-  const fullUrl = url(path)
-  console.log('[EVOLUTION] Llamando:', fullUrl)
+  // Normalizar path (evitar barras dobles)
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const fullUrl = `${BASE}${PATH}${normalizedPath}`
 
-  const r = await fetch(fullUrl, {
-    ...init,
-    headers: { ...H(), ...(init.headers || {}) },
-    cache: 'no-store',
-  })
+  console.log('[EVOLUTION] 🔗 Llamando:', fullUrl)
+  console.log('[EVOLUTION] 📤 Headers:', Object.keys(H()).join(', '))
 
-  const text = await r.text()
-  let json: any
   try {
-    json = JSON.parse(text)
-  } catch {
-    json = undefined
-  }
+    const r = await fetch(fullUrl, {
+      ...init,
+      headers: { ...H(), ...(init.headers || {}) },
+      cache: 'no-store',
+      // Agregar timeout implícito con signal
+      signal: AbortSignal.timeout ? AbortSignal.timeout(30000) : undefined, // 30s timeout
+    })
 
-  return { ok: r.ok, status: r.status, text, json }
+    const text = await r.text()
+    let json: any
+    try {
+      json = JSON.parse(text)
+    } catch {
+      json = undefined
+    }
+
+    if (!r.ok) {
+      console.error(`[EVOLUTION] ❌ HTTP ${r.status}: ${text.substring(0, 200)}`)
+    }
+
+    return { ok: r.ok, status: r.status, text, json }
+  } catch (error: any) {
+    // Manejar errores de red/timeout
+    console.error('[EVOLUTION] ❌ Error de red:', error.message)
+    throw new Error(`EVO_FETCH_FAILED: ${error.message} - Verifica que Evolution API esté corriendo y accesible desde Vercel`)
+  }
 }
 
 // Reintentos por versión - Evolution tiene diferentes convenciones de rutas Y autenticación
@@ -155,10 +168,27 @@ export async function OPTIONS() {
  */
 export async function POST() {
   try {
-    console.log('[EVOLUTION] POST: Iniciando sesión y obteniendo QR...')
+    console.log('[EVOLUTION] 🚀 POST: Iniciando sesión y obteniendo QR...')
+    console.log('[EVOLUTION] 🔧 Runtime:', runtime)
+    console.log('[EVOLUTION] 🌐 BASE URL:', BASE)
+    console.log('[EVOLUTION] 🔑 API Key configurada:', APIKEY ? 'Sí ✅' : 'No ⚠️')
 
     // 1) Health check opcional (si 404 aquí, la BASE/PATH está mal)
-    const h = await jfetch('/health')
+    let h
+    try {
+      h = await jfetch('/health')
+    } catch (error: any) {
+      console.error(`[EVOLUTION] ❌ Health check falló con error de red:`, error.message)
+      return new Response(
+        JSON.stringify({
+          error: 'EVO_UNREACHABLE',
+          detail: `No se puede conectar a Evolution API en ${BASE}. Verifica que esté corriendo y accesible.`,
+          message: error.message
+        }),
+        { status: 502, headers: corsHeaders() }
+      )
+    }
+
     if (!h.ok && h.status !== 404) {
       console.error(`[EVOLUTION] ❌ Health check falló: ${h.status}`)
       return new Response(
@@ -166,7 +196,7 @@ export async function POST() {
         { status: 502, headers: corsHeaders() }
       )
     }
-    console.log('[EVOLUTION] Health check:', h.ok ? '✅ OK' : '⚠️ 404 (ignorado)')
+    console.log('[EVOLUTION] ✅ Health check:', h.ok ? 'OK' : '404 (ignorado)')
 
     // 2) Start session con fallback automático de rutas
     const s = await startSession()
@@ -177,7 +207,7 @@ export async function POST() {
         { status: 502, headers: corsHeaders() }
       )
     }
-    console.log(`[EVOLUTION] Sesión: ${s.status === 409 ? 'Ya existe' : 'Creada'}`)
+    console.log(`[EVOLUTION] ✅ Sesión: ${s.status === 409 ? 'Ya existe' : 'Creada'}`)
 
     // 3) Get QR con fallback automático de rutas
     const q = await getQR()

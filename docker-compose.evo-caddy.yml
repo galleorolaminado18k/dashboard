@@ -1,0 +1,33 @@
+services:
+  evo:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    environment:
+      API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
+      AUTHENTICATION_API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
+      DATABASE_ENABLED: "false"
+    networks: [web]
+    volumes:
+      - ~/evolution-data:/evolution/store
+
+  caddy:
+    image: caddy:2
+    container_name: caddy-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [web]
+    depends_on: [evo]
+
+networks:
+  web:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
