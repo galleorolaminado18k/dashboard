@@ -8,8 +8,17 @@ services:
     expose:
       - "8080"
     environment:
-      # Sin autenticación por defecto
-      - AUTHENTICATION_API_KEY=
+      # ✅ Configurar autenticación (recomendado para producción)
+      # Opción 1: Sin autenticación (solo desarrollo local)
+      # API_KEY:
+
+      # Opción 2: Con autenticación (recomendado para producción)
+      API_KEY: galle-super-key              # ← Cambia esto por tu clave personalizada
+
+      # Nota: Algunas versiones de Evolution usan:
+      # AUTHENTICATION_API_KEY: galle-super-key
+
+      # ⚠️ Importante: La misma clave debe configurarse en Vercel como EVO_API_KEY
 
   caddy:
     image: caddy:latest

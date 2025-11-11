@@ -8,8 +8,15 @@ services:
     volumes:
       - ./evolution-data:/evolution/store
     environment:
-      # Desactivar autenticación (más simple para empezar)
-      - AUTHENTICATION_API_KEY=
-      # O si quieres activar autenticación, pon una clave:
-      # - AUTHENTICATION_API_KEY=tu-clave-secreta-aqui
+      # ✅ Configurar autenticación (recomendado para producción)
+      # Opción 1: Sin autenticación (solo desarrollo local)
+      # API_KEY:
+
+      # Opción 2: Con autenticación (recomendado)
+      API_KEY: galle-super-key              # ← Cambia esto por tu clave personalizada
+
+      # Nota: Algunas versiones de Evolution usan:
+      # AUTHENTICATION_API_KEY: galle-super-key
+
+      # ⚠️ Importante: La misma clave debe configurarse en Vercel como EVO_API_KEY
 

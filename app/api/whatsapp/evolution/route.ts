@@ -6,17 +6,21 @@ export const dynamic = 'force-dynamic'
 const BASE = process.env.EVO_BASE_URL!.replace(/\/+$/, '')      // sin / final
 const PATH = (process.env.EVO_PATH || '').replace(/\/+$/, '')   // ej: '', '/api'
 const APIKEY = process.env.EVO_API_KEY || ''
+const BEARER = process.env.EVO_BEARER || ''
 const NAME = 'default'
 
 console.log('[EVOLUTION] Base URL:', BASE)
 console.log('[EVOLUTION] Path Prefix:', PATH || '(ninguno)')
-console.log('[EVOLUTION] API Key:', APIKEY ? 'Configurada' : 'No configurada')
+console.log('[EVOLUTION] API Key:', APIKEY ? 'Configurada ✅' : 'No configurada ⚠️')
+console.log('[EVOLUTION] Bearer Token:', BEARER ? 'Configurado ✅' : 'No configurado')
 
-// Helper para headers con autenticación opcional
-const H = () => ({
-  'Content-Type': 'application/json',
-  ...(APIKEY ? { apikey: APIKEY } : {})
-})
+// Helper para headers con autenticación opcional (soporta apikey y Bearer)
+const H = () => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (APIKEY) headers['apikey'] = APIKEY                       // ← Evolution suele validar este header
+  if (BEARER) headers['Authorization'] = `Bearer ${BEARER}`    // ← Por si tu build usa Bearer
+  return headers
+}
 
 // Construir URL completa con prefijo
 const url = (p: string) => `${BASE}${PATH}${p}`
