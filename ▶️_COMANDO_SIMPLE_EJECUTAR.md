@@ -1,22 +1,82 @@
-# 🚨 COMANDO DEFINITIVO - Evolution con SQLite
+# 🚨 SOLUCIÓN DEFINITIVA - PostgreSQL local con Docker Compose
 
-## ⚡ EJECUTA ESTE COMANDO EN EL VPS
+## ⚡ EJECUTA ESTOS COMANDOS EN EL VPS
 
-**Comando actualizado con SQLite** (base de datos local, no requiere servidor):
+Evolution requiere PostgreSQL o MySQL. Vamos a usar PostgreSQL local con Docker Compose.
+
+### PASO 1: Crear docker-compose.yml (COPIAR TODO):
 
 ```bash
-docker stop evolution 2>/dev/null && docker rm evolution 2>/dev/null && docker run -d --name evolution --restart unless-stopped -p 8080:8080 -v ~/evolution-data:/evolution/store -e SERVER_URL=http://localhost:8080 -e AUTHENTICATION_API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb -e DATABASE_ENABLED=true -e DATABASE_PROVIDER=sqlite -e DATABASE_CONNECTION_CLIENT_NAME=evolution -e DATABASE_SAVE_DATA_INSTANCE=true -e DATABASE_SAVE_DATA_NEW_MESSAGE=false -e DATABASE_SAVE_DATA_MESSAGE_UPDATE=false -e DATABASE_SAVE_DATA_CONTACTS=false -e DATABASE_SAVE_DATA_CHATS=false atendai/evolution-api:latest && sleep 30 && echo "=== LOGS ===" && docker logs evolution --tail 50 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
+docker stop $(docker ps -q) 2>/dev/null && docker rm $(docker ps -aq) 2>/dev/null && cat > ~/docker-compose.evolution.yml << 'EOF'
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: evolution-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution123
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+
+  evolution:
+    image: atendai/evolution-api:latest
+    container_name: evolution
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ~/evolution-data:/evolution/store
+    environment:
+      SERVER_URL: http://localhost:8080
+      SERVER_PORT: 8080
+      AUTHENTICATION_API_KEY: 81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb
+      DATABASE_ENABLED: true
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:evolution123@postgres:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: evolution
+      DATABASE_SAVE_DATA_INSTANCE: true
+      DATABASE_SAVE_DATA_NEW_MESSAGE: false
+      DATABASE_SAVE_DATA_MESSAGE_UPDATE: false
+      DATABASE_SAVE_DATA_CONTACTS: false
+      DATABASE_SAVE_DATA_CHATS: false
+    depends_on:
+      - postgres
+    networks:
+      - evolution-net
+
+networks:
+  evolution-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+EOF
+echo "✅ Archivo docker-compose.yml creado"
 ```
 
-## 📋 POR QUÉ ESTE COMANDO FUNCIONA:
+### PASO 2: Levantar servicios (COPIAR TODO):
 
-**Problema anterior**: Evolution SIEMPRE requiere base de datos, no se puede deshabilitar.
+```bash
+cd ~ && docker compose -f docker-compose.evolution.yml up -d && sleep 40 && echo "=== CONTENEDORES ===" && docker ps && echo "" && echo "=== LOGS EVOLUTION ===" && docker logs evolution --tail 30 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
+```
 
-**Solución**: Usar **SQLite** (base de datos en archivo local):
-- ✅ `DATABASE_PROVIDER=sqlite` - SQLite local (no requiere servidor)
-- ✅ No requiere PostgreSQL/MySQL
-- ✅ Guarda datos en archivo local
-- ✅ Configuración mínima
+## ✅ RESULTADO ESPERADO:
+
+```
+=== CONTENEDORES ===
+evolution          Up    0.0.0.0:8080->8080/tcp
+evolution-postgres Up    5432/tcp
+
+=== PRUEBA ===
+HTTP/1.1 200 OK
+{"status":"ok"}
+```
 
 ## ✅ RESULTADO ESPERADO:
 
