@@ -1,11 +1,13 @@
-# ⚡ COMANDO FINAL - Con Redis + PostgreSQL
+# 🔥 SOLUCIÓN - Agregar Redis y deshabilitar cache
 
-## ✅ PASO 1: Recrear docker-compose.yml CON REDIS (COPIAR TODO)
+## ❌ ERRORES IDENTIFICADOS
 
-**Errores anteriores resueltos**:
-- ✅ Valores con comillas en YAML
-- ✅ Redis agregado (requerido por Evolution)
-- ✅ Cache deshabilitado para evitar problemas
+1. `redis disconnected` - Evolution requiere Redis
+2. `404 Not Found /health` - Evolution no levantó correctamente
+
+## ✅ SOLUCIÓN: Agregar Redis al docker-compose
+
+**EJECUTA ESTE COMANDO EN EL VPS**:
 
 ```bash
 docker-compose -f ~/docker-compose.evolution.yml down && cat > ~/docker-compose.evolution.yml << 'EOF'
@@ -47,6 +49,8 @@ services:
       SERVER_URL: "http://localhost:8080"
       SERVER_PORT: "8080"
       AUTHENTICATION_API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
+      
+      # Database
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: "postgresql"
       DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
@@ -56,9 +60,13 @@ services:
       DATABASE_SAVE_DATA_MESSAGE_UPDATE: "false"
       DATABASE_SAVE_DATA_CONTACTS: "false"
       DATABASE_SAVE_DATA_CHATS: "false"
+      
+      # Redis
       REDIS_ENABLED: "true"
       REDIS_URI: "redis://redis:6379"
       REDIS_PREFIX: "evolution"
+      
+      # Cache (deshabilitar para evitar problemas)
       CACHE_REDIS_ENABLED: "false"
     depends_on:
       - redis
@@ -74,29 +82,35 @@ volumes:
   redis_data:
   postgres_data:
 EOF
-echo "✅ Archivo recreado con Redis"
+echo "✅ docker-compose.yml actualizado con Redis"
 ```
 
 ---
 
-## ✅ PASO 2: Levantar servicios (COPIAR TODO)
+## 🚀 AHORA LEVANTA LOS SERVICIOS:
 
 ```bash
-cd ~ && docker-compose -f docker-compose.evolution.yml up -d && sleep 45 && echo "=== CONTENEDORES ===" && docker ps && echo "" && echo "=== LOGS EVOLUTION ===" && docker logs evolution --tail 40 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
+cd ~ && docker-compose -f docker-compose.evolution.yml up -d && sleep 45 && echo "=== CONTENEDORES ===" && docker ps && echo "" && echo "=== LOGS REDIS ===" && docker logs evolution-redis --tail 10 && echo "" && echo "=== LOGS EVOLUTION ===" && docker logs evolution --tail 40 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
 ```
 
+---
 
 ## ✅ RESULTADO ESPERADO:
 
 ```
+Creating evolution-redis    ... done
+Creating evolution-postgres ... done
+Creating evolution          ... done
+
 === CONTENEDORES ===
-NAME                  STATUS         PORTS
-evolution             Up 35 seconds  0.0.0.0:8080->8080/tcp
+evolution-redis       Up 40 seconds  6379/tcp
 evolution-postgres    Up 40 seconds  5432/tcp
+evolution             Up 35 seconds  0.0.0.0:8080->8080/tcp
 
 === LOGS EVOLUTION ===
+[LOG] - Redis connected successfully
+[LOG] - Database connected successfully
 [LOG] - Server started on port 8080
-[LOG] - Database connected
 
 === PRUEBA ===
 HTTP/1.1 200 OK
@@ -105,27 +119,18 @@ content-type: application/json
 {"status":"ok"}
 ```
 
-**Si ves `200 OK`** → ✅ **¡PROBLEMA RESUELTO!**
+---
+
+## 📋 QUÉ SE AGREGÓ:
+
+1. ✅ **Servicio Redis** - Para cache y sesiones
+2. ✅ `REDIS_ENABLED: "true"` - Habilita Redis
+3. ✅ `REDIS_URI: "redis://redis:6379"` - Conexión a Redis
+4. ✅ `CACHE_REDIS_ENABLED: "false"` - Deshabilita cache opcional
 
 ---
 
-## 📋 DESPUÉS DEL 200 OK:
+**🚀 EJECUTA LOS 2 COMANDOS ARRIBA EN EL VPS!**
 
-```bash
-# Probar IP pública
-curl -i http://31.220.58.83:8080/health
-
-# Abrir firewall
-ufw allow 8080/tcp
-ufw reload
-```
-
-**Luego**:
-1. Vercel → Variables → Configurar
-2. Redeploy
-3. Probar en `/configuracion`
-
----
-
-**🚀 EJECUTA EL COMANDO ARRIBA Y PEGA EL RESULTADO AQUÍ!**
+**Con Redis agregado, Evolution API funcionará correctamente** ✅
 
