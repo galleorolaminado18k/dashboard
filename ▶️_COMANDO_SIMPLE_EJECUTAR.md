@@ -1,23 +1,22 @@
-# 🚨 COMANDO SIMPLE Y DIRECTO
+# 🚨 COMANDO DEFINITIVO - Evolution con SQLite
 
 ## ⚡ EJECUTA ESTE COMANDO EN EL VPS
 
-Este es el comando más simple posible, sin variables de base de datos:
+**Comando actualizado con SQLite** (base de datos local, no requiere servidor):
 
 ```bash
-docker stop evolution 2>/dev/null && docker rm evolution 2>/dev/null && docker run -d --name evolution --restart unless-stopped -p 8080:8080 -v ~/evolution-data:/evolution/store -e SERVER_URL=http://localhost:8080 -e AUTHENTICATION_API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb atendai/evolution-api:latest && sleep 30 && echo "=== LOGS ===" && docker logs evolution --tail 50 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
+docker stop evolution 2>/dev/null && docker rm evolution 2>/dev/null && docker run -d --name evolution --restart unless-stopped -p 8080:8080 -v ~/evolution-data:/evolution/store -e SERVER_URL=http://localhost:8080 -e AUTHENTICATION_API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb -e DATABASE_ENABLED=true -e DATABASE_PROVIDER=sqlite -e DATABASE_CONNECTION_CLIENT_NAME=evolution -e DATABASE_SAVE_DATA_INSTANCE=true -e DATABASE_SAVE_DATA_NEW_MESSAGE=false -e DATABASE_SAVE_DATA_MESSAGE_UPDATE=false -e DATABASE_SAVE_DATA_CONTACTS=false -e DATABASE_SAVE_DATA_CHATS=false atendai/evolution-api:latest && sleep 30 && echo "=== LOGS ===" && docker logs evolution --tail 50 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
 ```
 
-## 📋 QUÉ HACE:
+## 📋 POR QUÉ ESTE COMANDO FUNCIONA:
 
-1. Detiene Evolution (si existe)
-2. Elimina Evolution (si existe)
-3. Levanta Evolution con **configuración mínima**:
-   - Solo `SERVER_URL` y `AUTHENTICATION_API_KEY`
-   - Sin variables de base de datos (causa de los errores)
-4. Espera 30 segundos
-5. Muestra logs
-6. Prueba health check
+**Problema anterior**: Evolution SIEMPRE requiere base de datos, no se puede deshabilitar.
+
+**Solución**: Usar **SQLite** (base de datos en archivo local):
+- ✅ `DATABASE_PROVIDER=sqlite` - SQLite local (no requiere servidor)
+- ✅ No requiere PostgreSQL/MySQL
+- ✅ Guarda datos en archivo local
+- ✅ Configuración mínima
 
 ## ✅ RESULTADO ESPERADO:
 
