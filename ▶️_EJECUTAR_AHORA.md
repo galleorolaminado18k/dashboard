@@ -1,36 +1,27 @@
 # ⚡ EJECUTA ESTO AHORA EN EL VPS
 
-## 🎯 PROBLEMA: Database provider invalid + Puerto ocupado
+## 🎯 SOLUCIÓN FINAL - Sin Prisma/Base de datos
 
-## ✅ SOLUCIÓN DEFINITIVA: Un solo comando (COPIAR Y PEGAR)
+## ✅ COMANDO DEFINITIVO (COPIAR Y PEGAR)
 
 ```bash
-docker stop evolution 2>/dev/null || true && docker rm evolution 2>/dev/null || true && docker run -d --name evolution --restart unless-stopped -p 8080:8080 -v ~/evolution-data:/evolution/store -e SERVER_PORT=8080 -e SERVER_HOST=0.0.0.0 -e API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb -e AUTHENTICATION_API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb -e DATABASE_ENABLED=false -e DATABASE_PROVIDER=postgresql -e DATABASE_CONNECTION_URI='' -e STORE_MESSAGES=false -e STORE_CONTACTS=false -e STORE_CHATS=false atendai/evolution-api:latest && sleep 25 && docker logs evolution --tail 40 && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
+docker stop evolution 2>/dev/null || true && docker rm evolution 2>/dev/null || true && docker run -d --name evolution --restart unless-stopped -p 8080:8080 -v ~/evolution-data:/evolution/store -e SERVER_PORT=8080 -e SERVER_HOST=0.0.0.0 -e API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb -e AUTHENTICATION_API_KEY=81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb -e DATABASE_ENABLED=false -e DATABASE_SAVE_DATA_INSTANCE=false -e DATABASE_SAVE_DATA_NEW_MESSAGE=false -e DATABASE_SAVE_DATA_MESSAGE_UPDATE=false -e DATABASE_SAVE_DATA_CONTACTS=false -e DATABASE_SAVE_DATA_CHATS=false atendai/evolution-api:latest && sleep 25 && docker logs evolution --tail 40 && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
 ```
 
-## 📋 QUÉ HACE ESTE COMANDO:
+## 📋 QUÉ HACE:
 
-1. ✅ Detiene contenedor Evolution (si existe)
-2. ✅ Elimina contenedor Evolution (si existe)
-3. ✅ Levanta Evolution con configuración CORRECTA:
-   - `DATABASE_ENABLED=false` - Sin base de datos
-   - `DATABASE_PROVIDER=postgresql` - **CRÍTICO: Evita error "Database provider invalid"**
-   - `DATABASE_CONNECTION_URI=''` - URI vacía (no se usa)
-   - `STORE_MESSAGES=false` - No guardar mensajes
-   - `STORE_CONTACTS=false` - No guardar contactos
-   - `STORE_CHATS=false` - No guardar chats
-4. ✅ Espera 25 segundos para que Evolution inicie
-5. ✅ Muestra logs (últimos 40 líneas)
-6. ✅ Prueba health check
+1. ✅ Detiene y elimina Evolution existente
+2. ✅ Levanta Evolution **SIN base de datos ni Prisma**
+3. ✅ Variables correctas que evitan error de Prisma
+4. ✅ Espera 25s y muestra logs
+5. ✅ Prueba health check
 
 ## ✅ RESULTADO ESPERADO:
 
 ```
 === PRUEBA ===
 HTTP/1.1 200 OK
-date: Tue, 11 Nov 2025 04:10:00 GMT
 content-type: application/json
-content-length: 15
 
 {"status":"ok"}
 ```
