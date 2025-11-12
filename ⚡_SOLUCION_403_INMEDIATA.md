@@ -14,7 +14,11 @@ message: "permission error"
 
 ---
 
-## ✅ SOLUCIÓN: Deshabilitar autenticación en Evolution
+## ✅ SOLUCIÓN: Configurar autenticación global en Evolution v2.2.3
+
+**PROBLEMA IDENTIFICADO**: Evolution v2.2.3 SIEMPRE requiere autenticación y `AUTHENTICATION: "false"` no funciona.
+
+**SOLUCIÓN**: Usar `AUTHENTICATION_TYPE: "apikey"` con una clave global.
 
 **EJECUTA ESTE COMANDO EN EL VPS** (copia TODO):
 
@@ -54,7 +58,9 @@ services:
     environment:
       SERVER_URL: "http://localhost:8080"
       SERVER_PORT: "8080"
-      AUTHENTICATION: "false"
+      AUTHENTICATION_TYPE: "apikey"
+      AUTHENTICATION_API_KEY: "galle-whatsapp-key-2025"
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: "postgresql"
       DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
@@ -78,7 +84,7 @@ volumes:
   redis_data:
   postgres_data:
 EOF
-docker-compose -f ~/docker-compose.evolution.yml up -d && sleep 35 && echo "=== LOGS ===" && docker logs evolution --tail 30 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/instance/fetchInstances
+docker-compose -f ~/docker-compose.evolution.yml up -d && sleep 35 && echo "=== LOGS ===" && docker logs evolution --tail 30 && echo "" && echo "=== PRUEBA SIN AUTH ===" && curl -i http://127.0.0.1:8080/instance/fetchInstances && echo "" && echo "=== PRUEBA CON AUTH ===" && curl -i -H "apikey: galle-whatsapp-key-2025" http://127.0.0.1:8080/instance/fetchInstances
 ```
 
 ---
@@ -89,9 +95,17 @@ docker-compose -f ~/docker-compose.evolution.yml up -d && sleep 35 && echo "=== 
 
 1. Ve a: https://vercel.com/dashboard
 2. Tu proyecto → **Settings** → **Environment Variables**
-3. **ELIMINAR** la variable `EVO_API_KEY` (ya no se necesita)
-4. **MANTENER** solo: `EVO_BASE_URL = http://31.220.58.83:8080`
-5. **Deployments** → **Redeploy**
+3. **ACTUALIZAR/AGREGAR** estas variables:
+
+```
+Name: EVO_BASE_URL
+Value: http://31.220.58.83:8080
+
+Name: EVO_API_KEY
+Value: galle-whatsapp-key-2025
+```
+
+4. **Deployments** → **Redeploy** (OBLIGATORIO)
 
 ---
 
@@ -103,12 +117,18 @@ docker-compose -f ~/docker-compose.evolution.yml up -d && sleep 35 && echo "=== 
 [LOG] - Database connected
 [LOG] - Redis connected
 
-=== PRUEBA ===
+=== PRUEBA SIN AUTH ===
+HTTP/1.1 401 Unauthorized
+{"status":401,"error":"Unauthorized"}
+
+=== PRUEBA CON AUTH ===
 HTTP/1.1 200 OK
 content-type: application/json
 
 []  (o array con instancias)
 ```
+
+**Correcto**: Sin auth = 401, Con auth = 200 ✅
 
 ---
 
@@ -126,13 +146,14 @@ content-type: application/json
 **Commit**: `49d36da`
 
 ### En Evolution (VPS):
-- ✅ `AUTHENTICATION: "false"` - Autenticación deshabilitada
-- ✅ Eliminadas: `API_KEY`, `AUTHENTICATION_API_KEY`
+- ✅ `AUTHENTICATION_TYPE: "apikey"` - Autenticación con API key global
+- ✅ `AUTHENTICATION_API_KEY: "galle-whatsapp-key-2025"` - Clave simple y segura
+- ✅ `AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"` - Permite listar instancias
 
-### En el código (Vercel):
-- ✅ Múltiples headers de autenticación (por si acaso)
+### En Vercel:
+- ✅ `EVO_API_KEY = galle-whatsapp-key-2025` - Misma clave que en Evolution
+- ✅ Código con múltiples headers de autenticación
 - ✅ Mejor logging de errores 403/401
-- ✅ Manejo robusto si no hay API Key
 
 ---
 
