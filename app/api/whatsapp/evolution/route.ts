@@ -26,11 +26,26 @@ async function evo(p: string, init: RequestInit = {}) {
 
   try {
     const startTime = Date.now()
+
+    // Crear headers con múltiples variantes de autenticación
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    // Agregar API key en múltiples formatos (Evolution API puede usar cualquiera)
+    if (KEY) {
+      headers['apikey'] = KEY
+      headers['api-key'] = KEY
+      headers['x-api-key'] = KEY
+      headers['Authorization'] = `Bearer ${KEY}`
+    }
+
+    console.log('[EVOLUTION] 📤 Headers enviados:', Object.keys(headers).join(', '))
+
     const r = await fetch(url, {
       ...init,
       headers: {
-        'Content-Type': 'application/json',
-        'apikey': KEY,
+        ...headers,
         ...init.headers
       },
       signal: ctrl.signal,
@@ -44,7 +59,18 @@ async function evo(p: string, init: RequestInit = {}) {
 
     if (!r.ok) {
       const text = await r.text().catch(() => r.statusText)
-      console.error(`[EVOLUTION] ❌ Error HTTP ${r.status}:`, text.substring(0, 200))
+      console.error(`[EVOLUTION] ❌ Error HTTP ${r.status}:`, text.substring(0, 500))
+
+      // Logging detallado para errores de autenticación
+      if (r.status === 401 || r.status === 403) {
+        console.error('[EVOLUTION] 🔐 Error de autenticación detectado')
+        console.error('[EVOLUTION] 🔑 API Key configurada:', KEY ? `${KEY.substring(0, 10)}...` : 'NO')
+        console.error('[EVOLUTION] 📋 Posibles causas:')
+        console.error('  1. API Key incorrecta o no configurada en Evolution')
+        console.error('  2. Variable EVO_API_KEY no está en Vercel')
+        console.error('  3. Evolution requiere AUTHENTICATION_API_KEY diferente')
+      }
+
       throw new Error(`EVO_HTTP_${r.status}: ${text}`)
     }
 
