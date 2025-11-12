@@ -80,7 +80,7 @@ echo "Archivo creado exitosamente"
 
 ```bash
 cd ~
-docker compose -f docker-compose.evolution.yml up -d
+docker-compose -f docker-compose.evolution.yml up -d
 
 echo "Esperando 40 segundos para que todo inicie..."
 sleep 40
@@ -126,13 +126,13 @@ content-type: application/json
 docker logs -f evolution
 
 # Reiniciar todo
-docker compose -f ~/docker-compose.evolution.yml restart
+docker-compose -f ~/docker-compose.evolution.yml restart
 
 # Detener todo
-docker compose -f ~/docker-compose.evolution.yml down
+docker-compose -f ~/docker-compose.evolution.yml down
 
 # Ver estado
-docker compose -f ~/docker-compose.evolution.yml ps
+docker-compose -f ~/docker-compose.evolution.yml ps
 ```
 
 ---

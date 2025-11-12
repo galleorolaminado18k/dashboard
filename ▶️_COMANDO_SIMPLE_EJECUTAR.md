@@ -63,7 +63,7 @@ echo "✅ Archivo docker-compose.yml creado"
 ### PASO 2: Levantar servicios (COPIAR TODO):
 
 ```bash
-cd ~ && docker compose -f docker-compose.evolution.yml up -d && sleep 40 && echo "=== CONTENEDORES ===" && docker ps && echo "" && echo "=== LOGS EVOLUTION ===" && docker logs evolution --tail 30 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
+cd ~ && docker-compose -f docker-compose.evolution.yml up -d && sleep 40 && echo "=== CONTENEDORES ===" && docker ps && echo "" && echo "=== LOGS EVOLUTION ===" && docker logs evolution --tail 30 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
 ```
 
 ## ✅ RESULTADO ESPERADO:
