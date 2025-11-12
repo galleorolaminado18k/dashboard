@@ -97,40 +97,43 @@ export async function OPTIONS() {
 export async function POST() {
   try {
     console.log('[EVOLUTION] 🚀 Iniciando sesión de WhatsApp...')
+    console.log('[EVOLUTION] 🌐 Base URL:', BASE)
+    console.log('[EVOLUTION] 🔑 API Key configurada:', KEY ? 'Sí' : 'No')
 
-    // 1) Health check
-    console.log('[EVOLUTION] 📡 Verificando conexión a Evolution API...')
-    await evo('/health')
-    console.log('[EVOLUTION] ✅ Health check OK')
-
-    // 2) Start session (con QR)
+    // Intentar iniciar sesión directamente (Evolution v2.2.3 no tiene /health)
     console.log('[EVOLUTION] 🔄 Iniciando sesión...')
-    const sessionData = await evo('/sessions/start', {
+    const sessionData = await evo('/instance/create', {
       method: 'POST',
       body: JSON.stringify({
-        sessionName: NAME,
-        whatsappVersion: 'v2',
-        qrcode: true
+        instanceName: NAME,
+        qrcode: true,
+        number: ''
       })
     })
-    console.log('[EVOLUTION] ✅ Sesión iniciada:', sessionData.status || 'OK')
+    console.log('[EVOLUTION] ✅ Sesión iniciada:', sessionData)
 
-    // 3) Get QR code
+    // Intentar obtener QR code
     console.log('[EVOLUTION] 📷 Obteniendo QR code...')
-    const qrData = await evo(`/sessions/${NAME}/qrcode`)
+
+    // Esperar un momento para que se genere el QR
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    const qrData = await evo(`/instance/connect/${NAME}`)
 
     // Normalizar diferentes formatos de respuesta
-    const qrcode = qrData.qrcode || qrData.qrCode || qrData.image || qrData.base64 || qrData.dataURL || ''
+    const qrcode = qrData.qrcode || qrData.qrCode || qrData.code || qrData.qr || qrData.base64 || qrData.image || ''
 
     if (!qrcode) {
-      console.error('[EVOLUTION] ❌ QR vacío en respuesta:', JSON.stringify(qrData).substring(0, 200))
+      console.error('[EVOLUTION] ⚠️  QR no disponible aún, respuesta:', JSON.stringify(qrData).substring(0, 200))
+
+      // Devolver la sesión creada aunque no haya QR todavía
       return new Response(
         JSON.stringify({
-          error: 'EVO_QR_EMPTY',
-          detail: 'Evolution API no devolvió un código QR',
-          raw: qrData
+          message: 'Sesión iniciada, esperando QR...',
+          session: sessionData,
+          needsRetry: true
         }),
-        { status: 502, headers: corsHeaders() }
+        { status: 202, headers: corsHeaders() }
       )
     }
 
@@ -148,7 +151,7 @@ export async function POST() {
     let userMessage = error.message
 
     if (error.message?.includes('EVO_UNREACHABLE')) {
-      userMessage = `No se puede conectar a Evolution API. Verifica que esté corriendo en ${BASE}. Prueba ejecutar: curl -i ${BASE}/health`
+      userMessage = `No se puede conectar a Evolution API. Verifica que esté corriendo en ${BASE}.`
     } else if (error.message?.includes('EVO_TIMEOUT')) {
       userMessage = 'Evolution API no respondió a tiempo. Verifica que esté corriendo correctamente.'
     } else if (error.message?.includes('EVO_HTTP_401')) {
