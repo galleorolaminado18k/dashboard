@@ -17,12 +17,15 @@ async function evo(p: string, init: RequestInit = {}) {
   const url = `${BASE}${path}`
 
   console.log('[EVOLUTION] 🔗 Llamando:', url)
+  console.log('[EVOLUTION] 📝 Método:', init.method || 'GET')
+  console.log('[EVOLUTION] 🔑 API Key presente:', KEY ? 'Sí' : 'No')
 
-  // Timeout de 10 segundos
+  // Timeout de 30 segundos (más tiempo para Evolution API)
   const ctrl = new AbortController()
-  const timeout = setTimeout(() => ctrl.abort(), 10000)
+  const timeout = setTimeout(() => ctrl.abort(), 30000)
 
   try {
+    const startTime = Date.now()
     const r = await fetch(url, {
       ...init,
       headers: {
@@ -34,26 +37,35 @@ async function evo(p: string, init: RequestInit = {}) {
       cache: 'no-store'
     })
 
+    const elapsed = Date.now() - startTime
+    console.log(`[EVOLUTION] ⏱️  Respuesta en ${elapsed}ms - Status: ${r.status}`)
+
     clearTimeout(timeout)
 
     if (!r.ok) {
       const text = await r.text().catch(() => r.statusText)
+      console.error(`[EVOLUTION] ❌ Error HTTP ${r.status}:`, text.substring(0, 200))
       throw new Error(`EVO_HTTP_${r.status}: ${text}`)
     }
 
-    return r.json().catch(() => ({}))
+    const data = await r.json().catch(() => ({}))
+    console.log('[EVOLUTION] ✅ Respuesta exitosa')
+    return data
   } catch (error: any) {
     clearTimeout(timeout)
 
     // Manejar errores específicos
     if (error.name === 'AbortError') {
-      throw new Error('EVO_TIMEOUT: Evolution API no respondió en 10 segundos. Verifica que esté corriendo.')
+      console.error('[EVOLUTION] ⏰ TIMEOUT después de 30 segundos')
+      throw new Error('EVO_TIMEOUT: Evolution API no respondió en 30 segundos. Verifica que esté corriendo y que el puerto 8080 esté abierto.')
     }
 
     if (error.message?.includes('fetch failed') || error.code === 'ECONNREFUSED') {
-      throw new Error(`EVO_UNREACHABLE: No se puede conectar a Evolution API en ${BASE}. Verifica que esté corriendo y accesible. Prueba: curl -i ${BASE}/health`)
+      console.error('[EVOLUTION] 🚫 No se puede conectar:', error.message)
+      throw new Error(`EVO_UNREACHABLE: No se puede conectar a Evolution API en ${BASE}. Verifica: 1) Evolution está corriendo (docker ps), 2) Puerto 8080 abierto (ufw allow 8080/tcp), 3) SERVER_HOST=0.0.0.0 en Evolution`)
     }
 
+    console.error('[EVOLUTION] ❌ Error desconocido:', error)
     throw error
   }
 }
