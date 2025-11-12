@@ -1,10 +1,18 @@
-# ⚡ COMANDO CORREGIDO - YAML VÁLIDO
+# 🔥 COMANDO CORREGIDO - YAML válido
 
-## ✅ PASO 1: Recrear docker-compose.yml (COPIAR TODO)
+## ❌ ERROR IDENTIFICADO
 
-**Error anterior**: Valores sin comillas en YAML causaban error de validación.
+```
+services.evolution.environment.DATABASE_ENABLED contains true, which is an invalid type
+```
 
-**Solución**: Recrear archivo con TODOS los valores entre comillas.
+**Causa**: Los valores booleanos (`true`/`false`) deben estar entre comillas en docker-compose.
+
+---
+
+## ✅ SOLUCIÓN: Recrear docker-compose.yml con valores entre comillas
+
+**EJECUTA ESTE COMANDO EN EL VPS** (copia TODO):
 
 ```bash
 cat > ~/docker-compose.evolution.yml << 'EOF'
@@ -57,29 +65,35 @@ networks:
 volumes:
   postgres_data:
 EOF
-echo "✅ Archivo recreado correctamente"
+echo "✅ Archivo docker-compose.yml recreado con valores entre comillas"
 ```
 
 ---
 
-## ✅ PASO 2: Levantar servicios (COPIAR TODO)
+## 🚀 AHORA EJECUTA ESTE COMANDO:
 
 ```bash
 cd ~ && docker-compose -f docker-compose.evolution.yml up -d && sleep 40 && echo "=== CONTENEDORES ===" && docker ps && echo "" && echo "=== LOGS EVOLUTION ===" && docker logs evolution --tail 30 && echo "" && echo "=== PRUEBA ===" && curl -i http://127.0.0.1:8080/health
 ```
 
+---
 
 ## ✅ RESULTADO ESPERADO:
 
 ```
+Creating network "evolution_evolution-net" with driver "bridge"
+Creating volume "evolution_postgres_data" with default driver
+Creating evolution-postgres ... done
+Creating evolution          ... done
+
 === CONTENEDORES ===
-NAME                  STATUS         PORTS
-evolution             Up 35 seconds  0.0.0.0:8080->8080/tcp
-evolution-postgres    Up 40 seconds  5432/tcp
+CONTAINER ID   IMAGE                              STATUS         PORTS
+evolution      atendai/evolution-api:latest       Up 35 seconds  0.0.0.0:8080->8080/tcp
+evolution-postgres postgres:15-alpine             Up 40 seconds  5432/tcp
 
 === LOGS EVOLUTION ===
 [LOG] - Server started on port 8080
-[LOG] - Database connected
+[LOG] - Database connected successfully
 
 === PRUEBA ===
 HTTP/1.1 200 OK
@@ -92,23 +106,19 @@ content-type: application/json
 
 ---
 
-## 📋 DESPUÉS DEL 200 OK:
+## 📋 DIFERENCIA CLAVE:
 
-```bash
-# Probar IP pública
-curl -i http://31.220.58.83:8080/health
-
-# Abrir firewall
-ufw allow 8080/tcp
-ufw reload
+**❌ ANTES (causaba error)**:
+```yaml
+DATABASE_ENABLED: true  # Sin comillas
 ```
 
-**Luego**:
-1. Vercel → Variables → Configurar
-2. Redeploy
-3. Probar en `/configuracion`
+**✅ AHORA (correcto)**:
+```yaml
+DATABASE_ENABLED: "true"  # Con comillas
+```
 
 ---
 
-**🚀 EJECUTA EL COMANDO ARRIBA Y PEGA EL RESULTADO AQUÍ!**
+**🚀 EJECUTA LOS 2 COMANDOS ARRIBA EN EL VPS (PRIMERO RECREAR EL ARCHIVO, LUEGO LEVANTAR)!**
 
