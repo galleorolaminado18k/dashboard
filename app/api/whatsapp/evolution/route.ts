@@ -175,24 +175,36 @@ export async function POST() {
 
     // Mensajes claros para el usuario
     let userMessage = error.message
+    let statusCode = 502
 
     if (error.message?.includes('EVO_UNREACHABLE')) {
-      userMessage = `No se puede conectar a Evolution API. Verifica que esté corriendo en ${BASE}.`
+      userMessage = `No se puede conectar a Evolution API en ${BASE}. Verifica que esté corriendo.`
+      statusCode = 503
     } else if (error.message?.includes('EVO_TIMEOUT')) {
       userMessage = 'Evolution API no respondió a tiempo. Verifica que esté corriendo correctamente.'
-    } else if (error.message?.includes('EVO_HTTP_401')) {
-      userMessage = 'Error de autenticación. Verifica que EVO_API_KEY sea correcta.'
+      statusCode = 504
+    } else if (error.message?.includes('EVO_HTTP_401') || error.message?.includes('EVO_HTTP_403')) {
+      userMessage = `Error de autenticación (${error.message.includes('401') ? '401' : '403'}). La API Key no es válida o no está configurada. En producción (Vercel), agrega la variable EVO_API_KEY en Settings → Environment Variables.`
+      statusCode = 401
+    } else if (error.message?.includes('EVO_HTTP_400')) {
+      userMessage = 'Error 400: La petición no es válida. Verifica la configuración de Evolution API.'
+      statusCode = 400
     } else if (error.message?.includes('EVO_HTTP_404')) {
-      userMessage = 'Endpoint no encontrado. Verifica la versión de Evolution API.'
+      userMessage = 'Endpoint no encontrado en Evolution API. Verifica que esté usando Evolution v2.'
+      statusCode = 404
     }
 
     return new Response(
       JSON.stringify({
         error: error.message.split(':')[0] || 'EVO_ERROR',
-        detail: userMessage,
-        fullError: error.message
+        message: userMessage,
+        detail: error.message,
+        config: {
+          baseUrl: BASE,
+          hasApiKey: !!KEY
+        }
       }),
-      { status: 502, headers: corsHeaders() }
+      { status: statusCode, headers: corsHeaders() }
     )
   }
 }
@@ -206,22 +218,53 @@ export async function GET() {
   try {
     console.log('[EVOLUTION] GET: Verificando estado...')
 
-    const data = await evo(`/sessions/${NAME}/status`)
-    const isConnected = data.state === 'open'
-    const needsQR = data.state === 'connecting' || data.state === 'close'
+    // Evolution v2 - Usar fetchInstances para verificar estado
+    const data = await evo(`/instance/fetchInstances?instanceName=${NAME}`)
+
+    console.log('[EVOLUTION] Respuesta fetchInstances:', JSON.stringify(data).substring(0, 300))
+
+    // Si data es un array, buscar la instancia
+    let instance = null
+    if (Array.isArray(data)) {
+      instance = data.find((inst: any) => inst.instance?.instanceName === NAME)
+    } else if (data.instance) {
+      instance = data
+    }
+
+    if (!instance) {
+      console.log('[EVOLUTION] Instancia no encontrada')
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          session: { name: NAME, status: 'NOT_CREATED', connected: false, needsQR: true },
+        }),
+        { status: 200, headers: corsHeaders() }
+      )
+    }
+
+    const connectionStatus = instance.instance?.connectionStatus || instance.connectionStatus || 'close'
+    const isConnected = connectionStatus === 'open'
+    const needsQR = connectionStatus === 'connecting' || connectionStatus === 'close'
+
+    console.log('[EVOLUTION] Estado de conexión:', connectionStatus)
 
     return new Response(
       JSON.stringify({
         ok: true,
-        session: { name: NAME, status: data.state, connected: isConnected, needsQR },
+        session: {
+          name: NAME,
+          status: connectionStatus,
+          connected: isConnected,
+          needsQR
+        },
       }),
       { status: 200, headers: corsHeaders() }
     )
   } catch (error: any) {
     console.error('[EVOLUTION] Error GET:', error.message)
 
-    // Si es 404, la sesión no existe
-    if (error.message?.includes('EVO_HTTP_404')) {
+    // Si es 404 o error de instancia no encontrada, la sesión no existe
+    if (error.message?.includes('EVO_HTTP_404') || error.message?.includes('not found')) {
       return new Response(
         JSON.stringify({
           ok: true,
@@ -246,7 +289,8 @@ export async function DELETE() {
   try {
     console.log('[EVOLUTION] DELETE: Eliminando sesión...')
 
-    await evo(`/sessions/${NAME}`, { method: 'DELETE' })
+    // Evolution v2 - Usar endpoint correcto para eliminar instancia
+    await evo(`/instance/delete/${NAME}`, { method: 'DELETE' })
 
     console.log('[EVOLUTION] ✅ Sesión eliminada')
 
@@ -258,7 +302,7 @@ export async function DELETE() {
     console.error('[EVOLUTION] Error DELETE:', error.message)
 
     // Si es 404, ya estaba eliminada
-    if (error.message?.includes('EVO_HTTP_404')) {
+    if (error.message?.includes('EVO_HTTP_404') || error.message?.includes('not found')) {
       return new Response(
         JSON.stringify({ ok: true, message: 'Sesión ya no existía' }),
         { status: 200, headers: corsHeaders() }
