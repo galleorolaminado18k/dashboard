@@ -1,4 +1,29 @@
+version: '3.8'
+
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: evolution-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - evolution-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: evolution-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: evolution123
+      POSTGRES_DB: evolution
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+
   evolution:
     image: atendai/evolution-api:latest
     container_name: evolution
@@ -8,16 +33,34 @@ services:
     volumes:
       - ~/evolution-data:/evolution/store
     environment:
-      # ✅ Server configuration - Escuchar en todas las interfaces
+      SERVER_URL: "http://31.220.58.83:8080"
       SERVER_PORT: "8080"
       SERVER_HOST: "0.0.0.0"
+      AUTHENTICATION_TYPE: "apikey"
+      AUTHENTICATION_API_KEY: "Galle_EVO_KEY_123"
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: "postgresql"
+      DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_DATA_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      REDIS_ENABLED: "true"
+      REDIS_URI: "redis://redis:6379"
+      CACHE_REDIS_ENABLED: "false"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - evolution-net
 
-      # ✅ Authentication
-      AUTHENTICATION: "true"
-      API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
-      AUTHENTICATION_API_KEY: "81207c5105d10ea3744af0e6a5ebdc480d851ea2f3eeb5b31a256f150d5267cb"
+networks:
+  evolution-net:
+    driver: bridge
 
-      # ✅ Database (disabled para simplicidad)
-      DATABASE_ENABLED: "false"
-
+volumes:
+  redis_data:
+  postgres_data:
 
