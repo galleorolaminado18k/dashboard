@@ -1,0 +1,44 @@
+version: "3.8"
+services:
+  wppconnect:
+    image: wppconnect/server:latest
+    container_name: wppconnect
+    restart: always
+    shm_size: "1gb"
+    environment:
+      - SERVER_PORT=21465
+      - ENABLE_PUBLIC_API=true
+      - SECRET_KEY=${WPP_SECRET}
+      - TOKEN=${WPP_TOKEN}
+      - LOG_LEVEL=info
+      - WEBHOOK_ENABLED=true
+      - WEBHOOK_BASEURL=${WPP_WEBHOOK_BASEURL}
+      - WEBHOOK_PATH=/wpp/webhook
+      - WEBHOOK_SECRET=${WPP_WEBHOOK_SECRET}
+      - AUTO_START=false
+      - START_ALL_SESSIONS=false
+      - MAX_CONCURRENT_SESSIONS=3
+      - CHROME_ARGS=--no-sandbox,--disable-dev-shm-usage
+    networks: [ net ]
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [ net ]
+
+networks:
+  net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+

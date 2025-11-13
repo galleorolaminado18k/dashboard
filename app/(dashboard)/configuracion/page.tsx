@@ -94,18 +94,19 @@ export default function ConfiguracionPage() {
       setError("")
       setSessionStatus('connecting')
 
-      console.log('📡 Llamando a /api/whatsapp/evolution...')
+      console.log('📡 Llamando a /api/whatsapp/wpp/start...')
 
-      const response = await fetch('/api/whatsapp/evolution', {
+      const response = await fetch('/api/whatsapp/wpp/start', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: config.whatsappBusinessPhone })
       })
 
       const data = await response.json()
       console.log('📥 Respuesta:', data)
 
       if (!response.ok || !data?.qrcode) {
-        const errorMsg = data?.error || 'No se pudo obtener QR'
+        const errorMsg = data?.detail || data?.error || 'No se pudo obtener QR'
         console.error('❌ Error:', errorMsg)
         throw new Error(errorMsg)
       }
@@ -115,8 +116,11 @@ export default function ConfiguracionPage() {
       setQrCodeImage(data.qrcode)
       setSessionStatus('connecting')
 
+      // Guardar sesión para polling
+      const sessionName = data.session || `galle-${config.whatsappBusinessPhone}`
+
       // Iniciar polling para verificar cuando se escanee
-      startPollingForConnection()
+      startPollingForConnection(sessionName)
 
     } catch (err: any) {
       console.error('❌ Error:', err)
@@ -128,12 +132,12 @@ export default function ConfiguracionPage() {
     }
   }
 
-  const startPollingForConnection = () => {
+  const startPollingForConnection = (sessionName: string) => {
     // Limpiar interval anterior si existe
     if (pollingInterval) clearInterval(pollingInterval)
 
     // Verificar estado cada 3 segundos
-    const interval = setInterval(checkConnectionStatus, 3000)
+    const interval = setInterval(() => checkConnectionStatus(sessionName), 3000)
     setPollingInterval(interval)
 
     // Timeout de 2 minutos
@@ -146,44 +150,23 @@ export default function ConfiguracionPage() {
     }, 120000)
   }
 
-  const checkConnectionStatus = async () => {
+  const checkConnectionStatus = async (sessionName: string) => {
     try {
       console.log('🔄 Verificando estado de conexión...')
-      const res = await fetch('/api/whatsapp/evolution')
+      const res = await fetch(`/api/whatsapp/wpp/status?session=${encodeURIComponent(sessionName)}`)
       const data = await res.json()
 
       console.log('📥 Estado:', data)
 
-      if (data.ok && data.session) {
-        if (data.session.connected) {
-          // Ya está conectado!
-          console.log('✅ WhatsApp conectado!')
-          setSessionStatus('connected')
-          setQrCodeImage("")
-          if (pollingInterval) clearInterval(pollingInterval)
-        }
+      if (data.ok && data.connected) {
+        // Ya está conectado!
+        console.log('✅ WhatsApp conectado!')
+        setSessionStatus('connected')
+        setQrCodeImage("")
+        if (pollingInterval) clearInterval(pollingInterval)
       }
     } catch (err) {
       console.error('❌ Error verificando estado:', err)
-    }
-  }
-
-  const fetchQRCode = async () => {
-    try {
-      console.log('🔄 Obteniendo QR de Evolution API...')
-      const res = await fetch('/api/whatsapp/evolution', { method: 'POST' })
-      const data = await res.json()
-
-      console.log('📥 Respuesta QR:', data)
-
-      if (data.ok && data.qr) {
-        console.log('✅ QR recibido!')
-        setQrCodeImage(data.qr)
-      } else {
-        console.log('⏳ QR no disponible aún:', data.error || 'esperando...')
-      }
-    } catch (err) {
-      console.error('❌ Error obteniendo QR:', err)
     }
   }
 
