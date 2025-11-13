@@ -1,6 +1,19 @@
 # ✅ ESTADO ACTUAL - TODO LISTO PARA FUNCIONAR
 
-## 🎉 ÉXITO EN EL VPS
+## 🚨 ERROR ACTUAL: EVO_HTTP_401
+
+**Por qué aparece este error**:
+```
+Error: EVO_HTTP_401 (Unauthorized)
+```
+
+**Causa**: Las variables de entorno `EVO_BASE_URL` y `EVO_API_KEY` **NO están configuradas en Vercel** o **NO se hizo redeploy después de agregarlas**.
+
+**Solución**: Configurar las variables en Vercel y hacer redeploy (instrucciones abajo) ↓
+
+---
+
+## 🎉 ÉXITO EN EL VPS (Backend funcionando)
 
 ```
 ✅ Evolution API v2.2.3 corriendo
