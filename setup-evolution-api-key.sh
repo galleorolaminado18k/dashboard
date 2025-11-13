@@ -52,12 +52,22 @@ services:
     volumes:
       - ~/evolution-data:/evolution/store
     environment:
+      # SERVER
       SERVER_URL: "http://31.220.58.83:8080"
       SERVER_PORT: "8080"
       SERVER_HOST: "0.0.0.0"
+
+      # CORS - CRÍTICO PARA VERCEL
+      CORS_ORIGIN: "*"
+      CORS_METHODS: "GET,POST,PUT,DELETE"
+      CORS_CREDENTIALS: "true"
+
+      # AUTHENTICATION
       AUTHENTICATION_TYPE: "apikey"
       AUTHENTICATION_API_KEY: "Galle_EVO_KEY_123"
       AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+
+      # DATABASE
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: "postgresql"
       DATABASE_CONNECTION_URI: "postgresql://evolution:evolution123@postgres:5432/evolution"
@@ -66,9 +76,32 @@ services:
       DATABASE_SAVE_DATA_MESSAGE_UPDATE: "false"
       DATABASE_SAVE_DATA_CONTACTS: "false"
       DATABASE_SAVE_DATA_CHATS: "false"
+
+      # REDIS
       REDIS_ENABLED: "true"
       REDIS_URI: "redis://redis:6379"
       CACHE_REDIS_ENABLED: "false"
+
+      # LOGS
+      LOG_LEVEL: "ERROR,WARN,DEBUG,INFO"
+      LOG_COLOR: "true"
+      LOG_BAILEYS: "false"
+
+      # INSTANCE
+      DEL_INSTANCE: "false"
+      DEL_TEMP_INSTANCES: "true"
+
+      # QRCODE
+      QRCODE_LIMIT: "30"
+      QRCODE_COLOR: "#198754"
+
+      # WEBHOOK GLOBAL
+      WEBHOOK_GLOBAL_ENABLED: "false"
+
+      # WHATSAPP
+      WA_BUSINESS_NAME: "GALLE"
+      WA_BUSINESS_DESCRIPTION: "Sistema de Gestion de Ventas"
+
     depends_on:
       - redis
       - postgres
