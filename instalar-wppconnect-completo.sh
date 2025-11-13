@@ -9,7 +9,7 @@ echo "=========================================="
 echo ""
 
 # PASO 1: Instalar Docker y dependencias
-echo "[1/8] Instalando Docker y dependencias..."
+echo "[1/10] Instalando Docker y dependencias..."
 apt-get update -qq
 apt-get install -y docker.io docker-compose curl
 systemctl enable docker
@@ -18,20 +18,20 @@ echo "✅ Docker instalado"
 echo ""
 
 # PASO 2: Limpiar contenedores antiguos
-echo "[2/8] Limpiando contenedores antiguos..."
+echo "[2/10] Limpiando contenedores antiguos..."
 docker ps -a | grep -E 'evolution|waha' | awk '{print $1}' | xargs -r docker rm -f
 echo "✅ Limpieza completada"
 echo ""
 
 # PASO 3: Crear directorio
-echo "[3/8] Creando directorio /opt/wpp..."
+echo "[3/10] Creando directorio /opt/wpp..."
 mkdir -p /opt/wpp
 cd /opt/wpp
 echo "✅ Directorio creado: $(pwd)"
 echo ""
 
 # PASO 4: Crear docker-compose.yml
-echo "[4/8] Creando docker-compose.yml..."
+echo "[4/10] Creando docker-compose.yml..."
 cat > docker-compose.yml << 'EOF'
 version: "3.8"
 services:
@@ -80,7 +80,7 @@ echo "✅ docker-compose.yml creado"
 echo ""
 
 # PASO 5: Crear Caddyfile
-echo "[5/8] Creando Caddyfile..."
+echo "[5/10] Creando Caddyfile..."
 cat > Caddyfile << 'EOF'
 wpp.galle18k.com {
   encode zstd gzip
@@ -91,18 +91,49 @@ echo "✅ Caddyfile creado"
 echo ""
 
 # PASO 6: Iniciar servicios
-echo "[6/8] Iniciando servicios..."
+echo "[6/10] Iniciando servicios..."
 docker-compose up -d
 echo "✅ Servicios iniciados"
 echo ""
 
-# PASO 7: Esperar a que inicien
-echo "[7/8] Esperando 40 segundos a que los servicios inicien..."
+# PASO 7: Configurar firewall
+echo "[7/10] Configurando firewall..."
+if command -v ufw &> /dev/null; then
+    ufw allow 80/tcp 2>/dev/null
+    ufw allow 443/tcp 2>/dev/null
+    ufw allow 21465/tcp 2>/dev/null
+    echo "✅ Puertos 80, 443, 21465 abiertos en firewall"
+else
+    echo "ℹ️  UFW no disponible, puertos deberían estar abiertos por defecto"
+fi
+echo ""
+
+# PASO 8: Esperar a que inicien
+echo "[8/10] Esperando 40 segundos a que los servicios inicien..."
 sleep 40
 
-# PASO 8: Diagnóstico
+# PASO 9: Verificar DNS
 echo ""
-echo "[8/8] Ejecutando diagnóstico..."
+echo "[9/10] Verificando configuración DNS..."
+if command -v dig &> /dev/null; then
+    DNS_IP=$(dig +short wpp.galle18k.com | tail -1)
+    if [ "$DNS_IP" = "31.220.58.83" ]; then
+        echo "✅ DNS configurado correctamente: wpp.galle18k.com → $DNS_IP"
+    elif [ -z "$DNS_IP" ]; then
+        echo "⚠️  DNS no configurado: wpp.galle18k.com no resuelve"
+        echo "   Configura un registro A en tu DNS Manager:"
+        echo "   Tipo: A, Nombre: wpp, Valor: 31.220.58.83"
+    else
+        echo "⚠️  DNS apunta a IP incorrecta: $DNS_IP (esperado: 31.220.58.83)"
+    fi
+else
+    echo "ℹ️  dig no disponible, saltando verificación DNS"
+fi
+echo ""
+
+# PASO 10: Diagnóstico
+echo ""
+echo "[10/10] Ejecutando diagnóstico..."
 echo ""
 echo "=========================================="
 echo "  DIAGNÓSTICO"
