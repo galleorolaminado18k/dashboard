@@ -22,16 +22,10 @@ TTL: 14400 (o el predeterminado)
 
 ## 🎯 PASO 2: EJECUTAR INSTALACIÓN EN VPS
 
-### Conecta al VPS y ejecuta este comando completo:
+### ⚠️ COMANDO CORREGIDO (copia este):
 
 ```bash
-apt-get update -qq && \
-apt-get install -y docker.io docker-compose-plugin curl && \
-systemctl enable docker && \
-systemctl start docker && \
-docker ps --format '{{.Names}}' | grep -E 'evolution|waha' | xargs -r docker rm -f && \
-mkdir -p /opt/wpp && cd /opt/wpp && \
-cat > docker-compose.yml << 'EOF'
+apt-get update -qq && apt-get install -y docker.io docker-compose curl && systemctl enable docker && systemctl start docker && docker ps -a | grep -E 'evolution|waha' | awk '{print $1}' | xargs -r docker rm -f && mkdir -p /opt/wpp && cd /opt/wpp && cat > docker-compose.yml << 'EOF'
 version: "3.8"
 services:
   wppconnect:
@@ -77,30 +71,17 @@ cat > Caddyfile << 'EOF'
 wpp.galle18k.com {
   encode zstd gzip
   reverse_proxy wppconnect:21465
-  header {
-    X-Powered-By "WPPConnect via Caddy"
-  }
-  log {
-    output file /var/log/caddy/wpp-access.log
-  }
 }
 EOF
-docker compose up -d && \
-sleep 40 && \
-echo "" && \
-echo "✅ INSTALACIÓN COMPLETADA" && \
-echo "" && \
-echo "📡 Verificando servicios..." && \
-docker ps --format "table {{.Names}}\t{{.Status}}" && \
-echo "" && \
-echo "📡 Test local:" && \
-curl -s http://localhost:21465/api-docs | head -n 3 && \
-echo "" && \
-echo "📡 Test HTTPS (espera 30 segundos más para SSL):" && \
-sleep 30 && \
-curl -s https://wpp.galle18k.com/api-docs | head -n 3 && \
-echo "" && \
-echo "✅ TODO LISTO - WPPConnect funcionando en https://wpp.galle18k.com"
+docker-compose up -d && sleep 30 && echo "✅ INSTALADO - Verifica con: docker ps"
+```
+
+### O usa el script preparado:
+
+```bash
+curl -o install.sh https://raw.githubusercontent.com/galleorolaminado18k/dashboard/feature/meta-ads-integration-v2/vps-wppconnect/install-wppconnect-galle18k.sh
+chmod +x install.sh
+./install.sh
 ```
 
 Este comando hace TODO automáticamente:
@@ -177,7 +158,7 @@ docker ps
 
 ### Reiniciar servicios:
 ```bash
-docker compose restart
+docker-compose restart
 ```
 
 ---
