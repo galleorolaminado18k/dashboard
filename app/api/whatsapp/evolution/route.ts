@@ -126,17 +126,17 @@ export async function POST() {
     console.log('[EVOLUTION] 🌐 Base URL:', BASE)
     console.log('[EVOLUTION] 🔑 API Key configurada:', KEY ? 'Sí' : 'No')
 
-    // Intentar iniciar sesión directamente (Evolution v2.2.3 no tiene /health)
-    console.log('[EVOLUTION] 🔄 Iniciando sesión...')
+    // Evolution v2.2.3 - Crear instancia con QR
+    console.log('[EVOLUTION] 🔄 Creando instancia...')
     const sessionData = await evo('/instance/create', {
       method: 'POST',
       body: JSON.stringify({
         instanceName: NAME,
-        qrcode: true,
-        number: ''
+        token: NAME,
+        qrcode: true
       })
     })
-    console.log('[EVOLUTION] ✅ Sesión iniciada:', sessionData)
+    console.log('[EVOLUTION] ✅ Instancia creada:', sessionData)
 
     // Intentar obtener QR code
     console.log('[EVOLUTION] 📷 Obteniendo QR code...')
