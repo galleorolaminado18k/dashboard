@@ -55,7 +55,7 @@ services:
       - SESSION_NAME=default
       - STORE_DIR=/data
       - ORIGIN=*
-    command: sh -c "npm i && node index.js"
+    command: sh -c "apk add --no-cache git python3 make g++ && npm i && node index.js"
     ports:
       - "3001:3001"
     restart: unless-stopped
