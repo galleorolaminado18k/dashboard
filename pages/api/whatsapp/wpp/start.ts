@@ -8,7 +8,7 @@ export const config = {
   },
 };
 
-const base = process.env.BAILEYS_BASE_URL || '';
+const base = process.env.WAHA_BASE_URL || '';
 const SESSION_NAME = 'default';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -24,10 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!base) {
-      console.error('[WAHA] BAILEYS_BASE_URL no configurada');
+      console.error('[WAHA] WAHA_BASE_URL no configurada');
       return res.status(500).json({
         error: 'WAHA_CONFIG_MISSING',
-        detail: 'BAILEYS_BASE_URL no está configurada en Vercel'
+        detail: 'WAHA_BASE_URL no está configurada en Vercel'
       });
     }
 
