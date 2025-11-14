@@ -1,6 +1,7 @@
 /**
  * API Route para iniciar sesión WAHA y obtener QR
  * Fix para error 401 Unauthorized
+ * Incluye múltiples variantes de headers para máxima compatibilidad
  */
 
 export const runtime = 'nodejs';              // ← Evita Edge, usa Node.js
@@ -10,10 +11,15 @@ const BASE = process.env.WAHA_BASE_URL?.replace(/\/+$/, '') || '';
 const KEY = process.env.WAHA_API_KEY || '';
 const SESS = 'default';
 
-const H = new Headers({
-  'Content-Type': 'application/json',
-  'X-Api-Key': KEY,                           // ← Case-sensitive, exacto
-});
+// Función que genera headers con todas las variantes posibles
+function H() {
+  return new Headers({
+    'Content-Type': 'application/json',
+    'X-Api-Key': KEY,              // mayúsculas (estándar WAHA)
+    'x-api-key': KEY,              // minúsculas (por si el proxy normaliza)
+    'Authorization': `Api-Key ${KEY}`, // fallback (algunas distros de WAHA)
+  });
+}
 
 export async function POST() {
   try {
@@ -43,7 +49,7 @@ export async function POST() {
     console.log('[WAHA] 📡 POST /api/sessions/${SESS}/start');
     const startRes = await fetch(`${BASE}/api/sessions/${SESS}/start`, {
       method: 'POST',
-      headers: H,
+      headers: H(),
     });
 
     if (!startRes.ok && startRes.status !== 409) {
@@ -84,7 +90,7 @@ export async function POST() {
       }
 
       const qrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
-        headers: H,
+        headers: H(),
         cache: 'no-store'
       });
 
@@ -103,7 +109,7 @@ export async function POST() {
 
     if (!qrData || !qrData.qrcode) {
       const qrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
-        headers: H,
+        headers: H(),
         cache: 'no-store'
       });
 
