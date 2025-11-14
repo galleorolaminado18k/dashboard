@@ -1,7 +1,6 @@
-// API Route para iniciar sesión y obtener QR con WPPConnect
+// API Route para iniciar sesión y obtener QR con Baileys
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Runtime de Node.js
 export const config = {
   runtime: 'nodejs',
   api: {
@@ -9,8 +8,8 @@ export const config = {
   },
 };
 
-const base = process.env.WPP_BASE_URL || '';
-const token = process.env.WPP_TOKEN || '';
+const base = process.env.BAILEYS_BASE_URL || '';
+const apiKey = process.env.BAILEYS_API_KEY || '';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -24,105 +23,88 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Phone number required' });
     }
 
-    if (!base || !token) {
-      console.error('[WPP] Variables de entorno no configuradas');
+    if (!base || !apiKey) {
+      console.error('[Baileys] Variables de entorno no configuradas');
       return res.status(500).json({
-        error: 'WPP_CONFIG_MISSING',
-        detail: 'WPP_BASE_URL o WPP_TOKEN no están configurados en Vercel'
+        error: 'BAILEYS_CONFIG_MISSING',
+        detail: 'BAILEYS_BASE_URL o BAILEYS_API_KEY no están configurados en Vercel'
       });
     }
 
-    const session = `galle-${phone}`;
+    console.log('[Baileys] 🚀 Iniciando sesión para:', phone);
+    console.log('[Baileys] 🌐 Base URL:', base);
 
-    console.log('[WPP] 🚀 Iniciando sesión:', session);
-    console.log('[WPP] 🌐 Base URL:', base);
-
-    // 1) Crear/iniciar sesión
-    console.log('[WPP] 📡 POST /api/:session/start');
-    const startResponse = await fetch(`${base}/api/${encodeURIComponent(session)}/start`, {
+    // 1) Iniciar sesión en Baileys
+    console.log('[Baileys] 📡 POST /start');
+    const startResponse = await fetch(`${base}/start`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'x-api-key': apiKey,
         'Content-Type': 'application/json'
       },
-      signal: AbortSignal.timeout(30000), // 30 segundos
+      signal: AbortSignal.timeout(30000),
     });
 
     if (!startResponse.ok) {
       const txt = await startResponse.text();
-      console.error('[WPP] ❌ Error en /start:', startResponse.status, txt);
+      console.error('[Baileys] ❌ Error en /start:', startResponse.status, txt);
       return res.status(502).json({
-        error: `WPP_HTTP_${startResponse.status}`,
+        error: `BAILEYS_HTTP_${startResponse.status}`,
         detail: txt
       });
     }
 
     const startData = await startResponse.json();
-    console.log('[WPP] ✅ Sesión iniciada:', startData);
+    console.log('[Baileys] ✅ Sesión iniciada:', startData);
 
-    // 2) Esperar un momento para que se genere el QR
+    // 2) Esperar 2 segundos para que se genere el QR
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // 3) Obtener QR code
-    console.log('[WPP] 📡 GET /api/:session/qrcode');
-    const qrResponse = await fetch(`${base}/api/${encodeURIComponent(session)}/qrcode`, {
+    console.log('[Baileys] 📡 GET /qr');
+    const qrResponse = await fetch(`${base}/qr`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      signal: AbortSignal.timeout(15000), // 15 segundos
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!qrResponse.ok) {
       const txt = await qrResponse.text();
-      console.error('[WPP] ❌ Error en /qrcode:', qrResponse.status, txt);
+      console.error('[Baileys] ❌ Error en /qr:', qrResponse.status, txt);
+      
+      // Si el error es 404 con mensaje LOGGED_IN, significa que ya está conectado
+      try {
+        const errorData = JSON.parse(txt);
+        if (errorData.message === 'LOGGED_IN') {
+          return res.status(200).json({
+            ok: true,
+            alreadyConnected: true,
+            message: 'WhatsApp ya está conectado'
+          });
+        }
+      } catch (e) {
+        // Ignorar error de parse
+      }
+      
       return res.status(502).json({
-        error: `WPP_HTTP_${qrResponse.status}`,
+        error: `BAILEYS_HTTP_${qrResponse.status}`,
         detail: txt
       });
     }
 
     const qrData = await qrResponse.json();
-    console.log('[WPP] ✅ QR obtenido');
-
-    // Normalizar respuesta (puede venir en diferentes formatos)
-    const qrcode = qrData?.qrcode || qrData?.qr || qrData?.code || qrData?.base64 || '';
-
-    if (!qrcode) {
-      console.error('[WPP] ⚠️  QR vacío, respuesta:', JSON.stringify(qrData).substring(0, 200));
-      return res.status(202).json({
-        session,
-        message: 'Sesión iniciada, esperando QR...',
-        needsRetry: true
-      });
-    }
+    console.log('[Baileys] ✅ QR obtenido');
 
     return res.status(200).json({
-      session,
-      qrcode,
-      success: true
+      ok: true,
+      session: 'default',
+      qrcode: qrData.qr
     });
 
   } catch (error: any) {
-    console.error('[WPP] ❌ Error:', error);
-
-    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
-      return res.status(504).json({
-        error: 'WPP_TIMEOUT',
-        detail: 'WPPConnect no respondió a tiempo. Verifica que esté corriendo.'
-      });
-    }
-
-    if (error.message?.includes('fetch failed') || error.code === 'ECONNREFUSED') {
-      return res.status(503).json({
-        error: 'WPP_UNREACHABLE',
-        detail: `No se puede conectar a WPPConnect en ${base}. Verifica la URL y que el servicio esté corriendo.`
-      });
-    }
-
+    console.error('[Baileys] 💥 Error inesperado:', error);
     return res.status(500).json({
-      error: 'WPP_ERROR',
-      detail: error?.message || 'Error desconocido'
+      error: 'BAILEYS_ERROR',
+      detail: error.message || 'Error desconocido'
     });
   }
 }

@@ -1,12 +1,15 @@
-// API Route para enviar mensajes con WPPConnect
+// API Route para enviar mensajes con Baileys
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export const config = {
   runtime: 'nodejs',
+  api: {
+    bodyParser: true,
+  },
 };
 
-const base = process.env.WPP_BASE_URL || '';
-const token = process.env.WPP_TOKEN || '';
+const base = process.env.BAILEYS_BASE_URL || '';
+const apiKey = process.env.BAILEYS_API_KEY || '';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -14,74 +17,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { session, phone, message } = req.body;
+    const { to, text } = req.body;
 
-    if (!session || !phone || !message) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['session', 'phone', 'message']
-      });
+    if (!to || !text) {
+      return res.status(400).json({ error: 'Missing "to" or "text"' });
     }
 
-    if (!base || !token) {
+    if (!base || !apiKey) {
       return res.status(500).json({
-        error: 'WPP_CONFIG_MISSING',
+        error: 'BAILEYS_CONFIG_MISSING',
         detail: 'Variables de entorno no configuradas'
       });
     }
 
-    console.log('[WPP] 📤 Enviando mensaje');
-    console.log('[WPP] 📱 Sesión:', session);
-    console.log('[WPP] 📞 Teléfono:', phone);
-    console.log('[WPP] 💬 Mensaje:', message.substring(0, 50));
+    console.log('[Baileys] 📤 Enviando mensaje a:', to);
 
-    const response = await fetch(
-      `${base}/api/${encodeURIComponent(session)}/send-message`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: phone,
-          message: message,
-          isGroup: false,
-        }),
-        signal: AbortSignal.timeout(15000), // 15 segundos
-      }
-    );
-
-    if (!response.ok) {
-      const txt = await response.text();
-      console.error('[WPP] ❌ Error enviando mensaje:', response.status, txt);
-      return res.status(502).json({
-        error: `WPP_HTTP_${response.status}`,
-        detail: txt
-      });
-    }
-
-    const data = await response.json();
-    console.log('[WPP] ✅ Mensaje enviado:', data);
-
-    return res.status(200).json({
-      success: true,
-      data
+    const response = await fetch(`${base}/sendText`, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ to, text }),
+      signal: AbortSignal.timeout(30000),
     });
 
-  } catch (error: any) {
-    console.error('[WPP] ❌ Error:', error);
+    const data = await response.json();
 
-    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
-      return res.status(504).json({
-        error: 'WPP_TIMEOUT',
-        detail: 'Timeout enviando mensaje'
-      });
+    if (!response.ok) {
+      console.error('[Baileys] ❌ Error enviando:', data);
+      return res.status(response.status).json(data);
     }
 
+    console.log('[Baileys] ✅ Mensaje enviado');
+    return res.status(200).json(data);
+
+  } catch (error: any) {
+    console.error('[Baileys] Error:', error);
     return res.status(500).json({
-      error: 'WPP_ERROR',
-      detail: error?.message || 'Error desconocido'
+      error: 'BAILEYS_ERROR',
+      detail: error.message
     });
   }
 }
