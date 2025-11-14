@@ -1,4 +1,4 @@
-// API Route para obtener estado de sesión Baileys
+// API Route para obtener estado de sesión WAHA
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export const config = {
@@ -6,6 +6,7 @@ export const config = {
 };
 
 const base = process.env.BAILEYS_BASE_URL || '';
+const SESSION_NAME = 'default';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -15,14 +16,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     if (!base) {
       return res.status(500).json({
-        error: 'BAILEYS_CONFIG_MISSING',
+        error: 'WAHA_CONFIG_MISSING',
         detail: 'BAILEYS_BASE_URL no configurada'
       });
     }
 
-    console.log('[Baileys] 📡 Verificando estado...');
+    console.log('[WAHA] 📡 Verificando estado de sesión...');
 
-    const response = await fetch(`${base}/health`, {
+    const response = await fetch(`${base}/api/${SESSION_NAME}/status`, {
       signal: AbortSignal.timeout(10000),
     });
 
@@ -31,9 +32,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(response.ok ? 200 : 502).json(data);
 
   } catch (error: any) {
-    console.error('[Baileys] Error:', error);
+    console.error('[WAHA] Error:', error);
     return res.status(500).json({
-      error: 'BAILEYS_ERROR',
+      error: 'WAHA_ERROR',
       detail: error.message
     });
   }

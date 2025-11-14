@@ -1,4 +1,4 @@
-// API Route para iniciar sesión y obtener QR con Baileys
+// API Route para iniciar sesión y obtener QR con WAHA
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export const config = {
@@ -9,7 +9,7 @@ export const config = {
 };
 
 const base = process.env.BAILEYS_BASE_URL || '';
-const apiKey = process.env.BAILEYS_API_KEY || '';
+const SESSION_NAME = 'default';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -23,106 +23,113 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Phone number required' });
     }
 
-    if (!base || !apiKey) {
-      console.error('[Baileys] Variables de entorno no configuradas');
+    if (!base) {
+      console.error('[WAHA] BAILEYS_BASE_URL no configurada');
       return res.status(500).json({
-        error: 'BAILEYS_CONFIG_MISSING',
-        detail: 'BAILEYS_BASE_URL o BAILEYS_API_KEY no están configurados en Vercel'
+        error: 'WAHA_CONFIG_MISSING',
+        detail: 'BAILEYS_BASE_URL no está configurada en Vercel'
       });
     }
 
-    console.log('[Baileys] 🚀 Iniciando sesión para:', phone);
-    console.log('[Baileys] 🌐 Base URL:', base);
+    console.log('[WAHA] 🚀 Iniciando sesión para:', phone);
+    console.log('[WAHA] 🌐 Base URL:', base);
 
-    // 1) Iniciar sesión en Baileys
-    console.log('[Baileys] 📡 POST /start');
-    const startResponse = await fetch(`${base}/start`, {
+    // 1) Iniciar sesión en WAHA
+    console.log('[WAHA] 📡 POST /api/sessions/start');
+    const startResponse = await fetch(`${base}/api/sessions/start`, {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
         'Content-Type': 'application/json'
       },
+      body: JSON.stringify({
+        name: SESSION_NAME,
+        config: {
+          proxy: null,
+          noweb: {
+            store: {
+              enabled: true,
+              fullSync: false
+            }
+          }
+        }
+      }),
       signal: AbortSignal.timeout(30000),
     });
 
     if (!startResponse.ok) {
       const txt = await startResponse.text();
-      console.error('[Baileys] ❌ Error en /start:', startResponse.status, txt);
-      return res.status(502).json({
-        error: `BAILEYS_HTTP_${startResponse.status}`,
-        detail: txt
-      });
+      console.error('[WAHA] ❌ Error en /start:', startResponse.status, txt);
+
+      // Si la sesión ya existe, continuar
+      if (startResponse.status === 409 || txt.includes('already exists')) {
+        console.log('[WAHA] ℹ️  Sesión ya existe, continuando...');
+      } else {
+        return res.status(502).json({
+          error: `WAHA_HTTP_${startResponse.status}`,
+          detail: txt
+        });
+      }
+    } else {
+      const startData = await startResponse.json();
+      console.log('[WAHA] ✅ Sesión iniciada:', startData);
     }
 
-    const startData = await startResponse.json();
-    console.log('[Baileys] ✅ Sesión iniciada:', startData);
-
-    // 2) Intentar obtener QR con reintentos (máximo 10 intentos = 20 segundos)
+    // 2) Obtener QR con reintentos
     let qrData = null;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 15;
 
-    console.log('[Baileys] 📡 Esperando generación de QR...');
+    console.log('[WAHA] 📡 Esperando generación de QR...');
 
     while (attempts < maxAttempts && !qrData) {
       attempts++;
-
-      // Esperar 2 segundos entre intentos
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log(`[Baileys] 📡 Intento ${attempts}/${maxAttempts} - GET /qr`);
+      console.log(`[WAHA] 📡 Intento ${attempts}/${maxAttempts} - GET /api/${SESSION_NAME}/auth/qr`);
 
-      const qrResponse = await fetch(`${base}/qr`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
+      try {
+        const qrResponse = await fetch(`${base}/api/${SESSION_NAME}/auth/qr`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000),
+        });
 
-      if (qrResponse.ok) {
-        const data = await qrResponse.json();
-        if (data.ok && data.qr) {
-          qrData = data;
-          console.log('[Baileys] ✅ QR obtenido en intento', attempts);
-          break;
-        }
-      } else {
-        const txt = await qrResponse.text();
-
-        // Si ya está logueado, devolver éxito
-        try {
-          const errorData = JSON.parse(txt);
-          if (errorData.message === 'LOGGED_IN') {
-            return res.status(200).json({
-              ok: true,
-              alreadyConnected: true,
-              message: 'WhatsApp ya está conectado'
-            });
+        if (qrResponse.ok) {
+          const data = await qrResponse.json();
+          if (data.qr) {
+            qrData = data;
+            console.log('[WAHA] ✅ QR obtenido en intento', attempts);
+            break;
           }
-        } catch (e) {
-          // Continuar intentando
+        } else if (qrResponse.status === 404) {
+          // Sesión no encontrada o QR no disponible, seguir intentando
+          console.log(`[WAHA] ⏳ Intento ${attempts}: QR no disponible aún`);
+        } else {
+          const txt = await qrResponse.text();
+          console.log(`[WAHA] ⚠️  Intento ${attempts}: ${qrResponse.status} - ${txt}`);
         }
-
-        console.log(`[Baileys] ⏳ Intento ${attempts}: QR no disponible aún`);
+      } catch (e) {
+        console.log(`[WAHA] ⚠️  Intento ${attempts}: Error -`, e);
       }
     }
 
     if (!qrData) {
-      console.error('[Baileys] ❌ QR no se generó después de', maxAttempts, 'intentos');
+      console.error('[WAHA] ❌ QR no se generó después de', maxAttempts, 'intentos');
       return res.status(504).json({
-        error: 'BAILEYS_QR_TIMEOUT',
+        error: 'WAHA_QR_TIMEOUT',
         detail: `El QR no se generó después de ${maxAttempts * 2} segundos. Intenta de nuevo.`
       });
     }
 
     return res.status(200).json({
       ok: true,
-      session: 'default',
+      session: SESSION_NAME,
       qrcode: qrData.qr
     });
 
   } catch (error: any) {
-    console.error('[Baileys] 💥 Error inesperado:', error);
+    console.error('[WAHA] 💥 Error inesperado:', error);
     return res.status(500).json({
-      error: 'BAILEYS_ERROR',
+      error: 'WAHA_ERROR',
       detail: error.message || 'Error desconocido'
     });
   }
