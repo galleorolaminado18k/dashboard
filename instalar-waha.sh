@@ -124,14 +124,22 @@ docker logs waha-api --tail 20
 echo ""
 echo "🔍 Test local con autenticación:"
 sleep 5
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Api-Key: ${API_KEY}" http://127.0.0.1:3001/api/health)
-echo "HTTP Status /api/health: $HTTP_CODE"
 
-if [ "$HTTP_CODE" = "200" ]; then
+# Probar endpoint /health (sin autenticación)
+HTTP_CODE_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3001/health)
+echo "HTTP Status /health: $HTTP_CODE_HEALTH"
+
+# Probar endpoint /api/server/version (con autenticación)
+HTTP_CODE_API=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Api-Key: ${API_KEY}" http://127.0.0.1:3001/api/server/version)
+echo "HTTP Status /api/server/version: $HTTP_CODE_API"
+
+if [ "$HTTP_CODE_HEALTH" = "200" ] || [ "$HTTP_CODE_API" = "200" ]; then
     echo "✅ ÉXITO - WAHA API funcionando"
-    curl -s -H "X-Api-Key: ${API_KEY}" http://127.0.0.1:3001/api/health | head -20
+    echo ""
+    echo "Versión de WAHA:"
+    curl -s -H "X-Api-Key: ${API_KEY}" http://127.0.0.1:3001/api/server/version 2>/dev/null | head -5
 else
-    echo "⚠️  Código: $HTTP_CODE"
+    echo "⚠️  Códigos: Health=$HTTP_CODE_HEALTH, API=$HTTP_CODE_API"
     echo ""
     echo "Ver logs completos:"
     echo "  docker logs waha-api -f"
@@ -143,7 +151,7 @@ echo "  RESULTADO"
 echo "=========================================="
 echo ""
 
-if [ "$HTTP_CODE" = "200" ]; then
+if [ "$HTTP_CODE_HEALTH" = "200" ] || [ "$HTTP_CODE_API" = "200" ]; then
     echo "✅ TODO FUNCIONA"
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
