@@ -57,42 +57,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const startData = await startResponse.json();
     console.log('[Baileys] ✅ Sesión iniciada:', startData);
 
-    // 2) Esperar 2 segundos para que se genere el QR
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // 2) Intentar obtener QR con reintentos (máximo 10 intentos = 20 segundos)
+    let qrData = null;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    // 3) Obtener QR code
-    console.log('[Baileys] 📡 GET /qr');
-    const qrResponse = await fetch(`${base}/qr`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(15000),
-    });
+    console.log('[Baileys] 📡 Esperando generación de QR...');
 
-    if (!qrResponse.ok) {
-      const txt = await qrResponse.text();
-      console.error('[Baileys] ❌ Error en /qr:', qrResponse.status, txt);
-      
-      // Si el error es 404 con mensaje LOGGED_IN, significa que ya está conectado
-      try {
-        const errorData = JSON.parse(txt);
-        if (errorData.message === 'LOGGED_IN') {
-          return res.status(200).json({
-            ok: true,
-            alreadyConnected: true,
-            message: 'WhatsApp ya está conectado'
-          });
-        }
-      } catch (e) {
-        // Ignorar error de parse
-      }
-      
-      return res.status(502).json({
-        error: `BAILEYS_HTTP_${qrResponse.status}`,
-        detail: txt
+    while (attempts < maxAttempts && !qrData) {
+      attempts++;
+
+      // Esperar 2 segundos entre intentos
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      console.log(`[Baileys] 📡 Intento ${attempts}/${maxAttempts} - GET /qr`);
+
+      const qrResponse = await fetch(`${base}/qr`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
       });
+
+      if (qrResponse.ok) {
+        const data = await qrResponse.json();
+        if (data.ok && data.qr) {
+          qrData = data;
+          console.log('[Baileys] ✅ QR obtenido en intento', attempts);
+          break;
+        }
+      } else {
+        const txt = await qrResponse.text();
+
+        // Si ya está logueado, devolver éxito
+        try {
+          const errorData = JSON.parse(txt);
+          if (errorData.message === 'LOGGED_IN') {
+            return res.status(200).json({
+              ok: true,
+              alreadyConnected: true,
+              message: 'WhatsApp ya está conectado'
+            });
+          }
+        } catch (e) {
+          // Continuar intentando
+        }
+
+        console.log(`[Baileys] ⏳ Intento ${attempts}: QR no disponible aún`);
+      }
     }
 
-    const qrData = await qrResponse.json();
-    console.log('[Baileys] ✅ QR obtenido');
+    if (!qrData) {
+      console.error('[Baileys] ❌ QR no se generó después de', maxAttempts, 'intentos');
+      return res.status(504).json({
+        error: 'BAILEYS_QR_TIMEOUT',
+        detail: `El QR no se generó después de ${maxAttempts * 2} segundos. Intenta de nuevo.`
+      });
+    }
 
     return res.status(200).json({
       ok: true,
