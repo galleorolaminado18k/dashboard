@@ -1,0 +1,44 @@
+version: "3.8"
+services:
+  baileys:
+    image: node:20-alpine
+    container_name: baileys-api
+    working_dir: /app
+    volumes:
+      - ./app:/app
+      - ./data:/data
+    environment:
+      - PORT=3001
+      - API_KEY=${API_KEY}
+      - SESSION_NAME=default
+      - STORE_DIR=/data
+      - ORIGIN=*
+    command: sh -c "npm i && node index.js"
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    networks: [ net ]
+
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [ net ]
+    depends_on:
+      - baileys
+
+networks:
+  net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
