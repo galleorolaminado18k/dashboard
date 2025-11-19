@@ -11,14 +11,19 @@ const BASE = process.env.WAHA_BASE_URL?.replace(/\/+$/, '') || '';
 const KEY = process.env.WAHA_API_KEY || '';
 const SESS = 'default';
 
-// Función que genera headers con todas las variantes posibles
+// Función que genera headers - WAHA 2025.11.2 solo acepta X-Api-Key
 function H() {
-  return new Headers({
+  const headers = new Headers({
     'Content-Type': 'application/json',
-    'X-Api-Key': KEY,              // mayúsculas (estándar WAHA)
-    'x-api-key': KEY,              // minúsculas (por si el proxy normaliza)
-    'Authorization': `Api-Key ${KEY}`, // fallback (algunas distros de WAHA)
+    'X-Api-Key': KEY,  // WAHA requiere exactamente este header
   });
+
+  console.log('[WAHA] Headers enviados:', {
+    'X-Api-Key': KEY.substring(0, 10) + '...' + KEY.substring(KEY.length - 4),
+    'Content-Type': 'application/json'
+  });
+
+  return headers;
 }
 
 export async function POST() {
@@ -44,9 +49,11 @@ export async function POST() {
     console.log('[WAHA] 🚀 Iniciando sesión...');
     console.log('[WAHA] Base URL:', BASE);
     console.log('[WAHA] API Key presente:', Boolean(KEY));
+    console.log('[WAHA] API Key (primeros 10 chars):', KEY.substring(0, 10) + '...');
+    console.log('[WAHA] API Key length:', KEY.length);
 
     // 1) Start session (idempotente: 200/201/409 son válidos)
-    console.log('[WAHA] 📡 POST /api/sessions/${SESS}/start');
+    console.log('[WAHA] 📡 POST', `${BASE}/api/sessions/${SESS}/start`);
 
     let startRes;
     try {
@@ -73,6 +80,27 @@ export async function POST() {
     if (!startRes.ok && startRes.status !== 409) {
       const errorText = await startRes.text();
       console.error('[WAHA] ❌ Start failed:', startRes.status, errorText);
+      console.error('[WAHA] Response headers:', Object.fromEntries(startRes.headers.entries()));
+
+      // Si es 401, dar información específica
+      if (startRes.status === 401) {
+        return new Response(
+          JSON.stringify({
+            error: 'WAHA_START_401',
+            detail: 'API Key rechazada por WAHA. Verificar que Caddy esté reenviando el header X-Api-Key correctamente.',
+            debugInfo: {
+              apiKeyUsed: KEY.substring(0, 10) + '...' + KEY.substring(KEY.length - 4),
+              endpoint: `${BASE}/api/sessions/${SESS}/start`,
+              wahaResponse: errorText
+            }
+          }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
       return new Response(
         JSON.stringify({
           error: `WAHA_START_${startRes.status}`,
