@@ -47,10 +47,28 @@ export async function POST() {
 
     // 1) Start session (idempotente: 200/201/409 son válidos)
     console.log('[WAHA] 📡 POST /api/sessions/${SESS}/start');
-    const startRes = await fetch(`${BASE}/api/sessions/${SESS}/start`, {
-      method: 'POST',
-      headers: H(),
-    });
+
+    let startRes;
+    try {
+      startRes = await fetch(`${BASE}/api/sessions/${SESS}/start`, {
+        method: 'POST',
+        headers: H(),
+        signal: AbortSignal.timeout(15000), // 15 segundos timeout
+      });
+    } catch (fetchError) {
+      console.error('[WAHA] ❌ Error de conexión al intentar start session:', fetchError);
+      return new Response(
+        JSON.stringify({
+          error: 'WAHA_CONNECTION_ERROR',
+          detail: `No se pudo conectar con WAHA en ${BASE}. Verifica que esté corriendo.`,
+          technicalDetails: fetchError instanceof Error ? fetchError.message : String(fetchError),
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     if (!startRes.ok && startRes.status !== 409) {
       const errorText = await startRes.text();
