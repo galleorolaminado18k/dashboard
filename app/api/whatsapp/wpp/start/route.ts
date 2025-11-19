@@ -132,41 +132,74 @@ export async function POST() {
       attempts++;
 
       if (attempts > 1) {
-        // Esperar 2 segundos antes de reintentar
+        console.log(`[WAHA] ⏳ Esperando 2 segundos antes del intento ${attempts}...`);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
-      const qrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
-        headers: H(),
-        cache: 'no-store'
-      });
+      console.log(`[WAHA] 🔄 Intento ${attempts}/${maxAttempts} para obtener QR...`);
 
-      if (qrRes.ok) {
-        const qrJson = await qrRes.json().catch(() => ({}));
+      try {
+        const qrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
+          headers: H(),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000), // 10 segundos timeout por intento
+        });
 
-        if (qrJson?.qrcode) {
-          qrData = qrJson;
-          console.log('[WAHA] ✅ QR obtenido en intento', attempts);
-          break;
+        console.log(`[WAHA] 📊 Respuesta QR intento ${attempts}: Status ${qrRes.status}`);
+
+        if (qrRes.ok) {
+          const qrJson = await qrRes.json().catch((e) => {
+            console.error(`[WAHA] ⚠️  Error parseando JSON en intento ${attempts}:`, e);
+            return {};
+          });
+
+          if (qrJson?.qrcode) {
+            qrData = qrJson;
+            console.log('[WAHA] ✅ QR obtenido exitosamente en intento', attempts);
+            break;
+          } else {
+            console.log(`[WAHA] ⚠️  Intento ${attempts}: Respuesta OK pero sin qrcode`, qrJson);
+          }
+        } else {
+          const errorText = await qrRes.text().catch(() => 'No se pudo leer el error');
+          console.log(`[WAHA] ⚠️  Intento ${attempts}: Status ${qrRes.status} - ${errorText.substring(0, 100)}`);
         }
-      } else {
-        console.log(`[WAHA] ⚠️  Intento ${attempts}: Status ${qrRes.status}`);
+      } catch (fetchError) {
+        console.error(`[WAHA] ❌ Error en intento ${attempts}:`, fetchError instanceof Error ? fetchError.message : String(fetchError));
       }
     }
 
     if (!qrData || !qrData.qrcode) {
-      const qrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
-        headers: H(),
-        cache: 'no-store'
-      });
+      console.error('[WAHA] ❌ No se pudo obtener QR después de', maxAttempts, 'intentos');
 
-      const qrJson = await qrRes.json().catch(() => ({}));
+      // Hacer un último intento para obtener información de error
+      let errorDetail = 'No se pudo obtener el código QR después de múltiples intentos.';
+      let lastStatus = 0;
 
-      console.error('[WAHA] ❌ No QR code:', qrRes.status, qrJson);
+      try {
+        const qrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
+          headers: H(),
+          cache: 'no-store'
+        });
+
+        lastStatus = qrRes.status;
+
+        if (!qrRes.ok) {
+          const errorText = await qrRes.text();
+          errorDetail = `WAHA respondió con status ${qrRes.status}: ${errorText}`;
+        }
+      } catch (e) {
+        errorDetail = `Error de conexión: ${e instanceof Error ? e.message : String(e)}`;
+      }
+
+      console.error('[WAHA] ❌ Error detail:', errorDetail);
+
       return new Response(
         JSON.stringify({
-          error: `WAHA_QR_${qrRes.status}`,
-          detail: qrJson
+          error: 'WAHA_QR_NOT_AVAILABLE',
+          detail: errorDetail,
+          status: lastStatus,
+          suggestion: 'Intenta reiniciar la sesión en WAHA o verifica los logs del servidor.'
         }),
         {
           status: 502,
