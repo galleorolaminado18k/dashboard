@@ -114,41 +114,73 @@ export async function POST() {
       );
     }
 
-    if (startRes.status === 409 || startRes.status === 422) {
-      console.log('[WAHA] ℹ️  Sesión ya existe (status:', startRes.status, '), haciendo logout primero...');
+    // Verificar el estado actual de la sesión ANTES de hacer logout
+    console.log('[WAHA] 🔍 Verificando estado de la sesión...');
 
-      // Hacer logout de la sesión existente para poder obtener un nuevo QR
+    try {
+      const statusRes = await fetch(`${BASE}/api/sessions/${SESS}`, {
+        headers: H(),
+      });
+
+      if (statusRes.ok) {
+        const sessionData = await statusRes.json();
+        console.log('[WAHA] 📊 Estado de sesión:', sessionData.status);
+
+        // Si la sesión está WORKING (conectada), hacer logout
+        if (sessionData.status === 'WORKING') {
+          console.log('[WAHA] ℹ️  Sesión conectada detectada, haciendo logout...');
+
+          const logoutRes = await fetch(`${BASE}/api/sessions/${SESS}/logout`, {
+            method: 'POST',
+            headers: H(),
+          });
+
+          if (logoutRes.ok) {
+            console.log('[WAHA] ✅ Logout exitoso');
+            // Esperar a que la sesión se detenga
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        }
+      }
+    } catch (statusError) {
+      console.log('[WAHA] ⚠️  No se pudo verificar estado:', statusError);
+      // Continuar de todos modos
+    }
+
+    if (startRes.status === 409 || startRes.status === 422) {
+      console.log('[WAHA] ℹ️  Sesión ya existe (status:', startRes.status, '), reiniciando...');
+
+      // Detener la sesión primero
       try {
-        const logoutRes = await fetch(`${BASE}/api/sessions/${SESS}/logout`, {
+        const stopRes = await fetch(`${BASE}/api/sessions/${SESS}/stop`, {
           method: 'POST',
           headers: H(),
         });
 
-        if (logoutRes.ok) {
-          console.log('[WAHA] ✅ Logout exitoso');
-        } else {
-          console.log('[WAHA] ⚠️  Logout respondió con status:', logoutRes.status);
+        if (stopRes.ok) {
+          console.log('[WAHA] ✅ Sesión detenida');
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // Esperar 2 segundos después del logout
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Reintentar start después del logout
-        console.log('[WAHA] 🔄 Reintentando start después del logout...');
+        // Reiniciar sesión
+        console.log('[WAHA] 🔄 Reiniciando sesión...');
         const restartRes = await fetch(`${BASE}/api/sessions/${SESS}/start`, {
           method: 'POST',
           headers: H(),
         });
 
-        if (restartRes.ok || restartRes.status === 409 || restartRes.status === 422) {
+        if (restartRes.ok) {
           console.log('[WAHA] ✅ Sesión reiniciada exitosamente');
+          // Esperar a que la sesión entre en estado SCAN_QR_CODE
+          await new Promise(resolve => setTimeout(resolve, 3000));
         }
-      } catch (logoutError) {
-        console.error('[WAHA] ⚠️  Error en logout:', logoutError);
-        // Continuar de todos modos
+      } catch (restartError) {
+        console.error('[WAHA] ⚠️  Error en reinicio:', restartError);
       }
     } else {
       console.log('[WAHA] ✅ Sesión iniciada:', startRes.status);
+      // Esperar a que la sesión esté lista para generar QR
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
     // 2) Get QR (puede tardar unos segundos)
