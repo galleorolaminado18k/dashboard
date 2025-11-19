@@ -115,7 +115,38 @@ export async function POST() {
     }
 
     if (startRes.status === 409 || startRes.status === 422) {
-      console.log('[WAHA] ℹ️  Sesión ya existe (status:', startRes.status, '), continuando a obtener QR...');
+      console.log('[WAHA] ℹ️  Sesión ya existe (status:', startRes.status, '), haciendo logout primero...');
+
+      // Hacer logout de la sesión existente para poder obtener un nuevo QR
+      try {
+        const logoutRes = await fetch(`${BASE}/api/sessions/${SESS}/logout`, {
+          method: 'POST',
+          headers: H(),
+        });
+
+        if (logoutRes.ok) {
+          console.log('[WAHA] ✅ Logout exitoso');
+        } else {
+          console.log('[WAHA] ⚠️  Logout respondió con status:', logoutRes.status);
+        }
+
+        // Esperar 2 segundos después del logout
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Reintentar start después del logout
+        console.log('[WAHA] 🔄 Reintentando start después del logout...');
+        const restartRes = await fetch(`${BASE}/api/sessions/${SESS}/start`, {
+          method: 'POST',
+          headers: H(),
+        });
+
+        if (restartRes.ok || restartRes.status === 409 || restartRes.status === 422) {
+          console.log('[WAHA] ✅ Sesión reiniciada exitosamente');
+        }
+      } catch (logoutError) {
+        console.error('[WAHA] ⚠️  Error en logout:', logoutError);
+        // Continuar de todos modos
+      }
     } else {
       console.log('[WAHA] ✅ Sesión iniciada:', startRes.status);
     }
