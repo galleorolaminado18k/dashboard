@@ -77,7 +77,8 @@ export async function POST() {
       );
     }
 
-    if (!startRes.ok && startRes.status !== 409) {
+    // Aceptar 200, 201, 409 (ya existe) y 422 (ya iniciada) como válidos
+    if (!startRes.ok && startRes.status !== 409 && startRes.status !== 422) {
       const errorText = await startRes.text();
       console.error('[WAHA] ❌ Start failed:', startRes.status, errorText);
       console.error('[WAHA] Response headers:', Object.fromEntries(startRes.headers.entries()));
@@ -113,8 +114,8 @@ export async function POST() {
       );
     }
 
-    if (startRes.status === 409) {
-      console.log('[WAHA] ℹ️  Sesión ya existe (409), continuando...');
+    if (startRes.status === 409 || startRes.status === 422) {
+      console.log('[WAHA] ℹ️  Sesión ya existe (status:', startRes.status, '), continuando a obtener QR...');
     } else {
       console.log('[WAHA] ✅ Sesión iniciada:', startRes.status);
     }
