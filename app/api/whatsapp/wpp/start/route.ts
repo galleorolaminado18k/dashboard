@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 
 const BASE = process.env.WAHA_BASE_URL?.replace(/\/+$/, '') || '';
 const KEY = process.env.WAHA_API_KEY || '';
-const SESS = 'default';
+const SESS = process.env.WAHA_SESSION_NAME || 'default';
+console.log('[WAHA] SESSION NAME:', SESS);
 
 // Headers CORS para evitar error 403 permission
 const CORS_HEADERS = {
