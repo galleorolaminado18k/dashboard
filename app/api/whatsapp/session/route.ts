@@ -120,7 +120,8 @@ export async function POST() {
     }
 
     // 1. Iniciar sesión
-    const start = await fetchWithTimeout(`${WAHA}/api/session/default/start`, {
+    // Usar endpoint plural /api/sessions/default/start (WAHA)
+    const start = await fetchWithTimeout(`${WAHA}/api/sessions/default/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -138,7 +139,8 @@ export async function POST() {
     await new Promise(resolve => setTimeout(resolve, 3000))
 
     // 3. Obtener QR
-    const qr = await fetchWithTimeout(`${WAHA}/api/session/default/qr`, {
+    // Endpoint correcto para QR: /api/{session}/auth/qr (session = default)
+    const qr = await fetchWithTimeout(`${WAHA}/api/default/auth/qr`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -186,7 +188,8 @@ export async function DELETE() {
     console.log('[API] Deteniendo sesión...')
 
     // Detener la sesión
-    const response = await fetch(`${WAHA}/api/session/default/stop`, {
+    // Usar endpoint plural para stop
+    const response = await fetch(`${WAHA}/api/sessions/default/stop`, {
       method: 'POST',
     })
 
@@ -197,12 +200,12 @@ export async function DELETE() {
     return NextResponse.json({
       ok: true,
       message: 'Sesión detenida correctamente',
-    })
+    }, { headers: corsHeaders() })
   } catch (error: any) {
     console.error('[API] Error deteniendo sesión:', error)
     return NextResponse.json({
       ok: false,
       error: error.message,
-    }, { status: 500 })
+    }, { status: 500, headers: corsHeaders() })
   }
 }
