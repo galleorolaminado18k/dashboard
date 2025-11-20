@@ -242,8 +242,69 @@ export async function POST() {
     if (!qrData || !qrData.qrcode) {
       console.error('[WAHA] ❌ No se pudo obtener QR después de', maxAttempts, 'intentos');
 
-      // Hacer un último intento para obtener información de error
-      let errorDetail = 'No se pudo obtener el código QR después de múltiples intentos.';
+      // Intentar eliminar la sesión corrupta y reiniciar
+      console.log('[WAHA] 🔄 Intentando eliminar sesión corrupta...');
+
+      try {
+        // Eliminar la sesión completamente
+        const deleteRes = await fetch(`${BASE}/api/sessions/${SESS}`, {
+          method: 'DELETE',
+          headers: H(),
+        });
+
+        if (deleteRes.ok) {
+          console.log('[WAHA] ✅ Sesión eliminada, esperando 3 segundos...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+
+          // Crear nueva sesión
+          const createRes = await fetch(`${BASE}/api/sessions`, {
+            method: 'POST',
+            headers: H(),
+            body: JSON.stringify({ name: SESS }),
+          });
+
+          if (createRes.ok) {
+            console.log('[WAHA] ✅ Nueva sesión creada, esperando 2 segundos...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Iniciar la nueva sesión
+            const startNewRes = await fetch(`${BASE}/api/sessions/${SESS}/start`, {
+              method: 'POST',
+              headers: H(),
+            });
+
+            if (startNewRes.ok) {
+              console.log('[WAHA] ✅ Sesión nueva iniciada, esperando 5 segundos...');
+              await new Promise(resolve => setTimeout(resolve, 5000));
+
+              // Intentar obtener QR una vez más
+              const finalQrRes = await fetch(`${BASE}/api/${SESS}/auth/qr`, {
+                headers: H(),
+                cache: 'no-store'
+              });
+
+              if (finalQrRes.ok) {
+                const finalQrJson = await finalQrRes.json().catch(() => ({}));
+                if (finalQrJson?.qrcode) {
+                  console.log('[WAHA] ✅ QR obtenido después de recrear sesión!');
+                  return new Response(
+                    JSON.stringify({ qrcode: finalQrJson.qrcode }),
+                    {
+                      status: 200,
+                      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
+                    }
+                  );
+                }
+              }
+            }
+          }
+        }
+      } catch (recreateError) {
+        console.error('[WAHA] ⚠️  Error al recrear sesión:', recreateError);
+      }
+
+      // Si llegamos aquí, falló completamente
+      let errorDetail = 'No se pudo obtener el código QR. Intenta ejecutar el script de limpieza en el VPS.';
       let lastStatus = 0;
 
       try {
