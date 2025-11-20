@@ -51,11 +51,7 @@ export async function GET() {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-    }
-
-    // Usar API key si está disponible
-    if (WAHA_API_KEY) {
-      headers['X-Api-Key'] = WAHA_API_KEY
+      ...(WAHA_API_KEY ? { 'X-Api-Key': WAHA_API_KEY } : {}),
     }
 
     // Endpoint correcto: /api/sessions/:session (plural)
@@ -63,7 +59,7 @@ export async function GET() {
 
     const response = await fetchWithTimeout(url, {
       method: 'GET',
-      headers,
+      headers: new Headers(headers),
     })
 
     if (!response.ok) {
@@ -119,18 +115,54 @@ export async function POST() {
       throw new Error('ENV_WAHA_BASE_URL_MISSING')
     }
 
-    // 1. Iniciar sesión
-    // Usar endpoint plural /api/sessions/default/start (WAHA)
-    const start = await fetchWithTimeout(`${WAHA}/api/sessions/default/start`, {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(WAHA_API_KEY ? { 'X-Api-Key': WAHA_API_KEY } : {}),
+    }
+
+    // 1. Intentar iniciar sesión
+    const startUrl = `${WAHA}/api/sessions/default/start`
+    let start = await fetchWithTimeout(startUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': WAHA_API_KEY,
-      },
+      headers: new Headers(headers),
     })
 
+    // Si WAHA responde que la sesión no existe (422), intentar crearla y reintentar start
     if (!start.ok) {
-      throw new Error(`WAHA_START_${start.status}`)
+      let startBody: any = null
+      try { startBody = await start.json() } catch (e) { startBody = await start.text().catch(() => null) }
+
+      console.warn('[API] WAHA start failed:', start.status, startBody)
+
+      if (start.status === 422 && startBody && (String(startBody.error || startBody).includes('does not exist') || String(startBody.error || '').includes('not exist'))) {
+        // Intentar crear la sesión 'default'
+        console.log('[API] Sesión default no existe en WAHA, intentando crearla...')
+        const create = await fetchWithTimeout(`${WAHA}/api/sessions`, {
+          method: 'POST',
+          headers: new Headers(headers),
+          body: JSON.stringify({ name: 'default' }),
+        })
+
+        if (!create.ok) {
+          const createText = await create.text().catch(() => String(create.status))
+          throw new Error(`WAHA_CREATE_${create.status}: ${createText}`)
+        }
+
+        console.log('[API] Sesión creada, reintentando start...')
+        start = await fetchWithTimeout(startUrl, {
+          method: 'POST',
+          headers: new Headers(headers),
+        })
+
+        if (!start.ok) {
+          const txt = await start.text().catch(() => String(start.status))
+          throw new Error(`WAHA_START_${start.status}: ${txt}`)
+        }
+      } else {
+        const txt = await start.text().catch(() => String(start.status))
+        throw new Error(`WAHA_START_${start.status}: ${txt}`)
+      }
     }
 
     console.log('[API] Sesión iniciada, esperando QR...')
@@ -139,18 +171,17 @@ export async function POST() {
     await new Promise(resolve => setTimeout(resolve, 3000))
 
     // 3. Obtener QR
-    // Endpoint correcto para QR: /api/{session}/auth/qr (session = default)
-    const qr = await fetchWithTimeout(`${WAHA}/api/default/auth/qr`, {
+    // Usar ruta plural y auth: /api/sessions/default/auth/qr
+    const qrUrl = `${WAHA}/api/sessions/default/auth/qr`
+    const qr = await fetchWithTimeout(qrUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': WAHA_API_KEY,
-      },
-      cache: 'no-store',
+      headers: new Headers({ ...headers, 'Cache-Control': 'no-store' }),
     })
 
     if (!qr.ok) {
-      throw new Error(`WAHA_QR_${qr.status}`)
+      const body = await qr.text().catch(() => null)
+      console.error('[API] Error obteniendo QR:', qr.status, body)
+      throw new Error(`WAHA_QR_${qr.status}: ${body}`)
     }
 
     const data = await qr.json()
@@ -167,6 +198,7 @@ export async function POST() {
   } catch (error: any) {
     console.error('[API] Error fatal:', error.message || error)
 
+    // Si el error viene con WAHA detalles ya incluídos, devolverlos al cliente
     return NextResponse.json({
       ok: false,
       error: 'WAHA_UNREACHABLE',

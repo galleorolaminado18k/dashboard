@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/scripts/README.md">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/scripts/README.md" />
+              <option name="updatedContent" value="# Scripts para commit &amp; push&#10;&#10;Archivos:&#10;- `git-commit-and-push.bat` - Script para Windows (cmd.exe). Uso desde la raíz del repo:&#10;  ```bat&#10;  scripts\git-commit-and-push.bat &quot;mensaje de commit opcional&quot;&#10;  ```&#10;&#10;- `git-commit-and-push.ps1` - Script para PowerShell. Uso desde la raíz del repo:&#10;  ```powershell&#10;  .\scripts\git-commit-and-push.ps1 -Message &quot;mensaje de commit&quot;&#10;  ```&#10;&#10;Notas:&#10;- Ambos scripts hacen `git add -A`, `git commit -m` y `git push origin &lt;branch actual&gt;`.&#10;- Asegúrate de tener configurado `git` y credenciales (SSH agent o credenciales HTTPS) antes de usar.&#10;- No incluyas secrets ni keys en los mensajes. Si necesitas añadir un secret a Vercel/GitHub Actions, hazlo desde su UI de configuración.&#10;&#10;Seguridad:&#10;- No automatizar push de secretos. Si quieres un flujo CI/CD, configura los secrets en la plataforma (Vercel/GitHub Actions) y evita ponerlos en archivos del repo.&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
