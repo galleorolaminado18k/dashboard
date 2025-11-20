@@ -11,6 +11,13 @@ const BASE = process.env.WAHA_BASE_URL?.replace(/\/+$/, '') || '';
 const KEY = process.env.WAHA_API_KEY || '';
 const SESS = 'default';
 
+// Headers CORS para evitar error 403 permission
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 // Función que genera headers - WAHA 2025.11.2 solo acepta X-Api-Key
 function H() {
   const headers = new Headers({
@@ -41,7 +48,7 @@ export async function POST() {
         }),
         {
           status: 500,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -72,7 +79,7 @@ export async function POST() {
         }),
         {
           status: 503,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -97,7 +104,7 @@ export async function POST() {
           }),
           {
             status: 401,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
           }
         );
       }
@@ -109,7 +116,7 @@ export async function POST() {
         }),
         {
           status: 502,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -266,7 +273,7 @@ export async function POST() {
         }),
         {
           status: 502,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -276,7 +283,7 @@ export async function POST() {
       JSON.stringify({ qrcode: qrData.qrcode }),
       {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
       }
     );
 
@@ -289,10 +296,20 @@ export async function POST() {
       }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' }
       }
     );
   }
+}
+
+/**
+ * Handler OPTIONS para CORS preflight
+ */
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: CORS_HEADERS
+  });
 }
 
 /**
