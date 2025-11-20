@@ -113,9 +113,7 @@ async function main () {
     }
   })
 
-  app.listen(PORT, () => {
-    console.log(`🚀 API WhatsApp escuchando en http://0.0.0.0:${PORT}`)
-  })
+  app.listen(PORT, () => console.log(`🚀 API WhatsApp escuchando en http://0.0.0.0:${PORT}`))
 }
 
 main().catch((e) => {
