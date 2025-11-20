@@ -33,6 +33,37 @@ function H() {
   return headers;
 }
 
+// Función para asegurar que la sesión exista en WAHA; crea la sesión si GET devuelve 404
+async function ensureSession() {
+  if (!BASE) throw new Error('WAHA_BASE_URL_MISSING')
+  const sessionsBase = `${BASE}/api/sessions`;
+  try {
+    const getRes = await fetch(`${sessionsBase}/${SESS}`, { headers: H() });
+    if (getRes.status === 404) {
+      console.log('[WAHA] Sesión no encontrada, creando sesión:', SESS);
+      const createRes = await fetch(sessionsBase, {
+        method: 'POST',
+        headers: H(),
+        body: JSON.stringify({ name: SESS })
+      });
+      if (!createRes.ok) {
+        const body = await createRes.text().catch(() => '');
+        throw new Error(`WAHA_CREATE_FAILED: ${createRes.status} ${body}`);
+      }
+      console.log('[WAHA] Sesión creada con éxito:', SESS);
+    } else if (!getRes.ok) {
+      const body = await getRes.text().catch(() => '');
+      throw new Error(`WAHA_GET_FAILED: ${getRes.status} ${body}`);
+    } else {
+      // session exists
+      console.log('[WAHA] Sesión existe:', SESS);
+    }
+  } catch (err) {
+    console.error('[WAHA] Error verificando/creando sesión:', err);
+    throw err;
+  }
+}
+
 export async function POST() {
   try {
     // Validar que tenemos las credenciales
@@ -56,8 +87,14 @@ export async function POST() {
     console.log('[WAHA] 🚀 Iniciando sesión...');
     console.log('[WAHA] Base URL:', BASE);
     console.log('[WAHA] API Key presente:', Boolean(KEY));
-    console.log('[WAHA] API Key (primeros 10 chars):', KEY.substring(0, 10) + '...');
-    console.log('[WAHA] API Key length:', KEY.length);
+
+    // Asegurar que la sesión exista antes de intentar start (evita 404 Session not found)
+    try {
+      await ensureSession();
+    } catch (e) {
+      console.error('[WAHA] ensureSession failed:', e);
+      return new Response(JSON.stringify({ error: 'WAHA_SESSION_SETUP_FAILED', detail: String(e) }), { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+    }
 
     // 1) Start session (idempotente: 200/201/409 son válidos)
     console.log('[WAHA] 📡 POST', `${BASE}/api/sessions/${SESS}/start`);
@@ -390,4 +427,3 @@ export async function GET() {
     }
   );
 }
-
