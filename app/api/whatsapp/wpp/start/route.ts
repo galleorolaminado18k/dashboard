@@ -42,17 +42,25 @@ export async function POST() {
             )
         }
 
-        const payload = {
-            ok: true,
-            hasQR: !!qrJson.hasQR,
+        // Objeto base con el QR
+        const inner = {
+            hasQR: qrJson.hasQR ?? true,
             isConnected: !!qrJson.isConnected,
             qr: qrJson.qr,
         }
 
-        // Compatibilidad con frontend viejo que lee data.qr
+        // Respuesta hiper-compatible para el frontend
         return NextResponse.json({
-            ...payload,
-            data: payload,
+            ok: true,
+            error: null,
+            ...inner,
+            data: {
+                ok: true,
+                error: null,
+                ...inner,
+                // por si en algún lado miran data.data.qr
+                data: inner,
+            },
         })
     } catch (err: any) {
         console.error("Error en /api/whatsapp/wpp/start", err)
