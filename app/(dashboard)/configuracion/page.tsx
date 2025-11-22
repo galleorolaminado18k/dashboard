@@ -122,8 +122,10 @@ export default function ConfiguracionPage() {
             const data = await response.json()
             console.log("📥 Respuesta:", data)
 
-            // 👇 CAMBIO: usamos data.qr, que es lo que devuelve tu API
-            if (!response.ok || !data?.qr) {
+            // ✅ ACEPTAMOS QR aunque el status HTTP no sea 2xx
+            const qrImage: string | undefined = data?.qr || data?.qrcode
+
+            if (!qrImage) {
                 const errorMsg = data?.detail || data?.error || "No se pudo obtener QR"
                 console.error("❌ Error:", errorMsg)
                 throw new Error(errorMsg)
@@ -131,7 +133,7 @@ export default function ConfiguracionPage() {
 
             // ✅ QR obtenido exitosamente
             console.log("✅ QR obtenido!")
-            setQrCodeImage(data.qr) // 👈 CAMBIO: antes data.qrcode
+            setQrCodeImage(qrImage)
             setSessionStatus("connecting")
 
             // Guardar sesión para polling
