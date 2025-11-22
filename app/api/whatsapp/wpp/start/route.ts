@@ -1,77 +1,88 @@
-import { NextResponse } from "next/server"
+// app/api/whatsapp/wpp/start/route.ts
+import { NextRequest, NextResponse } from 'next/server'
 
-const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL
-
-export async function POST() {
+export async function POST(_req: NextRequest) {
     try {
-        if (!GATEWAY_URL) {
+        const baseUrl = process.env.WHATSAPP_GATEWAY_URL
+
+        if (!baseUrl) {
+            console.error('[WPP_START] WHATSAPP_GATEWAY_URL no está seteada')
             return NextResponse.json(
-                { ok: false, error: "WHATSAPP_GATEWAY_URL not set" },
-                { status: 500 }
+                {
+                    ok: false,
+                    error: 'WHATSAPP_GATEWAY_URL_NOT_SET',
+                    hasQR: false,
+                    isConnected: false,
+                    qr: null,
+                },
+                { status: 500 },
             )
         }
 
-        const baseUrl = GATEWAY_URL.replace(/\/$/, "")
+        const url = `${baseUrl.replace(/\/+$/, '')}/qr`
+        console.log('[WPP_START] Llamando al gateway:', url)
 
-        const qrRes = await fetch(`${baseUrl}/qr`, {
-            method: "GET",
-            cache: "no-store",
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
         })
 
-        if (!qrRes.ok) {
-            const text = await qrRes.text().catch(() => "")
-            console.error("Gateway /qr error", qrRes.status, text)
+        if (!res.ok) {
+            const text = await res.text().catch(() => '')
+            console.error(
+                '[WPP_START] Gateway respondió != 200',
+                res.status,
+                text,
+            )
 
             return NextResponse.json(
-                { ok: false, error: "No se pudo obtener QR del gateway" },
-                { status: 502 }
+                {
+                    ok: false,
+                    error: 'GATEWAY_HTTP_ERROR',
+                    hasQR: false,
+                    isConnected: false,
+                    qr: null,
+                    detail: `Status ${res.status}`,
+                },
+                { status: 500 },
             )
         }
 
-        const qrJson: any = await qrRes.json().catch((err) => {
-            console.error("Error parseando JSON del gateway", err)
-            return null
+        const qrJson = await res.json().catch((err) => {
+            console.error('[WPP_START] Error parseando JSON del gateway', err)
+            throw new Error('INVALID_JSON_FROM_GATEWAY')
         })
 
-        if (!qrJson || typeof qrJson.qr !== "string" || !qrJson.qr.length) {
-            console.error("Payload inválido de /qr", qrJson)
+        const hasQR = !!qrJson?.qr
+        const isConnected = !!qrJson?.isConnected
 
-            return NextResponse.json(
-                { ok: false, error: "No se pudo obtener QR" },
-                { status: 500 }
-            )
-        }
+        console.log('[WPP_START] Respuesta gateway:', { hasQR, isConnected })
 
-        // Objeto base con el QR
-        const inner = {
-            hasQR: qrJson.hasQR ?? true,
-            isConnected: !!qrJson.isConnected,
-            qr: qrJson.qr,
-        }
-
-        // Respuesta hiper-compatible para el frontend
-        return NextResponse.json({
-            ok: true,
-            error: null,
-            ...inner,
-            data: {
-                ok: true,
+        return NextResponse.json(
+            {
+                ok: hasQR,          // true solo si hay QR
                 error: null,
-                ...inner,
-                // por si en algún lado miran data.data.qr
-                data: inner,
+                hasQR,
+                isConnected,
+                qr: hasQR ? String(qrJson.qr) : null,
+                raw: qrJson,        // por si necesitamos depurar en consola
             },
-        })
+            { status: 200 },
+        )
     } catch (err: any) {
-        console.error("Error en /api/whatsapp/wpp/start", err)
+        console.error('[WPP_START] Error inesperado:', err)
 
         return NextResponse.json(
             {
                 ok: false,
-                error: "GATEWAY_PROXY_ERROR",
-                detail: String(err?.message || err),
+                error: 'GATEWAY_PROXY_ERROR',
+                hasQR: false,
+                isConnected: false,
+                qr: null,
+                detail: String(err?.message ?? err),
             },
-            { status: 500 }
+            { status: 500 },
         )
     }
 }
