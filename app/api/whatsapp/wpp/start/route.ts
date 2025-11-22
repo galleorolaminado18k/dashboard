@@ -1,67 +1,85 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const WA_GATEWAY_URL =
-    process.env.WA_GATEWAY_URL || "http://31.220.58.83:3001"
+const GATEWAY_URL = process.env.WA_GATEWAY_URL
+const GATEWAY_TOKEN = process.env.WA_GATEWAY_TOKEN
 
-async function handleStart(req: NextRequest) {
+if (!GATEWAY_URL) {
+    console.error("❌ WA_GATEWAY_URL no configurada")
+}
+if (!GATEWAY_TOKEN) {
+    console.error("❌ WA_GATEWAY_TOKEN no configurada")
+}
+
+export async function GET(req: NextRequest) {
     try {
-        let phone = ""
-        try {
-            const body = await req.json()
-            phone = body?.phone || ""
-        } catch {
-            // si viene vacío o es GET, ignoramos
+        const { searchParams } = new URL(req.url)
+        const session = searchParams.get("session")
+
+        if (!session) {
+            return NextResponse.json(
+                { ok: false, error: "SESSION_REQUIRED" },
+                { status: 400 },
+            )
         }
 
-        const res = await fetch(`${WA_GATEWAY_URL}/qr`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            cache: "no-store",
-        })
+        if (!GATEWAY_URL || !GATEWAY_TOKEN) {
+            return NextResponse.json(
+                { ok: false, error: "GATEWAY_ENV_MISSING" },
+                { status: 500 },
+            )
+        }
 
-        if (!res.ok) {
-            const text = await res.text()
-            console.error("WA gateway /qr error:", res.status, text)
+        const gatewayRes = await fetch(
+            `${GATEWAY_URL.replace(/\/$/, "")}/status?session=${encodeURIComponent(
+                session,
+            )}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    // 👇 MISMO header que usas en /wpp/start
+                    Authorization: `Bearer ${GATEWAY_TOKEN}`,
+                },
+                cache: "no-store",
+            },
+        )
+
+        const gatewayJson = await gatewayRes.json().catch(() => ({}))
+
+        if (!gatewayRes.ok) {
+            console.error("❌ Error en WA gateway /status:", gatewayJson)
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "GATEWAY_ERROR",
-                    detail: `WA gateway /qr respondió ${res.status}`,
+                    error: "GATEWAY_STATUS_ERROR",
+                    detail: gatewayJson,
                 },
                 { status: 502 },
             )
         }
 
-        const qrJson = await res.json()
+        // El gateway puede devolver isConnected o connected
+        const isConnected = Boolean(
+            gatewayJson?.connected ?? gatewayJson?.isConnected,
+        )
 
         return NextResponse.json(
             {
                 ok: true,
-                hasQR: !!qrJson.hasQR,
-                isConnected: !!qrJson.isConnected,
-                // 👇 nombre que usa page.tsx
-                qrcode: qrJson.qr ?? null,
-                session: phone ? `galle-${phone}` : null,
+                connected: isConnected,
+                raw: gatewayJson,
             },
             { status: 200 },
         )
     } catch (err: any) {
-        console.error("Error en /api/whatsapp/wpp/start:", err)
+        console.error("❌ Error inesperado en /api/whatsapp/wpp/status:", err)
         return NextResponse.json(
             {
                 ok: false,
-                error: "GATEWAY_PROXY_ERROR",
+                error: "UNEXPECTED_ERROR",
                 detail: String(err?.message || err),
             },
             { status: 500 },
         )
     }
-}
-
-export async function POST(req: NextRequest) {
-    return handleStart(req)
-}
-
-export async function GET(req: NextRequest) {
-    return handleStart(req)
 }
