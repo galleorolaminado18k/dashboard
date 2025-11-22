@@ -21,33 +21,42 @@ export async function POST() {
         if (!qrRes.ok) {
             const text = await qrRes.text().catch(() => "")
             console.error("Gateway /qr error", qrRes.status, text)
+
             return NextResponse.json(
                 { ok: false, error: "No se pudo obtener QR del gateway" },
                 { status: 502 }
             )
         }
 
-        const qrJson = await qrRes.json().catch((err) => {
+        const qrJson: any = await qrRes.json().catch((err) => {
             console.error("Error parseando JSON del gateway", err)
             return null
         })
 
         if (!qrJson || typeof qrJson.qr !== "string" || !qrJson.qr.length) {
             console.error("Payload inválido de /qr", qrJson)
+
             return NextResponse.json(
                 { ok: false, error: "No se pudo obtener QR" },
                 { status: 500 }
             )
         }
 
-        return NextResponse.json({
+        const payload = {
             ok: true,
             hasQR: !!qrJson.hasQR,
             isConnected: !!qrJson.isConnected,
             qr: qrJson.qr,
+        }
+
+        // Compatibilidad con frontend viejo que lee data.qr
+        return NextResponse.json({
+            ...payload,
+            data: payload,
         })
     } catch (err: any) {
         console.error("Error en /api/whatsapp/wpp/start", err)
+
         return NextResponse.json(
             {
                 ok: false,
