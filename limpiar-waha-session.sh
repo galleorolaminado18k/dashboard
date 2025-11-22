@@ -68,3 +68,4 @@ else
     echo "Logs adicionales:"
     docker logs waha-api --tail 50 || true
 fi
+
