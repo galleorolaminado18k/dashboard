@@ -56,9 +56,8 @@ export default function ConfiguracionPage() {
     const [sessionStatus, setSessionStatus] = useState<
         "disconnected" | "connecting" | "connected"
     >("disconnected")
-    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
-        null,
-    )
+    const [pollingInterval, setPollingInterval] =
+        useState<NodeJS.Timeout | null>(null)
 
     // Cargar configuración guardada (SIN checkSessionStatus automático)
     useEffect(() => {
@@ -119,15 +118,31 @@ export default function ConfiguracionPage() {
                 body: JSON.stringify({ phone: config.whatsappBusinessPhone }),
             })
 
-            const data = await response.json()
+            // 1) Primero validamos que la respuesta HTTP sea OK
+            if (!response.ok) {
+                const raw = await response.text().catch(() => "")
+                console.error(
+                    "❌ Error HTTP en /api/whatsapp/wpp/start:",
+                    response.status,
+                    raw,
+                )
+                throw new Error(`Error al llamar al gateway (HTTP ${response.status})`)
+            }
+
+            // 2) Luego intentamos parsear a JSON de forma segura
+            const data = await response.json().catch((e) => {
+                console.error("❌ Respuesta no es JSON válido:", e)
+                throw new Error("Respuesta inválida del servidor")
+            })
+
             console.log("📥 Respuesta:", data)
 
-            // ✅ ACEPTAMOS QR aunque el status HTTP no sea 2xx
-            const qrImage: string | undefined = data?.qr || data?.qrcode
+            // Aceptamos tanto data.qrcode como data.qr
+            const qrImage: string | undefined = data?.qrcode || data?.qr
 
-            if (!qrImage) {
+            if (!data?.ok || !qrImage) {
                 const errorMsg = data?.detail || data?.error || "No se pudo obtener QR"
-                console.error("❌ Error:", errorMsg)
+                console.error("❌ Error lógico:", errorMsg)
                 throw new Error(errorMsg)
             }
 
@@ -137,7 +152,8 @@ export default function ConfiguracionPage() {
             setSessionStatus("connecting")
 
             // Guardar sesión para polling
-            const sessionName = data.session || `galle-${config.whatsappBusinessPhone}`
+            const sessionName =
+                data.session || `galle-${config.whatsappBusinessPhone}`
 
             // Iniciar polling para verificar cuando se escanee
             startPollingForConnection(sessionName)
@@ -178,11 +194,25 @@ export default function ConfiguracionPage() {
             const res = await fetch(
                 `/api/whatsapp/wpp/status?session=${encodeURIComponent(sessionName)}`,
             )
-            const data = await res.json()
+
+            if (!res.ok) {
+                const raw = await res.text().catch(() => "")
+                console.error(
+                    "❌ Error HTTP en /api/whatsapp/wpp/status:",
+                    res.status,
+                    raw,
+                )
+                return
+            }
+
+            const data = await res.json().catch((e) => {
+                console.error("❌ JSON inválido en /status:", e)
+                return null
+            })
 
             console.log("📥 Estado:", data)
 
-            if (data.ok && data.connected) {
+            if (data?.ok && data?.connected) {
                 // Ya está conectado!
                 console.log("✅ WhatsApp conectado!")
                 setSessionStatus("connected")
@@ -332,8 +362,8 @@ export default function ConfiguracionPage() {
                                                                 <li>
                                                                     Docker corriendo:{" "}
                                                                     <code className="bg-blue-100 px-1 rounded text-[10px]">
-                                                                        docker compose -f docker-compose.evolution.yml
-                                                                        up -d
+                                                                        docker compose -f
+                                                                        docker-compose.evolution.yml up -d
                                                                     </code>
                                                                 </li>
                                                                 <li>
@@ -346,9 +376,7 @@ export default function ConfiguracionPage() {
                                                                     Ingresa tu número de WhatsApp Business
                                                                 </li>
                                                                 <li>Click en "Conectar WhatsApp"</li>
-                                                                <li>
-                                                                    Escanea el QR REAL de WhatsApp Web
-                                                                </li>
+                                                                <li>Escanea el QR REAL de WhatsApp Web</li>
                                                             </ol>
                                                         </div>
                                                         <div>
@@ -370,8 +398,7 @@ export default function ConfiguracionPage() {
                                                                 <li>
                                                                     O solo IP:{" "}
                                                                     <code className="bg-blue-100 px-1 rounded text-[10px]">
-                                                                        docker run -d -p 8080:8080
-                                                                        atendai/evolution-api
+                                                                        docker run -d -p 8080:8080 atendai/evolution-api
                                                                     </code>
                                                                 </li>
                                                                 <li>
