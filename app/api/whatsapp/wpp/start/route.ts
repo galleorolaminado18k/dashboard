@@ -1,165 +1,118 @@
+// app/api/whatsapp/wpp/start/route.ts
 import { NextRequest, NextResponse } from "next/server"
+import { Buffer } from "buffer"
 
-export const runtime = "nodejs"
+const WAHA_BASE_URL = process.env.WAHA_BASE_URL
+const WAHA_API_KEY = process.env.WAHA_API_KEY
+const SESSION_NAME = "default" // ⚠️ Core SOLO permite "default"
 
-const WAHA_BASE_URL =
-    process.env.WAHA_BASE_URL ||
-    process.env.WA_GATEWAY_URL ||
-    process.env.WHATSAPP_GATEWAY_URL ||
-    "http://localhost:3000"
-
-const WAHA_API_KEY =
-    process.env.WAHA_API_KEY || process.env.WA_GATEWAY_API_KEY || ""
-
-function buildHeaders() {
-    const headers: Record<string, string> = {
+function buildHeaders(extra: HeadersInit = {}): HeadersInit {
+    const headers: HeadersInit = {
         "Content-Type": "application/json",
-        Accept: "application/json",
+        ...extra,
     }
-    if (WAHA_API_KEY) headers["X-Api-Key"] = WAHA_API_KEY
+
+    if (WAHA_API_KEY) {
+        headers["X-Api-Key"] = WAHA_API_KEY
+    }
+
     return headers
 }
 
-async function ensureSession(sessionName: string) {
-    const headers = buildHeaders()
-
-    // 1) Ver si ya existe
-    const getRes = await fetch(
-        `${WAHA_BASE_URL}/api/sessions/${encodeURIComponent(sessionName)}`,
-        { headers },
-    )
-
-    if (getRes.ok) return
-
-    if (getRes.status !== 404) {
-        const raw = await getRes.text()
-        throw new Error(`GET /sessions/${sessionName} -> ${getRes.status}: ${raw}`)
-    }
-
-    // 2) Crear sesión mínima válida (ejemplo oficial de la docs)
-    const createRes = await fetch(`${WAHA_BASE_URL}/api/sessions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-            name: sessionName,
-            config: {
-                metadata: { "dashboard.owner": "Galle18K" },
-                webhooks: [],
+export async function POST(_req: NextRequest) {
+    if (!WAHA_BASE_URL) {
+        console.error("WAHA_BASE_URL no está configurada en Vercel")
+        return NextResponse.json(
+            {
+                ok: false,
+                error: "WAHA_CONFIG_ERROR",
+                detail: "Falta WAHA_BASE_URL en variables de entorno",
             },
-        }),
-    })
-
-    if (!createRes.ok) {
-        const raw = await createRes.text()
-        throw new Error(`CREATE_SESSION ${createRes.status}: ${raw}`)
-    }
-}
-
-async function startSession(sessionName: string) {
-    const headers = buildHeaders()
-
-    const res = await fetch(
-        `${WAHA_BASE_URL}/api/sessions/${encodeURIComponent(sessionName)}/start`,
-        { method: "POST", headers },
-    )
-
-    // 409 = ya estaba arrancada, lo aceptamos
-    if (!res.ok && res.status !== 409) {
-        const raw = await res.text()
-        throw new Error(`START_SESSION ${res.status}: ${raw}`)
-    }
-}
-
-async function fetchQr(sessionName: string) {
-    const headers = buildHeaders()
-
-    const res = await fetch(
-        `${WAHA_BASE_URL}/api/${encodeURIComponent(sessionName)}/auth/qr`,
-        { method: "POST", headers },
-    )
-
-    const raw = await res.text()
-    if (!res.ok) {
-        throw new Error(`GET_QR ${res.status}: ${raw}`)
+            { status: 500 },
+        )
     }
 
-    let data: any = {}
-    try {
-        data = JSON.parse(raw)
-    } catch {
-        // si no es JSON, devolvemos el texto tal cual
-        if (raw.startsWith("data:image")) return raw
-        return null
-    }
-
-    const base64 =
-        data?.base64 ||
-        data?.qr ||
-        data?.qrcode ||
-        (data?.image && data.image.base64)
-
-    if (!base64) return null
-
-    // si ya viene como data:image la dejamos
-    if (typeof base64 === "string" && base64.startsWith("data:image")) {
-        return base64
-    }
-
-    return `data:image/png;base64,${base64}`
-}
-
-export async function POST(req: NextRequest) {
-    const body = await req.json().catch(() => ({}))
-    const phone = (body?.phone as string | undefined)?.replace(/\D/g, "")
-    const sessionName = phone ? `galle-${phone}` : "default"
+    const base = WAHA_BASE_URL.replace(/\/$/, "")
 
     try {
-        await ensureSession(sessionName)
-        await startSession(sessionName)
-        const qr = await fetchQr(sessionName)
+        // 1) Asegurar que la sesión "default" existe y está arrancada
+        const startRes = await fetch(`${base}/api/sessions/${SESSION_NAME}`, {
+            method: "POST", // "Start the session"
+            headers: buildHeaders(),
+        })
 
-        if (!qr) {
+        if (!startRes.ok && startRes.status !== 409) {
+            const raw = await startRes.text()
+            console.error(
+                "❌ WAHA_START_ERROR:",
+                startRes.status,
+                raw,
+            )
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "NO_QR",
-                    detail: "WAHA no devolvió un QR válido",
+                    error: "WAHA_START_ERROR",
+                    detail: `HTTP ${startRes.status}`,
+                    raw,
                 },
                 { status: 502 },
             )
         }
 
+        // 2) Pedir screenshot/QR de esa sesión (default)
+        const qrRes = await fetch(
+            `${base}/api/screenshot?session=${encodeURIComponent(SESSION_NAME)}`,
+            {
+                method: "GET",
+                headers: buildHeaders({ Accept: "image/png" }),
+            },
+        )
+
+        if (!qrRes.ok) {
+            const raw = await qrRes.text()
+            console.error(
+                "❌ WAHA_QR_ERROR:",
+                qrRes.status,
+                raw,
+            )
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "WAHA_QR_ERROR",
+                    detail: `HTTP ${qrRes.status}`,
+                    raw,
+                },
+                { status: 502 },
+            )
+        }
+
+        const buf = Buffer.from(await qrRes.arrayBuffer())
+        const dataUri = `data:image/png;base64,${buf.toString("base64")}`
+
         return NextResponse.json(
             {
                 ok: true,
+                qr: dataUri,
                 hasQR: true,
                 isConnected: false,
-                qrcode: qr,
-                session: sessionName,
+                session: SESSION_NAME,
             },
             { status: 200 },
         )
     } catch (err: any) {
-        console.error("❌ WAHA_START_ERROR:", err?.message || err)
+        console.error("❌ Error en /api/whatsapp/wpp/start:", err)
         return NextResponse.json(
             {
                 ok: false,
-                error: "WAHA_START_ERROR",
-                detail: err?.message || "Error desconocido al hablar con WAHA",
+                error: "GATEWAY_PROXY_ERROR",
+                detail: String(err?.message || err),
             },
-            { status: 502 },
+            { status: 500 },
         )
     }
 }
 
-// opcional: bloquear GET para que nunca salga 405 feo
-export async function GET(_req: NextRequest) {
-    return NextResponse.json(
-        {
-            ok: false,
-            error: "METHOD_NOT_ALLOWED",
-            detail: "Usa POST en /api/whatsapp/wpp/start",
-        },
-        { status: 405 },
-    )
+// Por si alguien hace GET manualmente al endpoint:
+export async function GET(req: NextRequest) {
+    return POST(req)
 }
