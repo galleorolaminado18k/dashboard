@@ -1,14 +1,12 @@
-// app/api/whatsapp/wpp/start/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { Buffer } from "buffer"
 
 const WAHA_BASE_URL = process.env.WAHA_BASE_URL
 const WAHA_API_KEY = process.env.WAHA_API_KEY
-const SESSION_NAME = "default" // ⚠️ Core SOLO permite "default"
+const DEFAULT_SESSION = "default" // ⚠️ Core solo permite "default"
 
 function buildHeaders(extra: HeadersInit = {}): HeadersInit {
     const headers: HeadersInit = {
-        "Content-Type": "application/json",
         ...extra,
     }
 
@@ -19,7 +17,7 @@ function buildHeaders(extra: HeadersInit = {}): HeadersInit {
     return headers
 }
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
     if (!WAHA_BASE_URL) {
         console.error("WAHA_BASE_URL no está configurada en Vercel")
         return NextResponse.json(
@@ -35,10 +33,17 @@ export async function POST(_req: NextRequest) {
     const base = WAHA_BASE_URL.replace(/\/$/, "")
 
     try {
-        // 1) Asegurar que la sesión "default" existe y está arrancada
-        const startRes = await fetch(`${base}/api/sessions/${SESSION_NAME}`, {
-            method: "POST", // "Start the session"
-            headers: buildHeaders(),
+        // Leemos el body solo por logging (el número se usa solo para estadísticas)
+        const body = await req.json().catch(() => null)
+        const phone = body?.phone
+        console.log("Iniciando sesión WAHA para teléfono:", phone)
+
+        // 1) Asegurar que la sesión "default" exista (Core solo soporta esa)
+        const startRes = await fetch(`${base}/api/sessions/${DEFAULT_SESSION}`, {
+            method: "POST",
+            headers: buildHeaders({
+                "Content-Type": "application/json",
+            }),
         })
 
         if (!startRes.ok && startRes.status !== 409) {
@@ -59,12 +64,12 @@ export async function POST(_req: NextRequest) {
             )
         }
 
-        // 2) Pedir screenshot/QR de esa sesión (default)
+        // 2) Pedir screenshot/QR de la sesión "default"
         const qrRes = await fetch(
-            `${base}/api/screenshot?session=${encodeURIComponent(SESSION_NAME)}`,
+            `${base}/api/screenshot?session=${encodeURIComponent(DEFAULT_SESSION)}`,
             {
                 method: "GET",
-                headers: buildHeaders({ Accept: "image/png" }),
+                headers: buildHeaders(),
             },
         )
 
@@ -95,7 +100,7 @@ export async function POST(_req: NextRequest) {
                 qr: dataUri,
                 hasQR: true,
                 isConnected: false,
-                session: SESSION_NAME,
+                session: DEFAULT_SESSION,
             },
             { status: 200 },
         )
@@ -112,7 +117,7 @@ export async function POST(_req: NextRequest) {
     }
 }
 
-// Por si alguien hace GET manualmente al endpoint:
+// Para poder probar con GET desde el navegador
 export async function GET(req: NextRequest) {
     return POST(req)
 }
