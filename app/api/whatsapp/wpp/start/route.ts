@@ -1,105 +1,121 @@
 import { NextRequest, NextResponse } from "next/server"
-import { Buffer } from "buffer"
 
-const WAHA_BASE_URL = process.env.WAHA_BASE_URL
-const WAHA_API_KEY = process.env.WAHA_API_KEY
-const DEFAULT_SESSION = "default" // ⚠️ Core solo permite "default"
+const WAHA_BASE_URL =
+    process.env.WAHA_BASE_URL ||
+    process.env.WHATSAPP_GATEWAY_URL ||
+    process.env.WA_GATEWAY_URL ||
+    "http://localhost:3001"
 
-function buildHeaders(extra: HeadersInit = {}): HeadersInit {
-    const headers: HeadersInit = {
+const WAHA_API_KEY =
+    process.env.WAHA_API_KEY || process.env.WA_GATEWAY_API_KEY
+
+function buildHeaders(extra: Record<string, string> = {}) {
+    const headers: Record<string, string> = {
         ...extra,
     }
-
     if (WAHA_API_KEY) {
-        headers["X-Api-Key"] = WAHA_API_KEY
+        headers["x-api-key"] = WAHA_API_KEY
     }
-
     return headers
 }
 
-export async function POST(req: NextRequest) {
-    if (!WAHA_BASE_URL) {
-        console.error("WAHA_BASE_URL no está configurada en Vercel")
-        return NextResponse.json(
-            {
-                ok: false,
-                error: "WAHA_CONFIG_ERROR",
-                detail: "Falta WAHA_BASE_URL en variables de entorno",
-            },
-            { status: 500 },
-        )
-    }
+// Siempre usaremos la sesión "default" (WAHA Core SOLO permite esa)
+const DEFAULT_SESSION = "default"
 
-    const base = WAHA_BASE_URL.replace(/\/$/, "")
+async function ensureDefaultSession() {
+    // 1) Ver si la sesión default existe
+    const sessionUrl = `${WAHA_BASE_URL}/api/sessions/${encodeURIComponent(
+        DEFAULT_SESSION,
+    )}`
 
-    try {
-        // Leemos el body solo por logging (el número se usa solo para estadísticas)
-        const body = await req.json().catch(() => null)
-        const phone = body?.phone
-        console.log("Iniciando sesión WAHA para teléfono:", phone)
+    const res = await fetch(sessionUrl, {
+        method: "GET",
+        headers: buildHeaders(),
+    })
 
-        // 1) Asegurar que la sesión "default" exista (Core solo soporta esa)
-        const startRes = await fetch(`${base}/api/sessions/${DEFAULT_SESSION}`, {
+    // 200 → existe, seguimos
+    if (res.ok) return
+
+    // 404 → la creamos
+    if (res.status === 404) {
+        const createRes = await fetch(`${WAHA_BASE_URL}/api/sessions`, {
             method: "POST",
-            headers: buildHeaders({
-                "Content-Type": "application/json",
-            }),
+            headers: buildHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ name: DEFAULT_SESSION }),
         })
 
-        if (!startRes.ok && startRes.status !== 409) {
-            const raw = await startRes.text()
-            console.error(
-                "❌ WAHA_START_ERROR:",
-                startRes.status,
-                raw,
-            )
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "WAHA_START_ERROR",
-                    detail: `HTTP ${startRes.status}`,
-                    raw,
-                },
-                { status: 502 },
+        if (!createRes.ok) {
+            const raw = await createRes.text()
+            throw new Error(
+                `WAHA_CREATE_SESSION_ERROR HTTP ${createRes.status}: ${raw}`,
             )
         }
 
-        // 2) Pedir screenshot/QR de la sesión "default"
-        const qrRes = await fetch(
-            `${base}/api/screenshot?session=${encodeURIComponent(DEFAULT_SESSION)}`,
-            {
-                method: "GET",
-                headers: buildHeaders(),
-            },
-        )
+        return
+    }
 
-        if (!qrRes.ok) {
-            const raw = await qrRes.text()
-            console.error(
-                "❌ WAHA_QR_ERROR:",
-                qrRes.status,
-                raw,
-            )
+    // Otro código → error
+    const raw = await res.text()
+    throw new Error(`WAHA_GET_SESSION_ERROR HTTP ${res.status}: ${raw}`)
+}
+
+async function getDefaultQr() {
+    // 2) Pedimos el QR de la sesión default
+    const qrUrl = `${WAHA_BASE_URL}/api/sessions/${encodeURIComponent(
+        DEFAULT_SESSION,
+    )}/auth/qr?format=image`
+
+    const res = await fetch(qrUrl, {
+        method: "GET",
+        headers: buildHeaders(),
+    })
+
+    const raw = await res.text()
+
+    if (!res.ok) {
+        throw new Error(`WAHA_GET_QR_ERROR HTTP ${res.status}: ${raw}`)
+    }
+
+    // Intentamos parsear JSON, si viene en JSON
+    try {
+        const json = JSON.parse(raw)
+        const qrcode: string =
+            json.qr || json.qrcode || json.image || json.data || ""
+        if (!qrcode) throw new Error("Respuesta sin campo de QR")
+        return qrcode
+    } catch {
+        // Si no es JSON, asumimos que ya es base64 o data:image
+        if (raw.startsWith("data:")) return raw
+        return `data:image/png;base64,${raw}`
+    }
+}
+
+async function handler(_req: NextRequest) {
+    try {
+        if (!WAHA_BASE_URL) {
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "WAHA_QR_ERROR",
-                    detail: `HTTP ${qrRes.status}`,
-                    raw,
+                    error: "MISSING_WAHA_BASE_URL",
+                    detail:
+                        "No se encontró WAHA_BASE_URL / WHATSAPP_GATEWAY_URL en variables de entorno.",
                 },
-                { status: 502 },
+                { status: 500 },
             )
         }
 
-        const buf = Buffer.from(await qrRes.arrayBuffer())
-        const dataUri = `data:image/png;base64,${buf.toString("base64")}`
+        // Paso 1: asegurar sesión "default"
+        await ensureDefaultSession()
+
+        // Paso 2: obtener QR
+        const qr = await getDefaultQr()
 
         return NextResponse.json(
             {
                 ok: true,
-                qr: dataUri,
                 hasQR: true,
                 isConnected: false,
+                qrcode: qr,
                 session: DEFAULT_SESSION,
             },
             { status: 200 },
@@ -109,15 +125,19 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
             {
                 ok: false,
-                error: "GATEWAY_PROXY_ERROR",
+                error: "WAHA_START_ERROR",
                 detail: String(err?.message || err),
             },
-            { status: 500 },
+            { status: 502 },
         )
     }
 }
 
-// Para poder probar con GET desde el navegador
+// Aceptamos GET y POST desde el frontend
+export async function POST(req: NextRequest) {
+    return handler(req)
+}
+
 export async function GET(req: NextRequest) {
-    return POST(req)
+    return handler(req)
 }
