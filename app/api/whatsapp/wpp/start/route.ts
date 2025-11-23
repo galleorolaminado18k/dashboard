@@ -3,14 +3,35 @@ import { NextRequest, NextResponse } from "next/server"
 const WA_GATEWAY_URL =
     process.env.WA_GATEWAY_URL || "https://wpp.galle18k.com"
 
+// ⚠️ Lo ideal es poner esta key en Vercel como WA_GATEWAY_API_KEY.
+// Dejo el valor por defecto igual al de tu script limpiar-waha-session.sh
+const WA_GATEWAY_API_KEY =
+    process.env.WA_GATEWAY_API_KEY || "bb841979e8b66e6a0f563235b5df3d9a"
+
 async function handleStart(_req: NextRequest) {
     try {
-        // Llamamos al gateway de WhatsApp (WAHA / Evolution / etc.)
-        const gatewayRes = await fetch(`${WA_GATEWAY_URL}/qr`)
+        const url = `${WA_GATEWAY_URL}/api/default/auth/qr`
+        console.log("📡 Llamando a WA_GATEWAY:", url)
+
+        // Llamamos al gateway de WhatsApp (WAHA)
+        const gatewayRes = await fetch(url, {
+            method: "GET",
+            headers: {
+                "X-Api-Key": WA_GATEWAY_API_KEY,
+                Accept: "application/json",
+            },
+            cache: "no-store",
+        })
 
         const raw = await gatewayRes.text()
+
         if (!gatewayRes.ok) {
-            console.error("❌ Error WA_GATEWAY /qr:", gatewayRes.status, raw)
+            console.error(
+                "❌ Error WA_GATEWAY /api/default/auth/qr:",
+                gatewayRes.status,
+                raw,
+            )
+
             return NextResponse.json(
                 {
                     ok: false,
