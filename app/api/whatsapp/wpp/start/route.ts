@@ -1,58 +1,93 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Usamos las vars que ya tienes en Vercel
 const BASE_URL =
-    (process.env.WAHA_BASE_URL ||
-        process.env.WA_GATEWAY_URL ||
-        process.env.WHATSAPP_GATEWAY_URL ||
-        "").replace(/\/+$/, "")
+    process.env.WAHA_BASE_URL ||
+    process.env.WA_GATEWAY_URL ||
+    process.env.WHATSAPP_GATEWAY_URL
 
 const API_KEY =
-    process.env.WAHA_API_KEY || process.env.WA_GATEWAY_API_KEY || ""
+    process.env.WAHA_API_KEY || process.env.WA_GATEWAY_API_KEY
 
-// Handler único
+const SESSION_ID = "default" // versión FREE de WAHA solo permite "default"
+
 async function handleStart(_req: NextRequest) {
     if (!BASE_URL) {
-        console.error("❌ WA gateway URL no configurada")
+        console.error("❌ No está configurada WAHA_BASE_URL / WA_GATEWAY_URL")
         return NextResponse.json(
             {
                 ok: false,
                 error: "MISSING_GATEWAY_URL",
-                detail:
-                    "Configura WAHA_BASE_URL o WA_GATEWAY_URL en las variables de entorno",
+                detail: "Configura WAHA_BASE_URL o WA_GATEWAY_URL en Vercel",
             },
             { status: 500 },
         )
     }
 
+    const cleanBase = BASE_URL.replace(/\/+$/, "")
+
     try {
-        const headers: Record<string, string> = {
-            Accept: "application/json",
-        }
+        // 1) Asegurar que la sesión default está creada / arrancada
+        const startRes = await fetch(`${cleanBase}/api/sessions`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+            },
+            body: JSON.stringify({ session: SESSION_ID }),
+        }).catch((e) => {
+            console.error("❌ Error de red al crear sesión WAHA:", e)
+            throw new Error("No se pudo contactar el gateway WAHA")
+        })
 
-        // WAHA usa X-API-Key (401 si falta)
-        if (API_KEY) {
-            headers["X-API-Key"] = API_KEY
-        }
-
-        console.log("🌐 Llamando al gateway:", `${BASE_URL}/qr`)
-
-        const gatewayRes = await fetch(`${BASE_URL}/qr`, { headers })
-        const raw = await gatewayRes.text()
-
-        if (!gatewayRes.ok) {
+        const startRaw = await startRes.text()
+        if (!startRes.ok && startRes.status !== 409) {
+            // 409 = “ya existe”
             console.error(
-                "❌ Error WA_GATEWAY /qr:",
-                gatewayRes.status,
-                raw || "<sin cuerpo>",
+                "❌ WAHA_START_ERROR:",
+                startRes.status,
+                startRaw,
             )
-
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "WA_GATEWAY_ERROR",
-                    detail: `HTTP ${gatewayRes.status}`,
-                    raw,
+                    error: "WAHA_START_ERROR",
+                    detail: `HTTP ${startRes.status}`,
+                    raw: startRaw,
+                },
+                { status: 502 },
+            )
+        }
+
+        // 2) Pedir el QR en base64 (NO imagen directa)
+        const qrRes = await fetch(
+            `${cleanBase}/api/sessions/${encodeURIComponent(
+                SESSION_ID,
+            )}/qr?format=base64`,
+            {
+                headers: {
+                    Accept: "application/json",
+                    ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+                },
+            },
+        ).catch((e) => {
+            console.error("❌ Error de red al pedir QR WAHA:", e)
+            throw new Error("No se pudo contactar el gateway WAHA (QR)")
+        })
+
+        const qrRaw = await qrRes.text()
+
+        if (!qrRes.ok) {
+            console.error(
+                "❌ WA_QR_ERROR:",
+                qrRes.status,
+                qrRaw,
+            )
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "WA_QR_ERROR",
+                    detail: `HTTP ${qrRes.status}`,
+                    raw: qrRaw,
                 },
                 { status: 502 },
             )
@@ -60,29 +95,41 @@ async function handleStart(_req: NextRequest) {
 
         let payload: any
         try {
-            payload = JSON.parse(raw)
+            payload = JSON.parse(qrRaw)
         } catch (e) {
-            console.error("❌ JSON inválido desde WA_GATEWAY:", e, raw)
+            console.error("❌ QR no es JSON válido:", e, qrRaw)
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "INVALID_GATEWAY_JSON",
-                    detail: "Respuesta inválida del gateway",
-                    raw,
+                    error: "INVALID_QR_JSON",
+                    detail: "Respuesta inválida del gateway WAHA",
                 },
                 { status: 502 },
             )
         }
 
-        const qrcode = payload.qrcode || payload.qr || null
+        const base64 = payload.qr || payload.qrcode || payload.image
+        if (!base64) {
+            console.error("❌ WAHA no devolvió campo qr / qrcode / image", payload)
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "MISSING_QR",
+                    detail: "El gateway no devolvió el código QR",
+                },
+                { status: 502 },
+            )
+        }
+
+        const dataUrl = base64.startsWith("data:")
+            ? base64
+            : `data:image/png;base64,${base64}`
 
         return NextResponse.json(
             {
                 ok: true,
-                hasQR: !!payload.hasQR,
-                isConnected: !!payload.isConnected,
-                qrcode,
-                session: payload.session || "default",
+                qrcode: dataUrl,
+                session: SESSION_ID,
             },
             { status: 200 },
         )
@@ -99,7 +146,6 @@ async function handleStart(_req: NextRequest) {
     }
 }
 
-// Aceptamos GET y POST
 export async function POST(req: NextRequest) {
     return handleStart(req)
 }
