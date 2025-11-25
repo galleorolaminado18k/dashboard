@@ -1,132 +1,144 @@
-// app/api/whatsapp/wpp/start/route.ts
-
 import { NextRequest, NextResponse } from "next/server"
 
-// URL base del WAHA (usa tus vars de Vercel)
 const WAHA_BASE_URL =
     process.env.WAHA_BASE_URL ||
     process.env.WA_GATEWAY_URL ||
-    "https://wpp.galle18k.com"
+    process.env.WHATSAPP_GATEWAY_URL
 
 const WAHA_API_KEY =
     process.env.WAHA_API_KEY || process.env.WA_GATEWAY_API_KEY
 
-// Helper para llamar a WAHA con headers correctos
-async function callWaha(path: string, init?: RequestInit) {
-    const url = `${WAHA_BASE_URL.replace(/\/$/, "")}${path}`
+const SESSION_NAME = "default"
 
-    const res = await fetch(url, {
-        cache: "no-store",
-        ...init,
-        headers: {
-            "Content-Type": "application/json",
-            ...(WAHA_API_KEY ? { "x-api-key": WAHA_API_KEY } : {}),
-            ...(init?.headers || {}),
-        },
-    })
-
-    const raw = await res.text()
-    let json: any = null
-
-    try {
-        json = raw ? JSON.parse(raw) : null
-    } catch {
-        // dejamos json en null, pero guardamos raw para debug
+async function wahaFetch(
+    path: string,
+    init: RequestInit = {},
+): Promise<Response> {
+    if (!WAHA_BASE_URL) {
+        throw new Error("WAHA_BASE_URL / WA_GATEWAY_URL no está configurada")
     }
 
-    return { res, json, raw }
+    const headers = new Headers(init.headers || {})
+    headers.set("accept", "application/json")
+
+    if (WAHA_API_KEY) {
+        headers.set("x-api-key", WAHA_API_KEY)
+    }
+
+    return fetch(`${WAHA_BASE_URL}${path}`, {
+        ...init,
+        headers,
+    })
 }
 
-// Sólo necesitamos POST desde el front
-export async function POST(_req: NextRequest) {
+async function handleStart(_req: NextRequest) {
     try {
-        // ⚠️ WAHA FREE solo permite la sesión "default"
-        const sessionName = "default"
+        // 1) Intentar iniciar la sesión
+        const startRes = await wahaFetch(
+            `/api/sessions/${SESSION_NAME}/start`,
+            { method: "POST" },
+        )
 
-        // 1. Arrancar (o asegurar) la sesión en WAHA
-        const { res: startRes, json: startJson, raw: startRaw } =
-            await callWaha("/api/sessions/start", {
-                method: "POST",
-                body: JSON.stringify({
-                    name: sessionName,
-                    // config sencillo para whatsapp-web
-                    config: {
-                        type: "whatsapp-web",
-                    },
-                }),
-            })
+        const startText = await startRes.text()
+        let startJson: any = null
+        try {
+            startJson = JSON.parse(startText)
+        } catch {
+            // puede no ser JSON en algunos errores
+        }
 
-        // 409 = ya está creada / iniciada → lo aceptamos
-        if (!startRes.ok && startRes.status !== 409) {
-            console.error(
-                "❌ WAHA_START_ERROR:",
-                startRes.status,
-                startJson || startRaw,
-            )
+        // Si NO es ok y NO es el 422 de "ya está iniciada", devolvemos error
+        if (!startRes.ok && startRes.status !== 422) {
+            console.error("❌ WAHA_START_ERROR:", startRes.status, startText)
             return NextResponse.json(
                 {
                     ok: false,
                     error: "WAHA_START_ERROR",
                     detail: `HTTP ${startRes.status}`,
-                    raw: startJson || startRaw,
+                    raw: startText,
                 },
                 { status: 502 },
             )
         }
 
-        // 2. Pedir el QR correctamente
-        //    ANTES tenías: /auth/qr?format=image  → 404
-        const {
-            res: qrRes,
-            json: qrJson,
-            raw: qrRaw,
-        } = await callWaha(
-            `/api/sessions/${encodeURIComponent(
-                sessionName,
-            )}/qr?format=image`,
-            { method: "GET" },
-        )
+        // 422 pero por "Session 'default' is already started" → lo tratamos como OK
+        if (
+            startRes.status === 422 &&
+            !(startJson?.message || "").includes("already started")
+        ) {
+            console.error("❌ WAHA_START_422_NO_EXPECTED:", startText)
+            return NextResponse.json(
+                {
+                    ok: false,
+                    error: "WAHA_START_422",
+                    detail: "422 inesperado al iniciar sesión",
+                    raw: startText,
+                },
+                { status: 502 },
+            )
+        }
+
+        // 2) Pedir el QR correcto: /api/{session}/auth/qr  (SIN "sessions")
+        const qrRes = await wahaFetch(`/${SESSION_NAME}/auth/qr`)
+        const qrText = await qrRes.text()
 
         if (!qrRes.ok) {
-            console.error(
-                "❌ WAHA_GET_QR_ERROR:",
-                qrRes.status,
-                qrJson || qrRaw,
-            )
+            console.error("❌ WAHA_QR_ERROR:", qrRes.status, qrText)
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "WAHA_GET_QR_ERROR",
+                    error: "WAHA_QR_ERROR",
                     detail: `HTTP ${qrRes.status}`,
-                    raw: qrJson || qrRaw,
+                    raw: qrText,
                 },
                 { status: 502 },
             )
         }
 
-        // WAHA suele devolver algo tipo { qr: "data:image/png;base64,..." }
-        const qrImage: string | null =
-            qrJson?.qr || qrJson?.image || qrJson?.qrcode || null
+        let qrJson: any = null
+        try {
+            qrJson = JSON.parse(qrText)
+        } catch {
+            // si no es JSON, igual lo dejamos registrado
+        }
+
+        // Intentar encontrar el campo donde venga el QR
+        let qrImage: string | null = null
+        if (typeof qrJson === "string") {
+            qrImage = qrJson
+        } else if (qrJson) {
+            qrImage =
+                qrJson.qr ||
+                qrJson.qrcode ||
+                qrJson.image ||
+                qrJson.base64 ||
+                null
+        }
 
         if (!qrImage) {
-            console.error("❌ WAHA sin campo de QR:", qrJson || qrRaw)
+            console.error("❌ WAHA_QR_PARSE_ERROR. Body:", qrText)
             return NextResponse.json(
                 {
                     ok: false,
-                    error: "WAHA_INVALID_QR_RESPONSE",
-                    detail: "Respuesta sin código QR",
-                    raw: qrJson || qrRaw,
+                    error: "WAHA_QR_PARSE_ERROR",
+                    detail: "No se encontró el QR en la respuesta del gateway",
+                    raw: qrText,
                 },
                 { status: 502 },
             )
         }
 
-        // 3. Respuesta al dashboard
+        // Aseguramos que sea data URL
+        if (!qrImage.startsWith("data:")) {
+            qrImage = `data:image/png;base64,${qrImage}`
+        }
+
+        // ✅ Respuesta estándar que espera tu frontend
         return NextResponse.json(
             {
                 ok: true,
                 qr: qrImage,
-                session: sessionName,
+                session: SESSION_NAME,
             },
             { status: 200 },
         )
@@ -135,10 +147,19 @@ export async function POST(_req: NextRequest) {
         return NextResponse.json(
             {
                 ok: false,
-                error: "WAHA_GATEWAY_PROXY_ERROR",
+                error: "GATEWAY_PROXY_ERROR",
                 detail: String(err?.message || err),
             },
             { status: 500 },
         )
     }
+}
+
+// Aceptamos GET y POST para que nunca dé 405
+export async function POST(req: NextRequest) {
+    return handleStart(req)
+}
+
+export async function GET(req: NextRequest) {
+    return handleStart(req)
 }
