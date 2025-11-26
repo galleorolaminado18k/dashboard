@@ -1,121 +1,89 @@
-import 'dotenv/config'
-import express from 'express'
-import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys'
-import QRCode from 'qrcode'
-import { Boom } from '@hapi/boom'
+const express = require("express")
+const qrcode = require("qrcode")
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion,
+} = require("@whiskeysockets/baileys")
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 3010
 
-// Estado en memoria que usará tu dashboard
-let sock = null        // instancia de Baileys
-let lastQR = null      // último QR generado (data:image/png;base64,...)
+let sock = null
+let lastQR = null
 let isConnected = false
 
-// 1. Función que crea / reconecta el socket
-async function startSock () {
-  try {
-    // useMultiFileAuthState guarda las credenciales en ./baileys_auth
-    const { state, saveCreds } = await useMultiFileAuthState('./baileys_auth')
+async function startBaileys() {
+    const { state, saveCreds } = await useMultiFileAuthState("./auth")
+    const { version } = await fetchLatestBaileysVersion()
 
     sock = makeWASocket({
-      auth: state,
-      printQRInTerminal: false,
-      browser: ['Galle Dashboard', 'Chrome', '1.0.0'],
-      markOnlineOnConnect: false
+        version,
+        auth: state,
+        printQRInTerminal: true,
     })
 
-    // Guardar credenciales cuando cambien
-    sock.ev.on('creds.update', saveCreds)
+    sock.ev.on("creds.update", saveCreds)
 
-    // Manejar actualización de conexión: qr, open, close, etc.
-    sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect, qr } = update
+    sock.ev.on("connection.update", async (update) => {
+        const { qr, connection } = update
 
-      // QR: convertir a dataURL para enviar al frontend
-      if (qr) {
-        try {
-          lastQR = await QRCode.toDataURL(qr)
-        } catch (e) {
-          console.error('Error generando dataURL del QR:', e)
-          lastQR = null
+        if (qr) {
+            lastQR = await qrcode.toDataURL(qr)
+            isConnected = false
+            console.log("🔁 QR ACTUALIZADO")
         }
-        isConnected = false
-        console.log('📲 Nuevo QR generado, espera que el frontend lo muestre')
-      }
 
-      if (connection === 'open') {
-        isConnected = true
-        lastQR = null
-        console.log('✅ WhatsApp conectado')
-      }
-
-      if (connection === 'close') {
-        const statusCode = (lastDisconnect?.error instanceof Boom)
-          ? lastDisconnect.error.output.statusCode
-          : null
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut
-        isConnected = false
-        lastQR = null
-
-        if (shouldReconnect) {
-          console.log('🔁 Conexión cerrada, intentando reconectar...')
-          setTimeout(startSock, 2000)
-        } else {
-          console.log('🚫 Sesión cerrada definitivamente (loggedOut). Borra ./baileys_auth para volver a escanear.')
+        if (connection === "open") {
+            isConnected = true
+            lastQR = null
+            console.log("✅ Conectado a WhatsApp")
         }
-      }
-    })
 
-    // Logging opcional de mensajes entrantes
-    sock.ev.on('messages.upsert', (m) => {
-      console.log('📩 Mensaje recibido:', JSON.stringify(m, null, 2))
+        if (connection === "close") {
+            isConnected = false
+            console.log("❌ Conexión cerrada, se puede reintentar luego")
+        }
     })
-
-    console.log('🟢 startSock inicializado')
-  } catch (err) {
-    console.error('❌ Error en startSock:', err)
-    // Intentar reconectar tras un pequeño delay
-    setTimeout(() => startSock().catch(console.error), 3000)
-  }
 }
 
-// 2. Función principal: arranca socket + API HTTP
-async function main () {
-  await startSock()
+const app = express()
 
-  const app = express()
-  app.use(express.json())
+app.get("/health", (req, res) => {
+    res.json({ ok: true })
+})
 
-  // Endpoint para que el dashboard obtenga el QR
-  app.get('/qr', (req, res) => {
-    res.json({ hasQR: !!lastQR, isConnected, qr: lastQR })
-  })
-
-  // Endpoint para consultar estado
-  app.get('/status', (req, res) => {
-    res.json({ isConnected })
-  })
-
-  // Enviar mensajes desde el dashboard
-  app.post('/send-message', async (req, res) => {
-    try {
-      const { to, text } = req.body
-      if (!to || !text) {
-        return res.status(400).json({ error: '`to` y `text` son obligatorios' })
-      }
-
-      const jid = to.includes('@s.whatsapp.net') ? to : `${to}@s.whatsapp.net`
-      await sock.sendMessage(jid, { text })
-      res.json({ ok: true })
-    } catch (err) {
-      console.error('❌ Error enviando mensaje:', err)
-      res.status(500).json({ error: 'Error enviando mensaje' })
+app.get("/qr", (req, res) => {
+    if (isConnected) {
+        return res.json({ ok: true, isConnected: true, hasQR: false })
     }
-  })
 
-  app.listen(PORT, () => console.log(`🚀 API WhatsApp escuchando en http://0.0.0.0:${PORT}`))
-}
+    if (!lastQR) {
+        return res.status(404).json({
+            ok: false,
+            error: "NO_QR",
+            detail: "Aún no hay QR generado. Revisa la consola del servidor.",
+        })
+    }
 
-main().catch((e) => {
-  console.error('❌ Error crítico:', e)
+    res.json({
+        ok: true,
+        isConnected: false,
+        hasQR: true,
+        qrcode: lastQR,
+    })
+})
+
+app.get("/status", (req, res) => {
+    res.json({
+        ok: true,
+        isConnected,
+        hasQR: !!lastQR,
+    })
+})
+
+app.listen(PORT, () => {
+    console.log(`🚀 Gateway Baileys escuchando en http://localhost:${PORT}`)
+    startBaileys().catch((err) =>
+        console.error("Error iniciando Baileys:", err),
+    )
 })
