@@ -56,23 +56,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`📤 Enviando mensaje a ${targetPhone}:`, { type, message: message?.substring(0, 50) })
+    console.log(`📤 Enviando mensaje a ${targetPhone}:`, { type, message: message?.substring(0, 50), gateway: GATEWAY_URL })
 
-    // Enviar al gateway
-    const gatewayResponse = await fetch(`${GATEWAY_URL}/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: targetPhone,
-        message,
-        type,
-        mediaUrl,
-        mimetype,
-        filename,
-      }),
-    })
+    // Verificar que el gateway esté configurado
+    if (!GATEWAY_URL || GATEWAY_URL === 'http://localhost:3010') {
+      console.error('❌ WHATSAPP_GATEWAY_URL no configurado correctamente')
+      return NextResponse.json(
+        { ok: false, error: 'Gateway no configurado. Configura WHATSAPP_GATEWAY_URL en Vercel.' },
+        { status: 503 }
+      )
+    }
 
-    const gatewayData = await gatewayResponse.json()
+    // Enviar al gateway con timeout
+    let gatewayResponse: Response
+    let gatewayData: any
+
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 segundos
+
+      gatewayResponse = await fetch(`${GATEWAY_URL}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: targetPhone,
+          message,
+          type,
+          mediaUrl,
+          mimetype,
+          filename,
+        }),
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeoutId)
+      gatewayData = await gatewayResponse.json()
+    } catch (fetchError: any) {
+      console.error('❌ Error de conexión con gateway:', fetchError.message)
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `No se pudo conectar con el gateway de WhatsApp: ${fetchError.message}`,
+          hint: 'Verifica que el gateway esté corriendo en el VPS y que WHATSAPP_GATEWAY_URL esté configurado en Vercel'
+        },
+        { status: 503 }
+      )
+    }
 
     if (!gatewayData.ok) {
       console.error('❌ Error del gateway:', gatewayData.error)

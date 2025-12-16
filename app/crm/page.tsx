@@ -515,40 +515,52 @@ export default function CRMPage() {
       else if (file.type.startsWith('video/')) type = 'video'
       else if (file.type.startsWith('audio/')) type = 'audio'
 
-      // Convertir a base64 para enviar (alternativa: subir a storage y usar URL)
-      const reader = new FileReader()
-      reader.onload = async () => {
-        const base64 = reader.result as string
+      // Subir archivo a storage primero
+      const formData = new FormData()
+      formData.append('file', file)
 
-        const res = await fetch('/api/crm/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: selectedConversation,
-            phone: currentConversation.phone,
-            type,
-            mediaUrl: base64,
-            mimetype: file.type,
-            filename: file.name,
-          }),
-        })
+      const uploadRes = await fetch('/api/crm/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-        const data = await res.json()
+      const uploadData = await uploadRes.json()
 
-        if (data.ok) {
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            sender: 'agent',
-            content: `[${type}: ${file.name}]`,
-            timestamp: new Date(),
-            avatar: '/business-agent.png',
-          }])
-          setTimeout(() => loadMessages(selectedConversation), 1000)
-        } else {
-          alert('Error enviando archivo: ' + (data.error || 'Error desconocido'))
-        }
+      if (!uploadData.ok) {
+        alert('Error subiendo archivo: ' + (uploadData.error || 'Error desconocido'))
+        setSendingMessage(false)
+        return
       }
-      reader.readAsDataURL(file)
+
+      // Enviar mensaje con la URL del archivo
+      const res = await fetch('/api/crm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation,
+          phone: currentConversation.phone,
+          type,
+          message: file.name,
+          mediaUrl: uploadData.url,
+          mimetype: file.type,
+          filename: file.name,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.ok) {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          sender: 'agent',
+          content: `[${type}: ${file.name}]`,
+          timestamp: new Date(),
+          avatar: '/business-agent.png',
+        }])
+        setTimeout(() => loadMessages(selectedConversation), 1000)
+      } else {
+        alert('Error enviando archivo: ' + (data.error || 'Error desconocido'))
+      }
     } catch (error) {
       console.error('Error enviando archivo:', error)
       alert('Error de conexión al enviar archivo')
@@ -576,44 +588,57 @@ export default function CRMPage() {
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" })
+        const audioBlob = new Blob(audioChunks, { type: "audio/ogg" })
         stream.getTracks().forEach((track) => track.stop())
 
         // Enviar nota de voz
         if (selectedConversation && currentConversation) {
           setSendingMessage(true)
           try {
-            const reader = new FileReader()
-            reader.onload = async () => {
-              const base64 = reader.result as string
+            // Subir archivo de audio primero
+            const formData = new FormData()
+            const audioFile = new File([audioBlob], `nota-voz-${Date.now()}.ogg`, { type: 'audio/ogg' })
+            formData.append('file', audioFile)
 
-              const res = await fetch('/api/crm/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  conversationId: selectedConversation,
-                  phone: currentConversation.phone,
-                  type: 'audio',
-                  mediaUrl: base64,
-                  mimetype: 'audio/webm',
-                }),
-              })
+            const uploadRes = await fetch('/api/crm/upload', {
+              method: 'POST',
+              body: formData,
+            })
 
-              const data = await res.json()
-              if (data.ok) {
-                setMessages(prev => [...prev, {
-                  id: Date.now().toString(),
-                  sender: 'agent',
-                  content: '[Nota de voz]',
-                  timestamp: new Date(),
-                  avatar: '/business-agent.png',
-                }])
-                setTimeout(() => loadMessages(selectedConversation), 1000)
-              } else {
-                alert('Error enviando nota de voz: ' + (data.error || 'Error'))
-              }
+            const uploadData = await uploadRes.json()
+
+            if (!uploadData.ok) {
+              alert('Error subiendo nota de voz: ' + (uploadData.error || 'Error'))
+              setSendingMessage(false)
+              return
             }
-            reader.readAsDataURL(audioBlob)
+
+            // Enviar mensaje con la URL del audio
+            const res = await fetch('/api/crm/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversationId: selectedConversation,
+                phone: currentConversation.phone,
+                type: 'audio',
+                mediaUrl: uploadData.url,
+                mimetype: 'audio/ogg',
+              }),
+            })
+
+            const data = await res.json()
+            if (data.ok) {
+              setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                sender: 'agent',
+                content: '[Nota de voz]',
+                timestamp: new Date(),
+                avatar: '/business-agent.png',
+              }])
+              setTimeout(() => loadMessages(selectedConversation), 1000)
+            } else {
+              alert('Error enviando nota de voz: ' + (data.error || 'Error'))
+            }
           } catch (error) {
             console.error('Error enviando nota de voz:', error)
             alert('Error al enviar nota de voz')
@@ -645,9 +670,26 @@ export default function CRMPage() {
     }
   }, [isRecording])
 
+  // Función para llamar por teléfono
   const handleCall = useCallback(() => {
-    if (currentConversation) {
-      alert(`Iniciando llamada con ${currentConversation.clientName}...`)
+    if (currentConversation?.phone) {
+      const phone = currentConversation.phone.replace(/\D/g, '')
+      window.open(`tel:+${phone}`, '_blank')
+    } else {
+      alert('No hay número de teléfono disponible para esta conversación')
+    }
+  }, [currentConversation])
+
+  // Función para videollamada (abre WhatsApp Web con opción de videollamada)
+  const handleVideoCall = useCallback(() => {
+    if (currentConversation?.phone) {
+      const phone = currentConversation.phone.replace(/\D/g, '')
+      // WhatsApp no tiene API para videollamadas directas,
+      // pero podemos abrir el chat y el usuario puede iniciarla manualmente
+      window.open(`https://wa.me/${phone}`, '_blank')
+      alert('Se abrió WhatsApp. Desde ahí puedes iniciar una videollamada.')
+    } else {
+      alert('No hay número de teléfono disponible para esta conversación')
     }
   }, [currentConversation])
 
@@ -912,10 +954,10 @@ export default function CRMPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95" onClick={handleCall}>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95" onClick={handleCall} title="Llamar">
                     <Phone className="h-5 w-5 text-zinc-600" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95" onClick={handleVideoCall} title="Videollamada">
                     <Video className="h-5 w-5 text-zinc-600" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95">
