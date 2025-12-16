@@ -1,16 +1,3 @@
-# 🚀 FIX AUDIO - EJECUTAR EN VPS
-
-## El problema es que package.json usa "type": "module"
-## Solución: usar extensión .cjs para CommonJS
-
-## En el VPS ejecuta esto:
-
-```bash
-cd /root/whatsapp-gateway
-pm2 delete gateway 2>/dev/null
-
-# Crear archivo con extensión .cjs
-cat > gateway-audio.cjs << 'EOF'
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const QRCode = require("qrcode");
@@ -19,6 +6,7 @@ const fs = require("fs");
 
 const PORT = process.env.PORT || 3010;
 const AUTH_FOLDER = "./auth_info_baileys";
+
 const WEBHOOK_URL = "https://dashboard-galle-git-fea-98639c-galleaprobaciones-9369s-projects.vercel.app/api/webhook-public";
 
 let sock = null;
@@ -27,11 +15,12 @@ let isConnected = false;
 let connectionError = null;
 let lastUpdate = null;
 let connectedPhone = null;
+let chatsCache = [];
 
 function cleanAuth() {
     if (fs.existsSync(AUTH_FOLDER)) {
         fs.rmSync(AUTH_FOLDER, { recursive: true, force: true });
-        console.log("Auth limpiado");
+        console.log("🧹 Auth limpiado");
     }
 }
 
@@ -39,21 +28,22 @@ async function sendToWebhook(event, data) {
     if (!WEBHOOK_URL) return;
     try {
         const payload = { event, timestamp: new Date().toISOString(), session: "default", data };
-        console.log("Enviando al webhook:", event);
+        console.log("📤 Enviando al webhook:", event);
         const response = await fetch(WEBHOOK_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
-        if (response.ok) console.log("Webhook recibido");
+        if (response.ok) console.log("✅ Webhook recibido");
     } catch (error) {
-        console.error("Error webhook:", error.message);
+        console.error("❌ Error webhook:", error.message);
     }
 }
 
 async function connectToWhatsApp(forceNew = false) {
     if (forceNew) cleanAuth();
-    console.log("Iniciando conexion WhatsApp...");
+    console.log("📱 Iniciando conexión WhatsApp...");
+
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_FOLDER);
     const logger = pino({ level: "silent" });
 
@@ -70,11 +60,15 @@ async function connectToWhatsApp(forceNew = false) {
 
     sock.ev.on("connection.update", async (update) => {
         const { connection, lastDisconnect, qr } = update;
-        console.log("Update:", JSON.stringify({ connection, hasQR: !!qr }));
+        console.log("🔄 Update:", JSON.stringify({ connection, hasQR: !!qr }));
 
         if (qr) {
-            console.log("QR RECIBIDO!");
-            try { currentQR = await QRCode.toDataURL(qr); } catch (e) { currentQR = qr; }
+            console.log("📱 QR RECIBIDO!");
+            try {
+                currentQR = await QRCode.toDataURL(qr);
+            } catch (e) {
+                currentQR = qr;
+            }
             isConnected = false;
             lastUpdate = new Date().toISOString();
         }
@@ -82,17 +76,17 @@ async function connectToWhatsApp(forceNew = false) {
         if (connection === "close") {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log("Conexion cerrada. Status:", statusCode);
+            console.log("❌ Conexión cerrada. Status:", statusCode);
             isConnected = false;
             connectedPhone = null;
             lastUpdate = new Date().toISOString();
             sendToWebhook("connection.update", { status: "disconnected", statusCode });
             if (shouldReconnect) {
-                console.log("Reconectando en 5 segundos...");
+                console.log("🔄 Reconectando en 5 segundos...");
                 setTimeout(() => connectToWhatsApp(false), 5000);
             }
         } else if (connection === "open") {
-            console.log("CONECTADO A WHATSAPP!");
+            console.log("✅ CONECTADO A WHATSAPP!");
             isConnected = true;
             currentQR = null;
             connectionError = null;
@@ -101,7 +95,7 @@ async function connectToWhatsApp(forceNew = false) {
                 const user = sock.user;
                 if (user && user.id) {
                     connectedPhone = user.id.split(":")[0].split("@")[0];
-                    console.log("Numero conectado:", connectedPhone);
+                    console.log("📱 Número conectado:", connectedPhone);
                 }
             } catch(e) {}
             sendToWebhook("connection.update", { status: "connected", phone: connectedPhone });
@@ -123,7 +117,7 @@ async function connectToWhatsApp(forceNew = false) {
                         msg.message?.audioMessage ? "audio" :
                         msg.message?.videoMessage ? "video" :
                         msg.message?.documentMessage ? "document" : "text";
-            console.log("Mensaje de", from, ":", text.substring(0, 50));
+            console.log("📩 Mensaje de", from, ":", text.substring(0, 50));
             sendToWebhook("messages.upsert", {
                 message: { key: msg.key, from, pushName, body: text, type, timestamp: msg.messageTimestamp, fromMe: false }
             });
@@ -133,6 +127,7 @@ async function connectToWhatsApp(forceNew = false) {
     return sock;
 }
 
+// Función para convertir data URL a Buffer
 function dataUrlToBuffer(dataUrl) {
     const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!matches) return null;
@@ -142,18 +137,21 @@ function dataUrlToBuffer(dataUrl) {
     return { buffer, mimeType };
 }
 
+// Función para obtener media como buffer (soporta URLs y data URLs)
 async function getMediaBuffer(mediaUrl, expectedMimetype) {
+    // Si es un data URL (base64), convertir a buffer
     if (mediaUrl.startsWith('data:')) {
-        console.log('Convirtiendo data URL a buffer...');
+        console.log('📦 Convirtiendo data URL a buffer...');
         const result = dataUrlToBuffer(mediaUrl);
         if (result) {
-            console.log('Buffer creado:', result.buffer.length, 'bytes, tipo:', result.mimeType);
+            console.log('✅ Buffer creado:', result.buffer.length, 'bytes, tipo:', result.mimeType);
             return { buffer: result.buffer, mimetype: result.mimeType };
         }
-        throw new Error('Data URL invalido');
+        throw new Error('Data URL inválido');
     }
-    
-    console.log('Descargando media desde URL:', mediaUrl.substring(0, 80) + '...');
+
+    // Si es una URL normal, descargar
+    console.log('📥 Descargando media desde URL:', mediaUrl.substring(0, 80) + '...');
     const response = await fetch(mediaUrl);
     if (!response.ok) {
         throw new Error('Error descargando: ' + response.status);
@@ -161,10 +159,11 @@ async function getMediaBuffer(mediaUrl, expectedMimetype) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const contentType = response.headers.get('content-type') || expectedMimetype || 'application/octet-stream';
-    console.log('Descargado:', buffer.length, 'bytes, tipo:', contentType);
+    console.log('✅ Descargado:', buffer.length, 'bytes, tipo:', contentType);
     return { buffer, mimetype: contentType };
 }
 
+// API REST
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -191,10 +190,10 @@ app.get("/status", (_, res) => {
 });
 
 app.post("/restart", async (_, res) => {
-    console.log("Reiniciando conexion...");
+    console.log("🔄 Reiniciando conexión...");
     try {
         if (sock) { try { sock.end(); } catch(e) {} sock = null; }
-        currentQR = null; isConnected = false; connectionError = null;
+        currentQR = null; isConnected = false; connectionError = null; chatsCache = [];
         await connectToWhatsApp(true);
         let attempts = 0;
         while (!currentQR && attempts < 10) { await new Promise(r => setTimeout(r, 1000)); attempts++; }
@@ -219,6 +218,7 @@ app.post("/send", async (req, res) => {
         let msgContent;
         const captionText = caption || message || "";
 
+        // Para tipos de media, obtener el buffer
         if (type !== "text") {
             const { buffer, mimetype: detectedMime } = await getMediaBuffer(mediaUrl, mimetype);
             const finalMimetype = mimetype || detectedMime;
@@ -232,10 +232,10 @@ app.post("/send", async (req, res) => {
                     break;
                 case "audio":
                     let audioMime = finalMimetype;
-                    if (audioMime && audioMime.includes('webm')) {
+                    if (audioMime.includes('webm')) {
                         audioMime = 'audio/ogg; codecs=opus';
                     }
-                    msgContent = { audio: buffer, mimetype: audioMime || 'audio/ogg; codecs=opus', ptt: true };
+                    msgContent = { audio: buffer, mimetype: audioMime, ptt: true };
                     break;
                 case "document":
                     msgContent = { document: buffer, mimetype: finalMimetype || "application/pdf", fileName: filename || "documento" };
@@ -248,10 +248,10 @@ app.post("/send", async (req, res) => {
         }
 
         await sock.sendMessage(jid, msgContent);
-        console.log("Mensaje enviado a", jid, "tipo:", type);
+        console.log("📤 Mensaje enviado a", jid, "tipo:", type);
         res.json({ ok: true, message: "Enviado", type });
     } catch (e) {
-        console.error("Error enviando mensaje:", e);
+        console.error("❌ Error enviando mensaje:", e);
         res.status(500).json({ ok: false, error: String(e) });
     }
 });
@@ -260,38 +260,28 @@ app.post("/logout", async (_, res) => {
     try {
         if (sock) { try { await sock.logout(); } catch(e) {} sock = null; }
         cleanAuth();
-        isConnected = false; currentQR = null; connectedPhone = null;
-        res.json({ ok: true, message: "Sesion cerrada" });
+        isConnected = false; currentQR = null; connectedPhone = null; chatsCache = [];
+        res.json({ ok: true, message: "Sesión cerrada" });
     } catch (e) {
         res.status(500).json({ ok: false, error: String(e) });
     }
 });
 
-console.log("==================================================");
-console.log("WhatsApp Gateway - Baileys + Soporte Audio");
-console.log("Webhook:", WEBHOOK_URL);
-console.log("==================================================");
+// Inicio
+console.log("=".repeat(50));
+console.log("🤖 WhatsApp Gateway - Baileys + Soporte Audio");
+console.log("📡 Webhook:", WEBHOOK_URL);
+console.log("=".repeat(50));
 
 app.listen(PORT, "0.0.0.0", async () => {
-    console.log("API en http://0.0.0.0:" + PORT);
-    console.log("Conectando a WhatsApp...");
+    console.log("🌐 API en http://0.0.0.0:" + PORT);
+    console.log("🚀 Conectando a WhatsApp...");
     try {
         await connectToWhatsApp(false);
-        console.log("Proceso de conexion iniciado");
+        console.log("✅ Proceso de conexión iniciado");
     } catch (e) {
-        console.error("Error inicial:", e);
+        console.error("❌ Error inicial:", e);
         connectionError = String(e);
     }
 });
-EOF
 
-# Iniciar con .cjs
-pm2 start gateway-audio.cjs --name gateway
-pm2 save
-pm2 logs gateway --lines 30
-```
-
-## Verificar
-```bash
-curl http://localhost:3010/health
-```
