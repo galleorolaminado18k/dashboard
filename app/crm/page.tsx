@@ -688,35 +688,42 @@ export default function CRMPage() {
 
             console.log('📤 Subiendo audio a Cloudinary:', audioFile.name, audioFile.size, 'bytes')
 
-            // PASO 1: Subir a Cloudinary
-            const formData = new FormData()
-            formData.append('file', audioFile)
+            let audioUrl: string
+            let usedBase64 = false
 
-            const uploadRes = await fetch('/api/crm/upload-cloudinary', {
-              method: 'POST',
-              body: formData,
-            })
+            // PASO 1: Intentar subir a Cloudinary
+            try {
+              const formData = new FormData()
+              formData.append('file', audioFile)
 
-            const uploadData = await uploadRes.json()
-            console.log('📤 Cloudinary respuesta:', uploadData)
+              const uploadRes = await fetch('/api/crm/upload-cloudinary', {
+                method: 'POST',
+                body: formData,
+              })
 
-            if (!uploadData.ok) {
-              alert('Error subiendo nota de voz: ' + (uploadData.error || 'Error desconocido'))
-              setSendingMessage(false)
-              return
+              const uploadData = await uploadRes.json()
+              console.log('📤 Cloudinary respuesta:', uploadData)
+
+              if (uploadData.ok && uploadData.url && !uploadData.url.startsWith('data:')) {
+                audioUrl = uploadData.url
+                console.log('✅ Usando URL de Cloudinary:', audioUrl)
+              } else {
+                throw new Error(uploadData.error || 'URL inválida de Cloudinary')
+              }
+            } catch (cloudinaryError) {
+              // Fallback: Convertir a base64 y enviar directamente
+              console.log('⚠️ Cloudinary falló, usando base64 directo:', cloudinaryError)
+              const reader = new FileReader()
+              audioUrl = await new Promise<string>((resolve) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.readAsDataURL(audioBlob)
+              })
+              usedBase64 = true
+              console.log('📦 Usando base64 directo, tamaño:', audioUrl.length)
             }
 
-            // Verificar que la URL sea válida (no data URL)
-            const audioUrl = uploadData.url
-            if (!audioUrl || audioUrl.startsWith('data:')) {
-              console.error('❌ URL de audio inválida:', audioUrl?.substring(0, 100))
-              alert('Error: La URL de Cloudinary no es válida. Por favor intenta de nuevo.')
-              setSendingMessage(false)
-              return
-            }
-
-            // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
-            console.log('📤 Enviando URL al gateway:', audioUrl)
+            // PASO 2: Enviar mensaje con la URL al gateway
+            console.log('📤 Enviando al gateway:', usedBase64 ? 'base64' : 'URL Cloudinary')
 
             const sendRes = await fetch('/api/crm/send', {
               method: 'POST',
