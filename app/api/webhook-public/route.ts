@@ -59,15 +59,19 @@ export async function POST(request: NextRequest) {
       console.log('💬 Procesando mensaje:', { phone, body: body.substring(0, 50), pushName })
 
       // Buscar o crear conversación
-      const { data: existing } = await supabase
+      const { data: existing, error: searchError } = await supabase
         .from('crm_conversations')
         .select('*')
         .eq('phone', phone)
         .single()
 
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('❌ Error buscando conversación:', searchError)
+      }
+
       if (existing) {
         // Actualizar conversación existente
-        await supabase
+        const { error: updateError } = await supabase
           .from('crm_conversations')
           .update({
             last_message: body,
@@ -78,8 +82,12 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', existing.id)
 
+        if (updateError) {
+          console.error('❌ Error actualizando conversación:', updateError)
+        }
+
         // Guardar mensaje
-        await supabase
+        const { error: msgError } = await supabase
           .from('crm_messages')
           .insert({
             conversation_id: existing.id,
@@ -89,6 +97,10 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString(),
             read: false,
           })
+
+        if (msgError) {
+          console.error('❌ Error guardando mensaje:', msgError)
+        }
 
         console.log('✅ Conversación actualizada:', existing.id)
       } else {
@@ -108,9 +120,14 @@ export async function POST(request: NextRequest) {
           .select()
           .single()
 
+        if (convError) {
+          console.error('❌ Error creando conversación:', convError)
+          return NextResponse.json({ ok: false, error: convError.message }, { status: 500 })
+        }
+
         if (newConv) {
           // Guardar mensaje
-          await supabase
+          const { error: msgError } = await supabase
             .from('crm_messages')
             .insert({
               conversation_id: newConv.id,
@@ -121,9 +138,11 @@ export async function POST(request: NextRequest) {
               read: false,
             })
 
+          if (msgError) {
+            console.error('❌ Error guardando mensaje:', msgError)
+          }
+
           console.log('✅ Nueva conversación creada:', newConv.id)
-        } else {
-          console.error('❌ Error creando conversación:', convError)
         }
       }
 

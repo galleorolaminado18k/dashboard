@@ -10,6 +10,9 @@ const fs = require('fs');
 const DASHBOARD_URL = 'https://dashboard-galle-git-fea-98639c-galleaprobaciones-9369s-projects.vercel.app';
 const GATEWAY_URL = 'http://31.220.58.83:3010';
 
+// Nuevo endpoint público
+const WEBHOOK_PUBLIC = `${DASHBOARD_URL}/api/webhook-public`;
+
 const output = [];
 function log(msg) {
     console.log(msg);
@@ -48,7 +51,7 @@ async function fetch(url, options = {}) {
 }
 
 async function main() {
-    log('🔍 DIAGNÓSTICO CRM + WhatsApp');
+    log('🔍 DIAGNÓSTICO CRM + WhatsApp v2');
     log('Fecha: ' + new Date().toISOString());
     log('='.repeat(50));
 
@@ -61,32 +64,25 @@ async function main() {
         log('   Teléfono: ' + gatewayTest.data.phone);
     }
 
-    // 2. Verificar endpoint de chats
-    log('\n2️⃣ Verificando endpoint /chats del Gateway...');
-    const chatsTest = await fetch(`${GATEWAY_URL}/chats`);
-    log('   Status: ' + (chatsTest.status || chatsTest.error));
-    if (chatsTest.data) {
-        log('   Chats: ' + (chatsTest.data.chats?.length || chatsTest.data.count || 0));
-        log('   Response: ' + JSON.stringify(chatsTest.data).substring(0, 300));
-    }
+    // 2. Verificar webhook PÚBLICO
+    log('\n2️⃣ Verificando webhook PÚBLICO...');
+    const webhookPublic = await fetch(WEBHOOK_PUBLIC);
+    log('   URL: ' + WEBHOOK_PUBLIC);
+    log('   Status: ' + (webhookPublic.status || webhookPublic.error));
+    log('   Response: ' + JSON.stringify(webhookPublic.data || {}).substring(0, 100));
 
-    // 3. Verificar webhook del Dashboard
-    log('\n3️⃣ Verificando webhook del Dashboard...');
-    const webhookTest = await fetch(`${DASHBOARD_URL}/api/whatsapp/webhook`);
-    log('   Status: ' + (webhookTest.status || webhookTest.error));
-
-    // 4. Probar enviar al webhook
-    log('\n4️⃣ Probando enviar mensaje de prueba al webhook...');
+    // 3. Probar enviar mensaje al webhook público
+    log('\n3️⃣ Probando enviar mensaje al webhook público...');
     const testMessage = {
         event: 'messages.upsert',
         timestamp: new Date().toISOString(),
         session: 'default',
         data: {
             message: {
-                key: { remoteJid: '573009998877@s.whatsapp.net', fromMe: false },
-                from: '573009998877@s.whatsapp.net',
-                pushName: 'Usuario de Prueba Webhook',
-                body: 'Mensaje de prueba desde diagnóstico ' + Date.now(),
+                key: { remoteJid: '573007778899@s.whatsapp.net', fromMe: false },
+                from: '573007778899@s.whatsapp.net',
+                pushName: 'Test WhatsApp User',
+                body: 'Mensaje de prueba REAL ' + new Date().toLocaleTimeString(),
                 type: 'text',
                 timestamp: Date.now(),
                 fromMe: false
@@ -94,7 +90,7 @@ async function main() {
         }
     };
 
-    const webhookPost = await fetch(`${DASHBOARD_URL}/api/whatsapp/webhook`, {
+    const webhookPost = await fetch(WEBHOOK_PUBLIC, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: testMessage
@@ -102,27 +98,43 @@ async function main() {
     log('   Status: ' + (webhookPost.status || webhookPost.error));
     log('   Response: ' + JSON.stringify(webhookPost.data || webhookPost.error));
 
-    // 5. Verificar API de conversaciones
-    log('\n5️⃣ Verificando API de conversaciones...');
+    // 4. Verificar conversaciones
+    log('\n4️⃣ Verificando conversaciones en CRM...');
     const convTest = await fetch(`${DASHBOARD_URL}/api/crm/conversations`);
     log('   Status: ' + (convTest.status || convTest.error));
-    if (convTest.data) {
-        log('   Total conversaciones: ' + (convTest.data.conversations?.length || 0));
-        log('   OK: ' + convTest.data.ok);
-        if (convTest.data.conversations) {
-            log('   Últimas conversaciones:');
-            convTest.data.conversations.slice(0, 3).forEach(c => {
-                log('     - ' + (c.client_name || c.phone) + ': ' + (c.last_message || '').substring(0, 40));
-            });
-        }
+    if (convTest.data && convTest.data.conversations) {
+        log('   Total: ' + convTest.data.conversations.length);
+        convTest.data.conversations.slice(0, 5).forEach(c => {
+            log('     - ' + (c.client_name || c.phone) + ': ' + (c.last_message || '').substring(0, 40));
+        });
     }
 
     log('\n' + '='.repeat(50));
-    log('✅ Diagnóstico completado');
+
+    // Resumen
+    log('\n📋 RESUMEN:');
+    if (gatewayTest.data?.isConnected) {
+        log('   ✅ Gateway CONECTADO');
+    } else {
+        log('   ❌ Gateway NO conectado');
+    }
+
+    if (webhookPublic.ok) {
+        log('   ✅ Webhook público FUNCIONA');
+    } else {
+        log('   ❌ Webhook público NO funciona');
+    }
+
+    if (webhookPost.ok && webhookPost.data?.ok) {
+        log('   ✅ Mensajes se guardan correctamente');
+    } else {
+        log('   ❌ Error guardando mensajes');
+    }
+
+    log('\n✅ Diagnóstico completado');
 
     // Guardar resultado
     fs.writeFileSync('C:/Users/USUARIO/WebstormProjects/dashboard/diagnostico-resultado.txt', output.join('\n'));
-    log('\n📁 Resultado guardado en diagnostico-resultado.txt');
 }
 
 main().catch(e => {
