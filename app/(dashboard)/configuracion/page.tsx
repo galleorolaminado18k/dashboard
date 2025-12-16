@@ -64,8 +64,31 @@ export default function ConfiguracionPage() {
     const [checkingInitialStatus, setCheckingInitialStatus] = useState(true)
     const [connectedPhone, setConnectedPhone] = useState<string>("")
 
+    // Constante para localStorage
+    const WHATSAPP_PHONE_KEY = "whatsapp_connected_phone"
+
+    // Función para guardar el número en localStorage
+    const saveConnectedPhone = (phone: string) => {
+        if (phone) {
+            localStorage.setItem(WHATSAPP_PHONE_KEY, phone)
+            setConnectedPhone(phone)
+        }
+    }
+
+    // Función para limpiar el número de localStorage
+    const clearConnectedPhone = () => {
+        localStorage.removeItem(WHATSAPP_PHONE_KEY)
+        setConnectedPhone("")
+    }
+
     // Cargar estado de conexión desde la base de datos al iniciar
     useEffect(() => {
+        // Primero cargar el número guardado de localStorage
+        const savedPhone = localStorage.getItem(WHATSAPP_PHONE_KEY)
+        if (savedPhone) {
+            setConnectedPhone(savedPhone)
+        }
+
         loadConfig()
         loadConnectionState()
     }, [])
@@ -83,9 +106,9 @@ export default function ConfiguracionPage() {
             if (res.ok) {
                 const data = await res.json()
                 setConfig(data)
-                // Si hay un número guardado en la config, usarlo como número conectado
-                if (data?.whatsappBusinessPhone) {
-                    setConnectedPhone(data.whatsappBusinessPhone)
+                // Si hay un número guardado en la config y no tenemos uno en localStorage, usarlo
+                if (data?.whatsappBusinessPhone && !localStorage.getItem(WHATSAPP_PHONE_KEY)) {
+                    saveConnectedPhone(data.whatsappBusinessPhone)
                 }
             }
         } catch (err) {
@@ -109,9 +132,9 @@ export default function ConfiguracionPage() {
             if (data?.ok && data?.connected) {
                 console.log("✅ Gateway confirma: WhatsApp CONECTADO!")
                 setSessionStatus("connected")
-                // Si el Gateway devuelve el número, usarlo
+                // Si el Gateway devuelve el número, guardarlo
                 if (data?.phone) {
-                    setConnectedPhone(data.phone)
+                    saveConnectedPhone(data.phone)
                 }
             } else if (data?.hasQR) {
                 console.log("📱 Hay QR pendiente de escanear")
@@ -245,7 +268,7 @@ export default function ConfiguracionPage() {
                 // Ya está conectado!
                 console.log("✅ WhatsApp conectado!")
                 setSessionStatus("connected")
-                setConnectedPhone(config.whatsappBusinessPhone) // Guardar el número conectado
+                saveConnectedPhone(config.whatsappBusinessPhone) // Guardar el número conectado en localStorage
                 setQrCodeImage("")
                 if (pollingInterval) clearInterval(pollingInterval)
             }
@@ -270,9 +293,10 @@ export default function ConfiguracionPage() {
                 await fetch("/api/whatsapp/evolution", { method: "DELETE" })
             }
 
-            // Limpiar estado local
+            // Limpiar estado local y localStorage
             setSessionStatus("disconnected")
             setQrCodeImage("")
+            clearConnectedPhone() // Limpiar número de localStorage
             if (pollingInterval) clearInterval(pollingInterval)
             console.log("✅ WhatsApp desconectado")
         } catch (err) {
@@ -280,6 +304,7 @@ export default function ConfiguracionPage() {
             // Aún así limpiar el estado local
             setSessionStatus("disconnected")
             setQrCodeImage("")
+            clearConnectedPhone()
         } finally {
             setLoading(false)
         }
