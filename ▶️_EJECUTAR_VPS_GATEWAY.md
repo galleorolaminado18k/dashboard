@@ -1,4 +1,4 @@
-# 🚀 EJECUTAR EN VPS AHORA - FIX GATEWAY
+# 🚀 EJECUTAR EN VPS AHORA - FIX AUDIO
 
 ## Conéctate al VPS:
 ```bash
@@ -10,11 +10,11 @@ ssh root@31.220.58.83
 ### 1. Detener el gateway actual
 ```bash
 cd /root/whatsapp-gateway
-pm2 delete gateway
-pm2 delete wa-gateway
+pm2 delete gateway 2>/dev/null
+pm2 delete wa-gateway 2>/dev/null
 ```
 
-### 2. Crear el nuevo archivo gateway
+### 2. Crear el nuevo archivo gateway (COPIA TODO EL BLOQUE)
 ```bash
 cat > gateway-cloudinary.js << 'ENDOFFILE'
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require("@whiskeysockets/baileys");
@@ -146,6 +146,42 @@ async function connectToWhatsApp(forceNew = false) {
     return sock;
 }
 
+// Función para convertir data URL a Buffer
+function dataUrlToBuffer(dataUrl) {
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) return null;
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    return { buffer, mimeType };
+}
+
+// Función para obtener media como buffer (soporta URLs y data URLs)
+async function getMediaBuffer(mediaUrl, expectedMimetype) {
+    // Si es un data URL (base64), convertir a buffer
+    if (mediaUrl.startsWith('data:')) {
+        console.log('📦 Convirtiendo data URL a buffer...');
+        const result = dataUrlToBuffer(mediaUrl);
+        if (result) {
+            console.log('✅ Buffer creado:', result.buffer.length, 'bytes, tipo:', result.mimeType);
+            return { buffer: result.buffer, mimetype: result.mimeType };
+        }
+        throw new Error('Data URL inválido');
+    }
+    
+    // Si es una URL normal, descargar
+    console.log('📥 Descargando media desde URL:', mediaUrl.substring(0, 80) + '...');
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+        throw new Error('Error descargando: ' + response.status);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || expectedMimetype || 'application/octet-stream';
+    console.log('✅ Descargado:', buffer.length, 'bytes, tipo:', contentType);
+    return { buffer, mimetype: contentType };
+}
+
 // API REST
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -201,21 +237,34 @@ app.post("/send", async (req, res) => {
         let msgContent;
         const captionText = caption || message || "";
 
-        switch (type) {
-            case "image":
-                msgContent = { image: { url: mediaUrl }, caption: captionText };
-                break;
-            case "video":
-                msgContent = { video: { url: mediaUrl }, caption: captionText };
-                break;
-            case "audio":
-                msgContent = { audio: { url: mediaUrl }, mimetype: mimetype || "audio/ogg; codecs=opus", ptt: true };
-                break;
-            case "document":
-                msgContent = { document: { url: mediaUrl }, mimetype: mimetype || "application/pdf", fileName: filename || "documento" };
-                break;
-            default:
-                msgContent = { text: message };
+        // Para tipos de media, obtener el buffer
+        if (type !== "text") {
+            const { buffer, mimetype: detectedMime } = await getMediaBuffer(mediaUrl, mimetype);
+            const finalMimetype = mimetype || detectedMime;
+
+            switch (type) {
+                case "image":
+                    msgContent = { image: buffer, caption: captionText, mimetype: finalMimetype };
+                    break;
+                case "video":
+                    msgContent = { video: buffer, caption: captionText, mimetype: finalMimetype };
+                    break;
+                case "audio":
+                    // Convertir webm a ogg para mejor compatibilidad con WhatsApp
+                    let audioMime = finalMimetype;
+                    if (audioMime.includes('webm')) {
+                        audioMime = 'audio/ogg; codecs=opus';
+                    }
+                    msgContent = { audio: buffer, mimetype: audioMime, ptt: true };
+                    break;
+                case "document":
+                    msgContent = { document: buffer, mimetype: finalMimetype || "application/pdf", fileName: filename || "documento" };
+                    break;
+                default:
+                    msgContent = { text: message };
+            }
+        } else {
+            msgContent = { text: message };
         }
 
         await sock.sendMessage(jid, msgContent);
@@ -240,7 +289,7 @@ app.post("/logout", async (_, res) => {
 
 // Inicio
 console.log("=".repeat(50));
-console.log("🤖 WhatsApp Gateway - Baileys + Cloudinary");
+console.log("🤖 WhatsApp Gateway - Baileys + Soporte Audio");
 console.log("📡 Webhook:", WEBHOOK_URL);
 console.log("=".repeat(50));
 
@@ -276,20 +325,9 @@ curl http://localhost:3010/health
 
 ---
 
-## Después de esto:
+## Después de esto, prueba enviar una nota de voz desde el CRM.
 
-1. En tu PC, haz push de los cambios:
-```cmd
-cd C:\Users\USUARIO\WebstormProjects\dashboard
-git add -A
-git commit -m "fix: usar Cloudinary para upload de archivos"
-git push
-```
-
-2. Espera 2-3 minutos para que Vercel haga deploy
-
-3. Prueba en el CRM:
-   - Enviar una imagen
-   - Grabar y enviar una nota de voz
-   - Enviar un documento PDF
-
+Si todo funciona, el log debería mostrar:
+- `📦 Convirtiendo data URL a buffer...` (si es base64)
+- `📥 Descargando media desde URL...` (si es URL de Cloudinary)
+- `📤 Mensaje enviado a ... tipo: audio`

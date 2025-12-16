@@ -167,6 +167,42 @@ app.post("/restart", async (_, res) => {
     }
 });
 
+// Función para convertir data URL a Buffer
+function dataUrlToBuffer(dataUrl) {
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) return null;
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    return { buffer, mimeType };
+}
+
+// Función para obtener media como buffer (soporta URLs y data URLs)
+async function getMediaBuffer(mediaUrl, expectedMimetype) {
+    // Si es un data URL (base64), convertir a buffer
+    if (mediaUrl.startsWith('data:')) {
+        console.log('📦 Convirtiendo data URL a buffer...');
+        const result = dataUrlToBuffer(mediaUrl);
+        if (result) {
+            console.log('✅ Buffer creado:', result.buffer.length, 'bytes, tipo:', result.mimeType);
+            return { buffer: result.buffer, mimetype: result.mimeType };
+        }
+        throw new Error('Data URL inválido');
+    }
+
+    // Si es una URL normal, descargar
+    console.log('📥 Descargando media desde URL:', mediaUrl.substring(0, 80) + '...');
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+        throw new Error(`Error descargando: ${response.status}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || expectedMimetype || 'application/octet-stream';
+    console.log('✅ Descargado:', buffer.length, 'bytes, tipo:', contentType);
+    return { buffer, mimetype: contentType };
+}
+
 app.post("/send", async (req, res) => {
     const { phone, message, type = "text", mediaUrl, mimetype, filename, caption } = req.body;
     if (!phone) return res.status(400).json({ ok: false, error: "Falta phone" });
@@ -182,21 +218,34 @@ app.post("/send", async (req, res) => {
         let msgContent;
         const captionText = caption || message || "";
 
-        switch (type) {
-            case "image":
-                msgContent = { image: { url: mediaUrl }, caption: captionText };
-                break;
-            case "video":
-                msgContent = { video: { url: mediaUrl }, caption: captionText };
-                break;
-            case "audio":
-                msgContent = { audio: { url: mediaUrl }, mimetype: mimetype || "audio/ogg; codecs=opus", ptt: true };
-                break;
-            case "document":
-                msgContent = { document: { url: mediaUrl }, mimetype: mimetype || "application/pdf", fileName: filename || "documento" };
-                break;
-            default:
-                msgContent = { text: message };
+        // Para tipos de media, obtener el buffer si es necesario
+        if (type !== "text") {
+            const { buffer, mimetype: detectedMime } = await getMediaBuffer(mediaUrl, mimetype);
+            const finalMimetype = mimetype || detectedMime;
+
+            switch (type) {
+                case "image":
+                    msgContent = { image: buffer, caption: captionText, mimetype: finalMimetype };
+                    break;
+                case "video":
+                    msgContent = { video: buffer, caption: captionText, mimetype: finalMimetype };
+                    break;
+                case "audio":
+                    // Convertir webm a ogg para mejor compatibilidad con WhatsApp
+                    let audioMime = finalMimetype;
+                    if (audioMime.includes('webm')) {
+                        audioMime = 'audio/ogg; codecs=opus';
+                    }
+                    msgContent = { audio: buffer, mimetype: audioMime, ptt: true };
+                    break;
+                case "document":
+                    msgContent = { document: buffer, mimetype: finalMimetype || "application/pdf", fileName: filename || "documento" };
+                    break;
+                default:
+                    msgContent = { text: message };
+            }
+        } else {
+            msgContent = { text: message };
         }
 
         await sock.sendMessage(jid, msgContent);

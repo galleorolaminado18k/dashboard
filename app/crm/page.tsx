@@ -706,8 +706,17 @@ export default function CRMPage() {
               return
             }
 
+            // Verificar que la URL sea válida (no data URL)
+            const audioUrl = uploadData.url
+            if (!audioUrl || audioUrl.startsWith('data:')) {
+              console.error('❌ URL de audio inválida:', audioUrl?.substring(0, 100))
+              alert('Error: La URL de Cloudinary no es válida. Por favor intenta de nuevo.')
+              setSendingMessage(false)
+              return
+            }
+
             // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
-            console.log('📤 Enviando URL al gateway:', uploadData.url)
+            console.log('📤 Enviando URL al gateway:', audioUrl)
 
             const sendRes = await fetch('/api/crm/send', {
               method: 'POST',
@@ -716,7 +725,7 @@ export default function CRMPage() {
                 conversationId: selectedConversation,
                 phone: currentConversation.phone,
                 type: 'audio',
-                mediaUrl: uploadData.url,
+                mediaUrl: audioUrl,
                 mimetype: mimeType,
                 filename: audioFile.name,
               }),
