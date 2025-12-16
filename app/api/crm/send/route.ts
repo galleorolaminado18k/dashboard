@@ -19,7 +19,7 @@ const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://31.220.58.83:301
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { conversationId, phone, message, type = 'text', mediaUrl, mimetype, filename } = body
+    const { conversationId, phone, message, type = 'text', mediaUrl, mimetype, filename, caption } = body
 
     if (!phone && !conversationId) {
       return NextResponse.json(
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
           mediaUrl,
           mimetype,
           filename,
+          caption, // Descripción opcional para medios
         }),
         signal: controller.signal,
       })
@@ -115,10 +116,15 @@ export async function POST(request: NextRequest) {
     if (conversationId) {
       const supabase = createClient()
 
+      // Para medios con caption, mostrar el caption como contenido
+      const contentToSave = type === 'text'
+        ? message
+        : (caption || `[${type}${filename ? `: ${filename}` : ''}]`)
+
       await supabase.from('crm_messages').insert({
         conversation_id: conversationId,
         sender: 'agent',
-        content: message || `[${type}]`,
+        content: contentToSave,
         type: type,
         timestamp: new Date().toISOString(),
         read: true,
@@ -128,7 +134,7 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('crm_conversations')
         .update({
-          last_message: message || `[${type}]`,
+          last_message: contentToSave,
           timestamp: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

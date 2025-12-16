@@ -27,6 +27,10 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
+  Phone,
+  Camera,
+  Image,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -310,7 +314,14 @@ export default function CRMPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [fileCaption, setFileCaption] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const documentInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -407,6 +418,26 @@ export default function CRMPage() {
     }
   }, [selectedConversation, loadMessages])
 
+  // Scroll al final de los mensajes cuando se agregan nuevos
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages])
+
+  // Cerrar menús al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-menu-trigger]') && !target.closest('[data-menu-content]')) {
+        setShowAttachmentMenu(false)
+        setShowEmojiPicker(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
   const filteredConversations = useMemo(() => {
     return conversations.filter((conv) => {
       const matchesEstado = selectedEstado === "todas" || conv.status === selectedEstado
@@ -447,7 +478,8 @@ export default function CRMPage() {
   }, [])
 
   const handleAttachment = useCallback(() => {
-    fileInputRef.current?.click()
+    setShowAttachmentMenu(prev => !prev)
+    setShowEmojiPicker(false)
   }, [])
 
   // Estado para envío de mensajes
@@ -501,7 +533,7 @@ export default function CRMPage() {
   }, [messageInput, selectedConversation, currentConversation, loadMessages])
 
   // Función para enviar archivo (imagen, video, documento)
-  const handleSendFile = useCallback(async (file: File) => {
+  const handleSendFile = useCallback(async (file: File, caption?: string) => {
     if (!selectedConversation || !currentConversation) {
       alert('Selecciona una conversación primero')
       return
@@ -546,7 +578,7 @@ export default function CRMPage() {
         return
       }
 
-      // Enviar mensaje con la URL del archivo
+      // Enviar mensaje con la URL del archivo (sin descripción en el mensaje principal)
       const res = await fetch('/api/crm/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -554,10 +586,11 @@ export default function CRMPage() {
           conversationId: selectedConversation,
           phone: currentConversation.phone,
           type,
-          message: file.name,
+          message: '', // No incluir el nombre como mensaje
           mediaUrl: uploadData.url,
           mimetype: file.type,
           filename: file.name,
+          caption: caption || undefined, // Descripción opcional
         }),
       })
 
@@ -567,9 +600,11 @@ export default function CRMPage() {
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           sender: 'agent',
-          content: `[${type}: ${file.name}]`,
+          content: `[${type}: ${file.name}]${caption ? `\n${caption}` : ''}`,
           timestamp: new Date(),
           avatar: '/business-agent.png',
+          mediaUrl: uploadData.url,
+          mediaType: type,
         }])
         setTimeout(() => loadMessages(selectedConversation), 1000)
       } else {
@@ -586,9 +621,28 @@ export default function CRMPage() {
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      handleSendFile(files[0])
+      setPendingFile(files[0])
+      setFileCaption("")
+      setShowAttachmentMenu(false)
     }
-  }, [handleSendFile])
+    // Limpiar el input para permitir seleccionar el mismo archivo
+    e.target.value = ""
+  }, [])
+
+  // Función para cancelar el archivo pendiente
+  const cancelPendingFile = useCallback(() => {
+    setPendingFile(null)
+    setFileCaption("")
+  }, [])
+
+  // Función para enviar el archivo pendiente con su descripción
+  const sendPendingFile = useCallback(async () => {
+    if (pendingFile) {
+      await handleSendFile(pendingFile, fileCaption)
+      setPendingFile(null)
+      setFileCaption("")
+    }
+  }, [pendingFile, fileCaption, handleSendFile])
 
   const startRecording = useCallback(async () => {
     try {
@@ -915,7 +969,7 @@ export default function CRMPage() {
 
         {/* Panel Central - Chat */}
         <div
-          className="flex flex-1 flex-col bg-[#e5ddd5]"
+          className="flex flex-1 flex-col bg-[#e5ddd5] overflow-hidden min-h-0"
           style={{
             backgroundImage:
               "url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pattern_wide_1920x1920-kJIowfHC7yUPTogefHRI2QcjeEGcKc.jpg')",
@@ -926,8 +980,8 @@ export default function CRMPage() {
         >
           {selectedConversation && currentConversation ? (
             <>
-              {/* Header del Chat */}
-              <div className="flex items-center justify-between border-b border-zinc-200 bg-[#f0f0f0] p-3">
+              {/* Header del Chat - Altura fija */}
+              <div className="flex-shrink-0 flex items-center justify-between border-b border-zinc-200 bg-[#f0f0f0] p-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={currentConversation.avatar || "/placeholder.svg"} />
@@ -953,7 +1007,7 @@ export default function CRMPage() {
               </div>
 
               {/* Área de Mensajes - Estilo WhatsApp */}
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 min-h-0 p-4">
                 <div className="space-y-3">
                   {loadingMessages ? (
                     <div className="flex justify-center items-center h-32">
@@ -1001,23 +1055,78 @@ export default function CRMPage() {
                     </div>
                   )}
                 </div>
+                <div ref={messagesEndRef} />
               </ScrollArea>
 
-              {/* Botón de Cámara para enviar fotos */}
-              <div className="flex items-center justify-center gap-2 border-y border-zinc-200 bg-white p-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-full active:scale-95 hover:bg-zinc-100"
-                  onClick={handleAttachment}
-                  title="Enviar imagen o archivo"
-                >
-                  <span className="text-xl">📷</span>
-                </Button>
-              </div>
+              {/* Vista previa de archivo pendiente (estilo WhatsApp) */}
+              {pendingFile && (
+                <div className="flex-shrink-0 border-t border-zinc-200 bg-[#f0f0f0] p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Vista previa del archivo */}
+                    <div className="relative flex-shrink-0">
+                      {pendingFile.type.startsWith('image/') ? (
+                        <img
+                          src={URL.createObjectURL(pendingFile)}
+                          alt="Vista previa"
+                          className="h-24 w-24 rounded-lg object-cover border border-zinc-300"
+                        />
+                      ) : pendingFile.type.startsWith('video/') ? (
+                        <div className="h-24 w-24 rounded-lg bg-zinc-800 flex items-center justify-center border border-zinc-300">
+                          <span className="text-3xl">🎬</span>
+                        </div>
+                      ) : (
+                        <div className="h-24 w-24 rounded-lg bg-zinc-200 flex flex-col items-center justify-center border border-zinc-300">
+                          <span className="text-3xl">📄</span>
+                          <span className="text-[10px] text-zinc-600 mt-1 px-1 truncate max-w-full">
+                            {pendingFile.name.split('.').pop()?.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      {/* Botón cerrar */}
+                      <button
+                        onClick={cancelPendingFile}
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600 shadow-md"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {/* Info y descripción */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 truncate">{pendingFile.name}</p>
+                      <p className="text-xs text-zinc-500 mb-2">
+                        {(pendingFile.size / 1024).toFixed(1)} KB
+                      </p>
+                      <Input
+                        placeholder="Añadir descripción (opcional)"
+                        value={fileCaption}
+                        onChange={(e) => setFileCaption(e.target.value)}
+                        className="text-sm bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            sendPendingFile()
+                          }
+                        }}
+                      />
+                    </div>
+                    {/* Botón enviar */}
+                    <Button
+                      onClick={sendPendingFile}
+                      disabled={sendingMessage}
+                      className="h-10 w-10 rounded-full bg-[#25d366] hover:bg-[#20bd5a] flex-shrink-0"
+                    >
+                      {sendingMessage ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Tabs y Input - Estilo WhatsApp */}
-              <div className="bg-[#f0f0f0] p-3">
+              <div className="flex-shrink-0 bg-[#f0f0f0] p-3">
                 <div className="mb-2 flex gap-4 px-2">
                   <button
                     onClick={() => setActiveTab("reply")}
@@ -1080,17 +1189,78 @@ export default function CRMPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-zinc-600 active:scale-95"
+                      className="h-9 w-9 text-zinc-600 active:scale-95 relative"
                       onClick={handleAttachment}
+                      data-menu-trigger
                     >
                       <Paperclip className="h-5 w-5" />
                     </Button>
+
+                    {/* Menú de adjuntos */}
+                    {showAttachmentMenu && (
+                      <div className="absolute bottom-14 left-12 z-50 w-48 rounded-lg border border-zinc-200 bg-white shadow-xl overflow-hidden" data-menu-content>
+                        <button
+                          onClick={() => {
+                            imageInputRef.current?.click()
+                            setShowAttachmentMenu(false)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 text-left"
+                        >
+                          <span className="text-lg">🖼️</span>
+                          <span className="text-zinc-700">Fotos y Videos</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            cameraInputRef.current?.click()
+                            setShowAttachmentMenu(false)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 text-left border-t border-zinc-100"
+                        >
+                          <span className="text-lg">📷</span>
+                          <span className="text-zinc-700">Cámara</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            documentInputRef.current?.click()
+                            setShowAttachmentMenu(false)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 text-left border-t border-zinc-100"
+                        >
+                          <span className="text-lg">📄</span>
+                          <span className="text-zinc-700">Documento</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Inputs de archivo ocultos */}
                     <input
                       ref={fileInputRef}
                       type="file"
                       className="hidden"
                       onChange={handleFileChange}
-                      accept="image/*,video/*,.pdf,.doc,.docx"
+                      accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    />
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept="image/*,video/*"
+                    />
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      capture="environment"
+                    />
+                    <input
+                      ref={documentInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.ppt,.pptx"
                     />
 
                     <Input
