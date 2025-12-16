@@ -7,8 +7,8 @@ const fs = require("fs");
 const PORT = process.env.PORT || 3010;
 const AUTH_FOLDER = "./auth_info_baileys";
 
-// 🔥 URL del webhook de tu Dashboard
-const WEBHOOK_URL = "https://dashboard-galle-git-fea-98639c-galleaprobaciones-9369s-projects.vercel.app/api/whatsapp/webhook";
+// 🔥 URL del webhook de tu Dashboard - USAR ENDPOINT PÚBLICO
+const WEBHOOK_URL = "https://dashboard-galle-git-fea-98639c-galleaprobaciones-9369s-projects.vercel.app/api/webhook-public";
 
 let sock = null;
 let currentQR = null;
