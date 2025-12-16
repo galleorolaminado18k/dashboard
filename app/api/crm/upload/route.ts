@@ -1,6 +1,7 @@
 /**
  * API Route: Upload de archivos para WhatsApp
  * Sube archivos a Supabase Storage y devuelve la URL pública
+ * Incluye limpieza automática de archivos antiguos
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -14,6 +15,61 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 const BUCKET_NAME = 'whatsapp-media'
+const MAX_FILES = 500 // Máximo de archivos antes de limpiar
+const MAX_AGE_DAYS = 7 // Eliminar archivos más antiguos de 7 días
+
+// Función para limpiar archivos antiguos
+async function cleanupOldFiles(supabase: any) {
+  try {
+    const { data: files, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list('', { limit: 1000, sortBy: { column: 'created_at', order: 'asc' } })
+
+    if (error || !files) {
+      console.log('⚠️ No se pudieron listar archivos para limpieza')
+      return
+    }
+
+    const now = Date.now()
+    const maxAgeMs = MAX_AGE_DAYS * 24 * 60 * 60 * 1000
+    const filesToDelete: string[] = []
+
+    // Encontrar archivos antiguos
+    for (const file of files) {
+      if (file.created_at) {
+        const fileAge = now - new Date(file.created_at).getTime()
+        if (fileAge > maxAgeMs) {
+          filesToDelete.push(file.name)
+        }
+      }
+    }
+
+    // Si hay demasiados archivos, eliminar los más antiguos
+    if (files.length > MAX_FILES) {
+      const excessCount = files.length - MAX_FILES + 50 // Eliminar 50 extra para dar margen
+      for (let i = 0; i < excessCount && i < files.length; i++) {
+        if (!filesToDelete.includes(files[i].name)) {
+          filesToDelete.push(files[i].name)
+        }
+      }
+    }
+
+    // Eliminar archivos
+    if (filesToDelete.length > 0) {
+      const { error: deleteError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .remove(filesToDelete)
+
+      if (deleteError) {
+        console.error('❌ Error eliminando archivos:', deleteError)
+      } else {
+        console.log(`🧹 Limpieza: ${filesToDelete.length} archivos eliminados`)
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error en limpieza:', error)
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,6 +132,10 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fileName)
 
     console.log('✅ Archivo subido:', urlData.publicUrl)
+
+    // Limpiar archivos antiguos en segundo plano (no bloquea la respuesta)
+    // @ts-ignore - El tipo es correcto en runtime
+    cleanupOldFiles(supabase).catch(err => console.error('Error en limpieza:', err))
 
     return NextResponse.json({
       ok: true,
