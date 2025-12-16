@@ -473,19 +473,18 @@ export default function ConfiguracionPage() {
                                         </div>
 
                                         {/* Botón de Conectar */}
-                                        {sessionStatus === "disconnected" &&
-                                            config.whatsappBusinessPhone &&
-                                            !checkingInitialStatus && (
+                                        {sessionStatus !== "connected" &&
+                                            config.whatsappBusinessPhone && (
                                                 <div className="space-y-3">
                                                     <Button
                                                         onClick={startWhatsAppSession}
-                                                        disabled={loading}
+                                                        disabled={loading || checkingInitialStatus}
                                                         className="w-full bg-[#12B886] hover:bg-[#0F9D72] text-white disabled:opacity-50"
                                                     >
-                                                        {loading ? (
+                                                        {loading || checkingInitialStatus ? (
                                                             <>
                                                                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                                                Conectando...
+                                                                {checkingInitialStatus ? "Verificando..." : "Conectando..."}
                                                             </>
                                                         ) : (
                                                             <>
