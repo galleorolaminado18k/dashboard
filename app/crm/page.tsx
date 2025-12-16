@@ -647,26 +647,51 @@ export default function CRMPage() {
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+
+      // Detectar el mejor formato de audio soportado
+      let mimeType = 'audio/webm'
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus'
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus'
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4'
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType })
       mediaRecorderRef.current = mediaRecorder
 
       const audioChunks: Blob[] = []
       mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data)
+        if (event.data.size > 0) {
+          audioChunks.push(event.data)
+        }
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/ogg" })
         stream.getTracks().forEach((track) => track.stop())
+
+        if (audioChunks.length === 0) {
+          alert('No se grabó audio. Intenta de nuevo.')
+          return
+        }
+
+        const audioBlob = new Blob(audioChunks, { type: mimeType })
+        console.log('🎤 Audio grabado:', audioBlob.size, 'bytes, tipo:', mimeType)
 
         // Enviar nota de voz
         if (selectedConversation && currentConversation) {
           setSendingMessage(true)
           try {
+            // Determinar extensión del archivo
+            const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'mp4'
+
             // Subir archivo de audio primero
             const formData = new FormData()
-            const audioFile = new File([audioBlob], `nota-voz-${Date.now()}.ogg`, { type: 'audio/ogg' })
+            const audioFile = new File([audioBlob], `nota-voz-${Date.now()}.${extension}`, { type: mimeType })
             formData.append('file', audioFile)
+
+            console.log('📤 Subiendo audio:', audioFile.name, audioFile.size, 'bytes')
 
             const uploadRes = await fetch('/api/crm/upload', {
               method: 'POST',
@@ -674,14 +699,16 @@ export default function CRMPage() {
             })
 
             const uploadData = await uploadRes.json()
+            console.log('📤 Respuesta upload:', uploadData)
 
             if (!uploadData.ok) {
-              alert('Error subiendo nota de voz: ' + (uploadData.error || 'Error'))
+              alert('Error subiendo nota de voz: ' + (uploadData.error || 'Error desconocido'))
               setSendingMessage(false)
               return
             }
 
             // Enviar mensaje con la URL del audio
+            console.log('📤 Enviando audio al gateway:', uploadData.url)
             const res = await fetch('/api/crm/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -690,7 +717,8 @@ export default function CRMPage() {
                 phone: currentConversation.phone,
                 type: 'audio',
                 mediaUrl: uploadData.url,
-                mimetype: 'audio/ogg',
+                mimetype: uploadData.mimetype || mimeType,
+                filename: uploadData.filename || audioFile.name,
               }),
             })
 
