@@ -554,28 +554,47 @@ export default function CRMPage() {
       else if (file.type.startsWith('video/')) type = 'video'
       else if (file.type.startsWith('audio/')) type = 'audio'
 
-      // Enviar archivo directamente usando el nuevo endpoint
+      console.log('📤 Subiendo archivo a Cloudinary:', file.name, file.type, file.size, 'bytes')
+
+      // PASO 1: Subir a Cloudinary
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('conversationId', selectedConversation)
-      if (currentConversation.phone) {
-        formData.append('phone', currentConversation.phone)
-      }
-      if (caption) {
-        formData.append('caption', caption)
-      }
 
-      console.log('📤 Enviando archivo:', file.name, file.type, file.size, 'bytes')
-
-      const res = await fetch('/api/crm/send-file', {
+      const uploadRes = await fetch('/api/crm/upload-cloudinary', {
         method: 'POST',
         body: formData,
       })
 
-      const data = await res.json()
-      console.log('📤 Respuesta:', data)
+      const uploadData = await uploadRes.json()
+      console.log('📤 Cloudinary respuesta:', uploadData)
 
-      if (data.ok) {
+      if (!uploadData.ok) {
+        alert('Error subiendo archivo: ' + (uploadData.error || 'Error desconocido'))
+        setSendingMessage(false)
+        return
+      }
+
+      // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
+      console.log('📤 Enviando URL al gateway:', uploadData.url)
+
+      const sendRes = await fetch('/api/crm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation,
+          phone: currentConversation.phone,
+          type,
+          mediaUrl: uploadData.url,
+          mimetype: file.type,
+          filename: file.name,
+          caption: caption || undefined,
+        }),
+      })
+
+      const sendData = await sendRes.json()
+      console.log('📤 Gateway respuesta:', sendData)
+
+      if (sendData.ok) {
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           sender: 'agent',
@@ -586,7 +605,7 @@ export default function CRMPage() {
         }])
         setTimeout(() => loadMessages(selectedConversation), 1000)
       } else {
-        alert('Error enviando archivo: ' + (data.error || 'Error desconocido'))
+        alert('Error enviando archivo: ' + (sendData.error || 'Error desconocido'))
       }
     } catch (error) {
       console.error('Error enviando archivo:', error)
@@ -664,27 +683,49 @@ export default function CRMPage() {
             // Determinar extensión del archivo
             const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'mp4'
 
-            // Crear archivo de audio y enviar directamente
+            // Crear archivo de audio
             const audioFile = new File([audioBlob], `nota-voz-${Date.now()}.${extension}`, { type: mimeType })
 
+            console.log('📤 Subiendo audio a Cloudinary:', audioFile.name, audioFile.size, 'bytes')
+
+            // PASO 1: Subir a Cloudinary
             const formData = new FormData()
             formData.append('file', audioFile)
-            formData.append('conversationId', selectedConversation)
-            if (currentConversation.phone) {
-              formData.append('phone', currentConversation.phone)
-            }
 
-            console.log('📤 Enviando audio:', audioFile.name, audioFile.size, 'bytes')
-
-            const res = await fetch('/api/crm/send-file', {
+            const uploadRes = await fetch('/api/crm/upload-cloudinary', {
               method: 'POST',
               body: formData,
             })
 
-            const data = await res.json()
-            console.log('📤 Respuesta:', data)
+            const uploadData = await uploadRes.json()
+            console.log('📤 Cloudinary respuesta:', uploadData)
 
-            if (data.ok) {
+            if (!uploadData.ok) {
+              alert('Error subiendo nota de voz: ' + (uploadData.error || 'Error desconocido'))
+              setSendingMessage(false)
+              return
+            }
+
+            // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
+            console.log('📤 Enviando URL al gateway:', uploadData.url)
+
+            const sendRes = await fetch('/api/crm/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversationId: selectedConversation,
+                phone: currentConversation.phone,
+                type: 'audio',
+                mediaUrl: uploadData.url,
+                mimetype: mimeType,
+                filename: audioFile.name,
+              }),
+            })
+
+            const sendData = await sendRes.json()
+            console.log('📤 Gateway respuesta:', sendData)
+
+            if (sendData.ok) {
               setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 sender: 'agent',
@@ -694,7 +735,7 @@ export default function CRMPage() {
               }])
               setTimeout(() => loadMessages(selectedConversation), 1000)
             } else {
-              alert('Error enviando nota de voz: ' + (data.error || 'Error desconocido'))
+              alert('Error enviando nota de voz: ' + (sendData.error || 'Error desconocido'))
             }
           } catch (error) {
             console.error('Error enviando nota de voz:', error)
