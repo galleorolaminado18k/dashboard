@@ -316,8 +316,10 @@ app.post("/restart", async (_, res) => {
 });
 
 app.post("/send", async (req, res) => {
-    const { phone, message } = req.body;
-    if (!phone || !message) return res.status(400).json({ ok: false, error: "Falta phone o message" });
+    const { phone, message, type = "text", mediaUrl, mimetype, filename } = req.body;
+    if (!phone) return res.status(400).json({ ok: false, error: "Falta phone" });
+    if (type === "text" && !message) return res.status(400).json({ ok: false, error: "Falta message" });
+    if (type !== "text" && !mediaUrl) return res.status(400).json({ ok: false, error: "Falta mediaUrl" });
     if (!isConnected || !sock) return res.status(503).json({ ok: false, error: "No conectado" });
 
     try {
@@ -326,10 +328,45 @@ app.post("/send", async (req, res) => {
             cleanPhone = "57" + cleanPhone;
         }
         const jid = cleanPhone + "@s.whatsapp.net";
-        await sock.sendMessage(jid, { text: message });
-        console.log("📤 Mensaje enviado a", jid);
-        res.json({ ok: true, message: "Enviado" });
+
+        let msgContent;
+
+        switch (type) {
+            case "image":
+                msgContent = {
+                    image: { url: mediaUrl },
+                    caption: message || ""
+                };
+                break;
+            case "video":
+                msgContent = {
+                    video: { url: mediaUrl },
+                    caption: message || ""
+                };
+                break;
+            case "audio":
+                msgContent = {
+                    audio: { url: mediaUrl },
+                    mimetype: mimetype || "audio/mpeg",
+                    ptt: true // Push to talk (nota de voz)
+                };
+                break;
+            case "document":
+                msgContent = {
+                    document: { url: mediaUrl },
+                    mimetype: mimetype || "application/pdf",
+                    fileName: filename || "documento"
+                };
+                break;
+            default:
+                msgContent = { text: message };
+        }
+
+        await sock.sendMessage(jid, msgContent);
+        console.log("📤 Mensaje enviado a", jid, "tipo:", type);
+        res.json({ ok: true, message: "Enviado", type });
     } catch (e) {
+        console.error("❌ Error enviando mensaje:", e);
         res.status(500).json({ ok: false, error: String(e) });
     }
 });

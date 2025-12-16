@@ -452,12 +452,117 @@ export default function CRMPage() {
     fileInputRef.current?.click()
   }, [])
 
+  // Estado para envío de mensajes
+  const [sendingMessage, setSendingMessage] = useState(false)
+
+  // Función para enviar mensaje de texto
+  const handleSendMessage = useCallback(async () => {
+    if (!messageInput.trim() || !selectedConversation || !currentConversation) return
+
+    const messageToSend = messageInput.trim()
+    setMessageInput("")
+    setSendingMessage(true)
+
+    try {
+      const res = await fetch('/api/crm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation,
+          phone: currentConversation.phone,
+          message: messageToSend,
+          type: 'text',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.ok) {
+        // Agregar mensaje a la lista local inmediatamente
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          sender: 'agent',
+          content: messageToSend,
+          timestamp: new Date(),
+          avatar: '/business-agent.png',
+        }])
+
+        // Recargar mensajes para sincronizar
+        setTimeout(() => loadMessages(selectedConversation), 1000)
+      } else {
+        alert('Error enviando mensaje: ' + (data.error || 'Error desconocido'))
+        setMessageInput(messageToSend) // Restaurar mensaje
+      }
+    } catch (error) {
+      console.error('Error enviando mensaje:', error)
+      alert('Error de conexión al enviar mensaje')
+      setMessageInput(messageToSend)
+    } finally {
+      setSendingMessage(false)
+    }
+  }, [messageInput, selectedConversation, currentConversation, loadMessages])
+
+  // Función para enviar archivo (imagen, video, documento)
+  const handleSendFile = useCallback(async (file: File) => {
+    if (!selectedConversation || !currentConversation) return
+
+    setSendingMessage(true)
+
+    try {
+      // Determinar tipo de archivo
+      let type = 'document'
+      if (file.type.startsWith('image/')) type = 'image'
+      else if (file.type.startsWith('video/')) type = 'video'
+      else if (file.type.startsWith('audio/')) type = 'audio'
+
+      // Convertir a base64 para enviar (alternativa: subir a storage y usar URL)
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const base64 = reader.result as string
+
+        const res = await fetch('/api/crm/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: selectedConversation,
+            phone: currentConversation.phone,
+            type,
+            mediaUrl: base64,
+            mimetype: file.type,
+            filename: file.name,
+          }),
+        })
+
+        const data = await res.json()
+
+        if (data.ok) {
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            sender: 'agent',
+            content: `[${type}: ${file.name}]`,
+            timestamp: new Date(),
+            avatar: '/business-agent.png',
+          }])
+          setTimeout(() => loadMessages(selectedConversation), 1000)
+        } else {
+          alert('Error enviando archivo: ' + (data.error || 'Error desconocido'))
+        }
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Error enviando archivo:', error)
+      alert('Error de conexión al enviar archivo')
+    } finally {
+      setSendingMessage(false)
+    }
+  }, [selectedConversation, currentConversation, loadMessages])
+
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      alert(`Archivo seleccionado: ${files[0].name}`)
+      handleSendFile(files[0])
     }
-  }, [])
+  }, [handleSendFile])
 
   const startRecording = useCallback(async () => {
     try {
@@ -470,10 +575,52 @@ export default function CRMPage() {
         audioChunks.push(event.data)
       }
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: "audio/webm" })
-        alert(`Nota de voz grabada: ${(audioBlob.size / 1024).toFixed(2)} KB`)
         stream.getTracks().forEach((track) => track.stop())
+
+        // Enviar nota de voz
+        if (selectedConversation && currentConversation) {
+          setSendingMessage(true)
+          try {
+            const reader = new FileReader()
+            reader.onload = async () => {
+              const base64 = reader.result as string
+
+              const res = await fetch('/api/crm/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  conversationId: selectedConversation,
+                  phone: currentConversation.phone,
+                  type: 'audio',
+                  mediaUrl: base64,
+                  mimetype: 'audio/webm',
+                }),
+              })
+
+              const data = await res.json()
+              if (data.ok) {
+                setMessages(prev => [...prev, {
+                  id: Date.now().toString(),
+                  sender: 'agent',
+                  content: '[Nota de voz]',
+                  timestamp: new Date(),
+                  avatar: '/business-agent.png',
+                }])
+                setTimeout(() => loadMessages(selectedConversation), 1000)
+              } else {
+                alert('Error enviando nota de voz: ' + (data.error || 'Error'))
+              }
+            }
+            reader.readAsDataURL(audioBlob)
+          } catch (error) {
+            console.error('Error enviando nota de voz:', error)
+            alert('Error al enviar nota de voz')
+          } finally {
+            setSendingMessage(false)
+          }
+        }
       }
 
       mediaRecorder.start()
@@ -486,7 +633,7 @@ export default function CRMPage() {
     } catch (error) {
       alert("No se pudo acceder al micrófono. Por favor, verifica los permisos.")
     }
-  }, [])
+  }, [selectedConversation, currentConversation, loadMessages])
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -934,10 +1081,11 @@ export default function CRMPage() {
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       className="flex-1 rounded-full border-zinc-300 bg-white"
+                      disabled={sendingMessage}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault()
-                          setMessageInput("")
+                          handleSendMessage()
                         }
                       }}
                     />
@@ -965,8 +1113,16 @@ export default function CRMPage() {
                       </Button>
                     )}
 
-                    <Button className="h-9 w-9 rounded-full bg-[#25d366] p-0 hover:bg-[#20bd5a] active:scale-95">
-                      <Send className="h-4 w-4" />
+                    <Button
+                      className="h-9 w-9 rounded-full bg-[#25d366] p-0 hover:bg-[#20bd5a] active:scale-95 disabled:opacity-50"
+                      onClick={handleSendMessage}
+                      disabled={sendingMessage || !messageInput.trim()}
+                    >
+                      {sendingMessage ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
