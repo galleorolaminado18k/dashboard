@@ -296,6 +296,8 @@ export default function CRMPage() {
 
   // Estados para datos reales
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [messages, setMessages] = useState<any[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isConnected, setIsConnected] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
@@ -371,6 +373,42 @@ export default function CRMPage() {
     return () => clearInterval(interval)
   }, [loadConversations])
 
+  // Cargar mensajes cuando se selecciona una conversación
+  const loadMessages = useCallback(async (conversationId: string) => {
+    try {
+      setLoadingMessages(true)
+      const res = await fetch(`/api/crm/messages?conversationId=${conversationId}`)
+      const data = await res.json()
+
+      if (data.ok && data.messages) {
+        setMessages(data.messages.map((m: any) => ({
+          id: m.id,
+          sender: m.sender === 'client' ? 'client' : 'agent',
+          content: m.content,
+          timestamp: new Date(m.timestamp),
+          avatar: m.sender === 'client' ? '/diverse-woman-portrait.png' : '/business-agent.png',
+        })))
+      } else {
+        // Si no hay mensajes, usar mock
+        setMessages(MOCK_MESSAGES)
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+      setMessages(MOCK_MESSAGES)
+    } finally {
+      setLoadingMessages(false)
+    }
+  }, [])
+
+  // Cargar mensajes cuando cambia la conversación seleccionada
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation)
+    } else {
+      setMessages([])
+    }
+  }, [selectedConversation, loadMessages])
+
   const filteredConversations = useMemo(() => {
     return conversations.filter((conv) => {
       const matchesEstado = selectedEstado === "todas" || conv.status === selectedEstado
@@ -401,7 +439,7 @@ export default function CRMPage() {
 
   const currentCanal = useMemo(() => CANALES.find((c) => c.id === currentConversation?.canal), [currentConversation])
 
-  const lastClientMessage = useMemo(() => [...MOCK_MESSAGES].reverse().find((m) => m.sender === "client"), [])
+  const lastClientMessage = useMemo(() => [...messages].reverse().find((m) => m.sender === "client"), [messages])
 
   const minutesSinceLastMessage = lastClientMessage ? getMinutesSinceLastMessage(lastClientMessage.timestamp) : 0
 
@@ -742,7 +780,12 @@ export default function CRMPage() {
               {/* Área de Mensajes - Estilo WhatsApp */}
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
-                  {MOCK_MESSAGES.map((message) => {
+                  {loadingMessages ? (
+                    <div className="flex justify-center items-center h-32">
+                      <RefreshCw className="h-6 w-6 animate-spin text-zinc-400" />
+                    </div>
+                  ) : messages.length > 0 ? (
+                    messages.map((message) => {
                     return (
                       <div
                         key={message.id}
@@ -775,7 +818,13 @@ export default function CRMPage() {
                         )}
                       </div>
                     )
-                  })}
+                  })
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-32 text-zinc-400">
+                      <MessageSquare className="h-8 w-8 mb-2" />
+                      <p className="text-sm">No hay mensajes aún</p>
+                    </div>
+                  )}
                 </div>
               </ScrollArea>
 
