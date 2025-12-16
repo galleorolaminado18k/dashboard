@@ -9,53 +9,105 @@ const GATEWAY_URL = process.env.BAILEYS_GATEWAY_URL || "http://localhost:3010"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-async function handleStart(_req: NextRequest) {
-    try {
-        console.log(`📡 Conectando a gateway: ${GATEWAY_URL}/qr`)
+// Función para hacer polling hasta obtener el QR
+async function pollForQR(maxAttempts = 10, delayMs = 2000): Promise<any> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`📡 Intento ${attempt}/${maxAttempts} - Obteniendo QR de ${GATEWAY_URL}/qr`)
 
-        // Llamada al gateway BuilderBot -> /qr
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 15000)
-
-        const gwRes = await fetch(`${GATEWAY_URL}/qr`, {
-            cache: "no-store",
-            signal: controller.signal,
-        })
-
-        clearTimeout(timeout)
-
-        const raw = await gwRes.text()
-        let json: any
+        const timeout = setTimeout(() => controller.abort(), 10000)
 
         try {
-            json = JSON.parse(raw)
-        } catch {
-            return NextResponse.json(
-                {
-                    ok: false,
-                    error: "INVALID_GATEWAY_JSON",
-                    detail: "Respuesta inválida del gateway BuilderBot",
-                    raw: raw.slice(0, 300),
-                },
-                { status: 200 },
-            )
+            const gwRes = await fetch(`${GATEWAY_URL}/qr`, {
+                cache: "no-store",
+                signal: controller.signal,
+            })
+            clearTimeout(timeout)
+
+            const raw = await gwRes.text()
+            let json: any
+
+            try {
+                json = JSON.parse(raw)
+            } catch {
+                console.log(`⚠️ Intento ${attempt}: Respuesta no es JSON válido`)
+                continue
+            }
+
+            // Si ya está conectado, retornar éxito
+            if (json.isConnected) {
+                console.log(`✅ WhatsApp ya está conectado`)
+                return { ...json, ok: true }
+            }
+
+            // Si hay QR, retornarlo
+            if (json.hasQR && json.qr) {
+                console.log(`✅ QR obtenido en intento ${attempt}`)
+                return { ...json, ok: true }
+            }
+
+            // Si hay error, reportarlo
+            if (json.error) {
+                console.log(`❌ Error del gateway: ${json.error}`)
+                return { ...json, ok: false }
+            }
+
+            // Si no hay QR aún, esperar y reintentar
+            console.log(`⏳ Intento ${attempt}: QR no disponible aún, esperando ${delayMs}ms...`)
+            if (attempt < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, delayMs))
+            }
+        } catch (err: any) {
+            clearTimeout(timeout)
+            console.log(`⚠️ Intento ${attempt} falló: ${err.message}`)
+            if (attempt < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, delayMs))
+            }
+        }
+    }
+
+    return {
+        ok: false,
+        error: "QR_TIMEOUT",
+        detail: `No se pudo obtener el QR después de ${maxAttempts} intentos. El gateway puede estar iniciándose.`,
+    }
+}
+
+async function handleStart(_req: NextRequest) {
+    try {
+        console.log(`🚀 Iniciando conexión WhatsApp via BuilderBot Gateway: ${GATEWAY_URL}`)
+
+        // Primero intentamos reiniciar el bot para forzar nuevo QR
+        try {
+            const restartRes = await fetch(`${GATEWAY_URL}/restart`, {
+                method: "POST",
+                cache: "no-store",
+            })
+            console.log(`🔄 Restart del gateway: ${restartRes.status}`)
+            // Esperar un poco después del restart
+            await new Promise(resolve => setTimeout(resolve, 3000))
+        } catch (e) {
+            console.log(`⚠️ No se pudo reiniciar el gateway (puede estar bien): ${e}`)
         }
 
-        // Mapear respuesta del gateway al formato esperado por el frontend
+        // Hacer polling para obtener el QR
+        const result = await pollForQR(10, 2000)
+
+        // Mapear respuesta al formato esperado por el frontend
         return NextResponse.json(
             {
-                ok: json.ok ?? true,
-                isConnected: json.isConnected ?? false,
-                hasQR: json.hasQR ?? false,
-                qr: json.qr || null, // data:image/png;base64,...
-                qrcode: json.qr || null, // alias para compatibilidad
-                message: json.message || null,
-                error: json.error || null,
-                lastUpdate: json.lastUpdate || null,
-                gatewayStatus: gwRes.status,
+                ok: result.ok ?? false,
+                isConnected: result.isConnected ?? false,
+                hasQR: result.hasQR ?? false,
+                qr: result.qr || null,
+                qrcode: result.qr || null, // alias para compatibilidad
+                message: result.message || null,
+                error: result.error || null,
+                detail: result.detail || null,
+                lastUpdate: result.lastUpdate || null,
             },
             {
-                status: 200,
+                status: result.ok ? 200 : 502,
                 headers: {
                     "Access-Control-Allow-Origin": "*",
                     "Cache-Control": "no-store, no-cache, must-revalidate",
@@ -63,15 +115,14 @@ async function handleStart(_req: NextRequest) {
             },
         )
     } catch (err: any) {
-        console.error("❌ Error en proxy /api/whatsapp/wpp/start:", err)
+        console.error("❌ Error en /api/whatsapp/wpp/start:", err)
 
-        // Diferenciar errores
         let errorCode = "GATEWAY_UNREACHABLE"
         let detail = String(err?.message || err)
 
         if (err?.name === "AbortError") {
             errorCode = "GATEWAY_TIMEOUT"
-            detail = "El gateway no respondió en 15 segundos"
+            detail = "El gateway no respondió en tiempo"
         } else if (err?.cause?.code === "ECONNREFUSED") {
             errorCode = "GATEWAY_NOT_RUNNING"
             detail = `No se puede conectar a ${GATEWAY_URL}. ¿Está el gateway ejecutándose?`
