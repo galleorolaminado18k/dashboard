@@ -48,12 +48,14 @@ export async function GET() {
     const connected = data?.isConnected ?? false
     const hasQR = data?.hasQR ?? false
     const lastUpdate = data?.lastUpdate ?? null
+    const phone = data?.phone ?? data?.connectedPhone ?? null
 
     return NextResponse.json({
       ok: true,
       connected,
       hasQR,
       lastUpdate,
+      phone,
       gatewayAvailable: true,
     })
   } catch (error: any) {
