@@ -5,42 +5,60 @@ const GATEWAY_URL = process.env.BAILEYS_GATEWAY_URL || "http://localhost:3010"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-async function handleStart(_req: NextRequest) {
+async function handleStart(req: NextRequest) {
     try {
-        console.log(`🚀 Verificando estado de WhatsApp en: ${GATEWAY_URL}`)
+        // Verificar si se pide forzar nuevo QR
+        const url = new URL(req.url)
+        const forceNew = url.searchParams.get("forceNew") === "true"
 
-        // Primero verificar el estado actual
+        console.log(`🚀 WhatsApp Start - forceNew: ${forceNew}, Gateway: ${GATEWAY_URL}`)
+
+        // Si se pide forzar nuevo QR, hacer logout + restart
+        if (forceNew) {
+            console.log(`🔄 Forzando nuevo QR...`)
+
+            // Logout primero
+            try {
+                await fetch(`${GATEWAY_URL}/logout`, {
+                    method: "POST",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(10000),
+                })
+                console.log(`🧹 Logout ejecutado`)
+            } catch (e) {
+                console.log(`⚠️ Logout falló (puede ser normal):`, e)
+            }
+
+            // Esperar un poco
+            await new Promise(r => setTimeout(r, 2000))
+
+            // Restart para generar nuevo QR
+            try {
+                await fetch(`${GATEWAY_URL}/restart`, {
+                    method: "POST",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(30000),
+                })
+                console.log(`🔄 Restart ejecutado`)
+            } catch (e) {
+                console.log(`⚠️ Restart timeout (puede ser normal)`)
+            }
+
+            // Esperar a que se genere el QR
+            await new Promise(r => setTimeout(r, 8000))
+        }
+
+        // Verificar el estado actual
         const statusRes = await fetch(`${GATEWAY_URL}/status`, {
             cache: "no-store",
             signal: AbortSignal.timeout(10000),
         })
 
         const status = await statusRes.json()
-        console.log(`📊 Estado actual:`, JSON.stringify(status))
+        console.log(`📊 Estado:`, JSON.stringify(status))
 
-        // Si ya está conectado, retornar éxito sin hacer nada más
+        // Si ya está conectado, retornar éxito
         if (status.isConnected) {
-            console.log(`✅ WhatsApp ya está conectado`)
-            return NextResponse.json({
-                ok: true,
-                isConnected: true,
-                hasQR: false,
-                qr: null,
-                qrcode: null,
-                message: "WhatsApp ya está conectado",
-            }, { status: 200 })
-        }
-
-        // Si hay QR disponible, retornarlo
-        const qrRes = await fetch(`${GATEWAY_URL}/qr`, {
-            cache: "no-store",
-            signal: AbortSignal.timeout(10000),
-        })
-
-        const qrData = await qrRes.json()
-        console.log(`📊 QR data:`, JSON.stringify({ hasQR: qrData.hasQR, isConnected: qrData.isConnected }))
-
-        if (qrData.isConnected) {
             return NextResponse.json({
                 ok: true,
                 isConnected: true,
@@ -50,6 +68,14 @@ async function handleStart(_req: NextRequest) {
                 message: "WhatsApp conectado",
             }, { status: 200 })
         }
+
+        // Obtener QR
+        const qrRes = await fetch(`${GATEWAY_URL}/qr`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+        })
+
+        const qrData = await qrRes.json()
 
         if (qrData.hasQR && qrData.qr) {
             return NextResponse.json({
@@ -62,40 +88,48 @@ async function handleStart(_req: NextRequest) {
             }, { status: 200 })
         }
 
-        // Si no hay QR y no está conectado, hacer restart para generar uno nuevo
-        console.log(`🔄 No hay QR ni conexión, reiniciando gateway...`)
+        // Si no hay QR, intentar restart
+        if (!forceNew) {
+            console.log(`🔄 No hay QR, haciendo restart...`)
 
-        const restartRes = await fetch(`${GATEWAY_URL}/restart`, {
-            method: "POST",
-            cache: "no-store",
-            signal: AbortSignal.timeout(30000),
-        })
+            try {
+                await fetch(`${GATEWAY_URL}/restart`, {
+                    method: "POST",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(30000),
+                })
+            } catch (e) {
+                console.log(`⚠️ Restart timeout`)
+            }
 
-        const restartData = await restartRes.json()
-        console.log(`🔄 Restart resultado:`, JSON.stringify(restartData))
+            await new Promise(r => setTimeout(r, 8000))
 
-        // Esperar y obtener el QR
-        await new Promise(r => setTimeout(r, 5000))
+            const newQrRes = await fetch(`${GATEWAY_URL}/qr`, {
+                cache: "no-store",
+                signal: AbortSignal.timeout(10000),
+            })
 
-        const newQrRes = await fetch(`${GATEWAY_URL}/qr`, {
-            cache: "no-store",
-            signal: AbortSignal.timeout(10000),
-        })
+            const newQrData = await newQrRes.json()
 
-        const newQrData = await newQrRes.json()
+            return NextResponse.json({
+                ok: newQrData.hasQR || newQrData.isConnected,
+                isConnected: newQrData.isConnected ?? false,
+                hasQR: newQrData.hasQR ?? false,
+                qr: newQrData.qr || null,
+                qrcode: newQrData.qr || null,
+                message: newQrData.message || "Esperando QR...",
+            }, { status: 200 })
+        }
 
         return NextResponse.json({
-            ok: newQrData.hasQR || newQrData.isConnected,
-            isConnected: newQrData.isConnected ?? false,
-            hasQR: newQrData.hasQR ?? false,
-            qr: newQrData.qr || null,
-            qrcode: newQrData.qr || null,
-            message: newQrData.message || null,
-            error: newQrData.error || null,
+            ok: false,
+            isConnected: false,
+            hasQR: false,
+            message: "No se pudo generar QR. Intenta de nuevo.",
         }, { status: 200 })
 
     } catch (err: any) {
-        console.error("❌ Error en /api/whatsapp/wpp/start:", err)
+        console.error("❌ Error:", err)
 
         return NextResponse.json({
             ok: false,

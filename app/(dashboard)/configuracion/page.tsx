@@ -110,9 +110,9 @@ export default function ConfiguracionPage() {
             setError("")
             setSessionStatus("connecting")
 
-            console.log("📡 Llamando a /api/whatsapp/wpp/start...")
+            console.log("📡 Llamando a /api/whatsapp/wpp/start?forceNew=true...")
 
-            const response = await fetch("/api/whatsapp/wpp/start", {
+            const response = await fetch("/api/whatsapp/wpp/start?forceNew=true", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ phone: config.whatsappBusinessPhone }),
