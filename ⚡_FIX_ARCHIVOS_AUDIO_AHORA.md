@@ -10,8 +10,12 @@ Se modificó el sistema para enviar archivos directamente como base64 al gateway
 
 ## PASO 1: Push a GitHub (en tu PC)
 
-Abre **CMD** (no PowerShell) y ejecuta:
+Haz doble clic en el archivo:
+```
+▶️_PUSH_AHORA.bat
+```
 
+O ejecuta manualmente en CMD:
 ```cmd
 cd C:\Users\USUARIO\WebstormProjects\dashboard
 git add -A
@@ -23,83 +27,98 @@ git push
 
 ## PASO 2: Actualizar Gateway en VPS
 
-Conéctate al VPS:
+### Opción A: Script automático
 ```bash
 ssh root@31.220.58.83
+cd /root/whatsapp-gateway
+curl -sL "https://raw.githubusercontent.com/galleaprobaciones/dashboard/main/whatsapp-gateway/update-gateway.sh" | bash
 ```
 
-Luego ejecuta estos comandos:
-
+### Opción B: Manual
 ```bash
+ssh root@31.220.58.83
 cd /root/whatsapp-gateway
+pm2 stop gateway
 
-# Detener el gateway actual
-pm2 stop gateway 2>/dev/null || true
+# Editar el archivo
+nano gateway-updated.js
 
-# Hacer backup
-cp gateway-updated.js gateway-backup.js
+# Buscar el endpoint /send y reemplazar con el nuevo código que soporta mediaData
+# (ver sección "Código del Gateway" abajo)
 
-# Descargar el nuevo archivo desde GitHub
-curl -sL "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/whatsapp-gateway/gateway-updated.js" -o gateway-updated.js
-
-# O si prefieres, copia este contenido manualmente:
-cat > gateway-updated.js << 'ENDOFFILE'
-... (copiar el contenido de whatsapp-gateway/gateway-updated.js)
-ENDOFFILE
-
-# Reiniciar el gateway
-pm2 restart gateway || pm2 start gateway-updated.js --name gateway
-
-# Ver logs
+pm2 start gateway-updated.js --name gateway
 pm2 logs gateway
 ```
 
 ---
 
-## Cambios Realizados
+## Código del Gateway (endpoint /send actualizado)
 
-### 1. Nueva API `/api/crm/send-file`
-- Recibe archivos directamente como FormData
-- Convierte a base64 y envía al gateway
-- No depende de Supabase Storage
+Busca la línea `app.post("/send"` y reemplaza TODO el bloque hasta el siguiente `app.post` o `app.get`:
 
-### 2. Gateway actualizado (`gateway-updated.js`)
-- Endpoint `/send` ahora acepta `mediaData` (base64 data URL)
-- Soporta buffers además de URLs
-- Límite de body aumentado a 50MB
+```javascript
+app.post("/send", async (req, res) => {
+    const { phone, message, type = "text", mediaUrl, mediaData, mimetype, filename, caption } = req.body;
+    if (!phone) return res.status(400).json({ ok: false, error: "Falta phone" });
+    if (type === "text" && !message) return res.status(400).json({ ok: false, error: "Falta message" });
+    if (type !== "text" && !mediaUrl && !mediaData) return res.status(400).json({ ok: false, error: "Falta mediaUrl o mediaData" });
+    if (!isConnected || !sock) return res.status(503).json({ ok: false, error: "No conectado" });
 
-### 3. Frontend (`page.tsx`)
-- `handleSendFile` usa el nuevo endpoint
-- `startRecording` usa el nuevo endpoint
-- Sin paso intermedio de upload a Storage
+    try {
+        let cleanPhone = phone.replace(/\D/g, "");
+        if (!cleanPhone.startsWith("57") && cleanPhone.length === 10) {
+            cleanPhone = "57" + cleanPhone;
+        }
+        const jid = cleanPhone + "@s.whatsapp.net";
 
----
+        let msgContent;
+        const captionText = caption || message || "";
 
-## Verificación
+        // Preparar la fuente del media (URL o Buffer base64)
+        let mediaSource;
+        if (mediaData) {
+            // mediaData es un data URL: data:mime/type;base64,XXXXX
+            const matches = mediaData.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+                mediaSource = Buffer.from(matches[2], 'base64');
+                console.log("📦 Media recibido como base64, tamaño:", mediaSource.length, "bytes");
+            } else {
+                return res.status(400).json({ ok: false, error: "Formato de mediaData inválido" });
+            }
+        } else {
+            mediaSource = { url: mediaUrl };
+        }
 
-Después de actualizar:
+        switch (type) {
+            case "image":
+                msgContent = { image: mediaSource, caption: captionText };
+                break;
+            case "video":
+                msgContent = { video: mediaSource, caption: captionText };
+                break;
+            case "audio":
+                msgContent = { audio: mediaSource, mimetype: mimetype || "audio/ogg; codecs=opus", ptt: true };
+                break;
+            case "document":
+                msgContent = { document: mediaSource, mimetype: mimetype || "application/pdf", fileName: filename || "documento" };
+                break;
+            default:
+                msgContent = { text: message };
+        }
 
-1. Verifica que el gateway esté corriendo:
-```bash
-curl http://31.220.58.83:3010/health
+        await sock.sendMessage(jid, msgContent);
+        console.log("📤 Mensaje enviado a", jid, "tipo:", type);
+        res.json({ ok: true, message: "Enviado", type });
+    } catch (e) {
+        console.error("❌ Error enviando mensaje:", e);
+        res.status(500).json({ ok: false, error: String(e) });
+    }
+});
 ```
 
-2. En el CRM, intenta:
-   - Enviar una imagen
-   - Grabar y enviar una nota de voz
-   - Enviar un documento PDF
-
----
-
-## Si sigue fallando
-
-Verifica los logs:
-- **Vercel**: En el dashboard de Vercel > Deployments > Functions > Logs
-- **Gateway**: `pm2 logs gateway`
-
-El error más probable es que el gateway no se haya actualizado. Verifica con:
-```bash
-grep -c "mediaData" /root/whatsapp-gateway/gateway-updated.js
-# Debe mostrar al menos 3 ocurrencias
+También agrega el límite de body al inicio, después de `const app = express();`:
+```javascript
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 ```
 
