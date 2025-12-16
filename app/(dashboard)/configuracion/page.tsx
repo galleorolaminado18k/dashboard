@@ -618,36 +618,6 @@ export default function ConfiguracionPage() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Email Notifications */}
-                            <Card className="p-6 border border-neutral-200 rounded-2xl">
-                                <div className="flex items-start gap-4 mb-4">
-                                    <div className="p-3 bg-blue-100 rounded-xl">
-                                        <Mail className="w-6 h-6 text-blue-600" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold mb-1">
-                                            Notificaciones por Email
-                                        </h3>
-                                        <p className="text-sm text-neutral-500 mb-4">
-                                            Email para recibir alertas de novedades, ventas y
-                                            actualizaciones importantes
-                                        </p>
-                                        <Input
-                                            type="email"
-                                            placeholder="notificaciones@tuempresa.com"
-                                            value={config.emailNotifications}
-                                            onChange={(e) =>
-                                                setConfig({
-                                                    ...config,
-                                                    emailNotifications: e.target.value,
-                                                })
-                                            }
-                                            className="max-w-md"
-                                        />
-                                    </div>
-                                </div>
-                            </Card>
                         </div>
                     </TabsContent>
 
