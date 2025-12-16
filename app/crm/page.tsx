@@ -554,56 +554,34 @@ export default function CRMPage() {
       else if (file.type.startsWith('video/')) type = 'video'
       else if (file.type.startsWith('audio/')) type = 'audio'
 
-      // Subir archivo a storage primero
+      // Enviar archivo directamente usando el nuevo endpoint
       const formData = new FormData()
       formData.append('file', file)
-
-      let uploadData: any
-      try {
-        const uploadRes = await fetch('/api/crm/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        uploadData = await uploadRes.json()
-      } catch (uploadError) {
-        console.error('Error en upload:', uploadError)
-        alert('Error de conexión al subir archivo. Intenta de nuevo.')
-        setSendingMessage(false)
-        return
+      formData.append('conversationId', selectedConversation)
+      if (currentConversation.phone) {
+        formData.append('phone', currentConversation.phone)
+      }
+      if (caption) {
+        formData.append('caption', caption)
       }
 
-      if (!uploadData.ok) {
-        alert('Error subiendo archivo: ' + (uploadData.error || 'Error desconocido'))
-        setSendingMessage(false)
-        return
-      }
+      console.log('📤 Enviando archivo:', file.name, file.type, file.size, 'bytes')
 
-      // Enviar mensaje con la URL del archivo (sin descripción en el mensaje principal)
-      const res = await fetch('/api/crm/send', {
+      const res = await fetch('/api/crm/send-file', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConversation,
-          phone: currentConversation.phone,
-          type,
-          message: '', // No incluir el nombre como mensaje
-          mediaUrl: uploadData.url,
-          mimetype: file.type,
-          filename: file.name,
-          caption: caption || undefined, // Descripción opcional
-        }),
+        body: formData,
       })
 
       const data = await res.json()
+      console.log('📤 Respuesta:', data)
 
       if (data.ok) {
         setMessages(prev => [...prev, {
           id: Date.now().toString(),
           sender: 'agent',
-          content: `[${type}: ${file.name}]${caption ? `\n${caption}` : ''}`,
+          content: caption || `[${type}: ${file.name}]`,
           timestamp: new Date(),
           avatar: '/business-agent.png',
-          mediaUrl: uploadData.url,
           mediaType: type,
         }])
         setTimeout(() => loadMessages(selectedConversation), 1000)
@@ -686,43 +664,26 @@ export default function CRMPage() {
             // Determinar extensión del archivo
             const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'mp4'
 
-            // Subir archivo de audio primero
-            const formData = new FormData()
+            // Crear archivo de audio y enviar directamente
             const audioFile = new File([audioBlob], `nota-voz-${Date.now()}.${extension}`, { type: mimeType })
+
+            const formData = new FormData()
             formData.append('file', audioFile)
+            formData.append('conversationId', selectedConversation)
+            if (currentConversation.phone) {
+              formData.append('phone', currentConversation.phone)
+            }
 
-            console.log('📤 Subiendo audio:', audioFile.name, audioFile.size, 'bytes')
+            console.log('📤 Enviando audio:', audioFile.name, audioFile.size, 'bytes')
 
-            const uploadRes = await fetch('/api/crm/upload', {
+            const res = await fetch('/api/crm/send-file', {
               method: 'POST',
               body: formData,
             })
 
-            const uploadData = await uploadRes.json()
-            console.log('📤 Respuesta upload:', uploadData)
-
-            if (!uploadData.ok) {
-              alert('Error subiendo nota de voz: ' + (uploadData.error || 'Error desconocido'))
-              setSendingMessage(false)
-              return
-            }
-
-            // Enviar mensaje con la URL del audio
-            console.log('📤 Enviando audio al gateway:', uploadData.url)
-            const res = await fetch('/api/crm/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                conversationId: selectedConversation,
-                phone: currentConversation.phone,
-                type: 'audio',
-                mediaUrl: uploadData.url,
-                mimetype: uploadData.mimetype || mimeType,
-                filename: uploadData.filename || audioFile.name,
-              }),
-            })
-
             const data = await res.json()
+            console.log('📤 Respuesta:', data)
+
             if (data.ok) {
               setMessages(prev => [...prev, {
                 id: Date.now().toString(),
@@ -733,7 +694,7 @@ export default function CRMPage() {
               }])
               setTimeout(() => loadMessages(selectedConversation), 1000)
             } else {
-              alert('Error enviando nota de voz: ' + (data.error || 'Error'))
+              alert('Error enviando nota de voz: ' + (data.error || 'Error desconocido'))
             }
           } catch (error) {
             console.error('Error enviando nota de voz:', error)

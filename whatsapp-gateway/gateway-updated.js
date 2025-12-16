@@ -221,7 +221,8 @@ async function loadChats() {
 
 // API REST
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -316,10 +317,10 @@ app.post("/restart", async (_, res) => {
 });
 
 app.post("/send", async (req, res) => {
-    const { phone, message, type = "text", mediaUrl, mimetype, filename } = req.body;
+    const { phone, message, type = "text", mediaUrl, mediaData, mimetype, filename, caption } = req.body;
     if (!phone) return res.status(400).json({ ok: false, error: "Falta phone" });
     if (type === "text" && !message) return res.status(400).json({ ok: false, error: "Falta message" });
-    if (type !== "text" && !mediaUrl) return res.status(400).json({ ok: false, error: "Falta mediaUrl" });
+    if (type !== "text" && !mediaUrl && !mediaData) return res.status(400).json({ ok: false, error: "Falta mediaUrl o mediaData" });
     if (!isConnected || !sock) return res.status(503).json({ ok: false, error: "No conectado" });
 
     try {
@@ -330,30 +331,46 @@ app.post("/send", async (req, res) => {
         const jid = cleanPhone + "@s.whatsapp.net";
 
         let msgContent;
+        const captionText = caption || message || "";
+
+        // Preparar la fuente del media (URL o Buffer base64)
+        let mediaSource;
+        if (mediaData) {
+            // mediaData es un data URL: data:mime/type;base64,XXXXX
+            const matches = mediaData.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+                mediaSource = Buffer.from(matches[2], 'base64');
+                console.log("📦 Media recibido como base64, tamaño:", mediaSource.length, "bytes");
+            } else {
+                return res.status(400).json({ ok: false, error: "Formato de mediaData inválido" });
+            }
+        } else {
+            mediaSource = { url: mediaUrl };
+        }
 
         switch (type) {
             case "image":
                 msgContent = {
-                    image: { url: mediaUrl },
-                    caption: message || ""
+                    image: mediaSource,
+                    caption: captionText
                 };
                 break;
             case "video":
                 msgContent = {
-                    video: { url: mediaUrl },
-                    caption: message || ""
+                    video: mediaSource,
+                    caption: captionText
                 };
                 break;
             case "audio":
                 msgContent = {
-                    audio: { url: mediaUrl },
-                    mimetype: mimetype || "audio/mpeg",
+                    audio: mediaSource,
+                    mimetype: mimetype || "audio/ogg; codecs=opus",
                     ptt: true // Push to talk (nota de voz)
                 };
                 break;
             case "document":
                 msgContent = {
-                    document: { url: mediaUrl },
+                    document: mediaSource,
                     mimetype: mimetype || "application/pdf",
                     fileName: filename || "documento"
                 };
