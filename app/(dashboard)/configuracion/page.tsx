@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
     QrCode,
     Link2,
@@ -14,6 +15,8 @@ import {
     Globe,
     Package,
     CreditCard,
+    CheckCircle,
+    LogOut,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -347,205 +350,249 @@ export default function ConfiguracionPage() {
                     {/* Tab 1: CRM & WhatsApp */}
                     <TabsContent value="crm">
                         <div className="grid gap-6 max-w-5xl">
-                            {/* WhatsApp Business */}
-                            <Card className={`p-6 rounded-2xl transition-all duration-500 ${
-                                sessionStatus === "connected" 
-                                    ? "border-2 border-emerald-400/50 bg-gradient-to-br from-emerald-50/50 to-green-50/30" 
-                                    : "border-2 border-[#D8BD80]/30"
-                            }`}>
-                                <div className="flex items-start gap-4 mb-6">
-                                    <div className={`p-3 rounded-xl transition-all duration-500 ${
-                                        sessionStatus === "connected"
-                                            ? "bg-emerald-500"
-                                            : "bg-[#12B886]/10"
-                                    }`}>
-                                        <Phone className={`w-6 h-6 transition-colors duration-500 ${
-                                            sessionStatus === "connected" ? "text-white" : "text-[#12B886]"
-                                        }`} />
-                                    </div>
+                            {/* WhatsApp Business - Diseño Luxury */}
+                            <div className="relative rounded-3xl bg-gradient-to-br from-[#f7f3ee] to-white shadow-xl p-8 overflow-hidden">
+
+                                {/* Header */}
+                                <div className="flex items-center gap-4 mb-8">
+                                    <motion.div
+                                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 ${
+                                            sessionStatus === "connected" ? "bg-green-500" : "bg-green-100"
+                                        }`}
+                                        animate={sessionStatus === "connected" ? { scale: [1, 1.1, 1] } : {}}
+                                        transition={{ duration: 0.5 }}
+                                    >
+                                        <Phone className={`transition-colors duration-500 ${
+                                            sessionStatus === "connected" ? "text-white" : "text-green-600"
+                                        }`} size={28} />
+                                    </motion.div>
                                     <div>
-                                        <h3 className="text-xl font-semibold mb-1">
-                                            WhatsApp Business
-                                        </h3>
-                                        <p className="text-sm text-neutral-500">
+                                        <h2 className="text-2xl font-semibold">WhatsApp Business</h2>
+                                        <p className="text-gray-500">
                                             {sessionStatus === "connected"
-                                                ? "Tu WhatsApp está conectado y listo para usar"
-                                                : "Vincula tu número de WhatsApp Business para recibir notificaciones y comunicarte con clientes"
+                                                ? "Tu cuenta está conectada y lista"
+                                                : "Conecta tu número para automatizar conversaciones"
                                             }
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* ========== ESTADO CONECTADO - DISEÑO ELEGANTE ========== */}
-                                {sessionStatus === "connected" ? (
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        {/* Lado izquierdo - Info y botón desconectar */}
-                                        <div className="space-y-6">
-                                            {/* Número conectado */}
-                                            <div className="p-5 bg-white/80 backdrop-blur-sm border border-emerald-200 rounded-2xl shadow-sm">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="relative">
-                                                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg">
-                                                            <Check className="w-7 h-7 text-white" />
-                                                        </div>
-                                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white animate-pulse" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-lg font-bold text-gray-800">
-                                                            Conectado
-                                                        </p>
-                                                        <p className="text-emerald-600 font-medium">
-                                                            +57 {connectedPhone || config.whatsappBusinessPhone}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Botón desconectar elegante */}
-                                            <button
-                                                onClick={disconnectWhatsApp}
-                                                disabled={loading}
-                                                className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-white border-2 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 hover:text-red-600 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                                            >
-                                                {loading ? (
-                                                    <>
-                                                        <RefreshCw className="w-5 h-5 animate-spin" />
-                                                        Desconectando...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                                        </svg>
-                                                        Cerrar Sesión
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-
-                                        {/* Lado derecho - Icono grande */}
-                                        <div className="flex flex-col items-center justify-center py-8">
-                                            <div className="relative mb-6">
-                                                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30 animate-pulse">
-                                                    <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                                    </svg>
-                                                </div>
-                                                <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center">
-                                                    <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center">
-                                                        <Check className="w-4 h-4 text-white" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <p className="text-sm text-gray-500 text-center">
-                                                Sesión activa y funcionando
-                                            </p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    /* ========== ESTADO NO CONECTADO ========== */
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <Label
-                                                    htmlFor="whatsapp-phone"
-                                                    className="text-sm font-medium mb-2 block"
+                                {/* Body */}
+                                <div className="grid md:grid-cols-2 gap-10 items-center">
+                                    {/* Left */}
+                                    <div className="space-y-6">
+                                        <AnimatePresence mode="wait">
+                                            {sessionStatus === "connected" ? (
+                                                <motion.div
+                                                    key="connected-info"
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -20 }}
+                                                    className="space-y-6"
                                                 >
-                                                    Número de WhatsApp Business
-                                                </Label>
-                                                <div className="flex gap-2">
-                                                    <span className="inline-flex items-center px-3 rounded-lg bg-neutral-100 border border-neutral-200 text-sm">
-                                                        +57
-                                                    </span>
-                                                    <Input
-                                                        id="whatsapp-phone"
-                                                        type="tel"
-                                                        placeholder="3001234567"
-                                                        value={config.whatsappBusinessPhone}
-                                                        onChange={(e) => handlePhoneChange(e.target.value)}
-                                                        className="flex-1"
-                                                        maxLength={10}
-                                                    />
-                                                </div>
-                                                <p className="text-xs text-neutral-500 mt-1">
-                                                    Ingresa tu número de WhatsApp Business sin el código de país
-                                                </p>
-                                            </div>
+                                                    {/* Card de estado conectado */}
+                                                    <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="relative">
+                                                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
+                                                                    <CheckCircle className="w-8 h-8 text-white" />
+                                                                </div>
+                                                                <motion.div
+                                                                    className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"
+                                                                    animate={{ scale: [1, 1.2, 1] }}
+                                                                    transition={{ repeat: Infinity, duration: 2 }}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xl font-bold text-gray-800">Conectado</p>
+                                                                <p className="text-green-600 font-semibold text-lg">
+                                                                    +57 {connectedPhone || config.whatsappBusinessPhone}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
-                                            {/* Botón de Conectar */}
-                                            {config.whatsappBusinessPhone && (
-                                                <div className="space-y-3">
-                                                    <Button
-                                                        onClick={startWhatsAppSession}
-                                                        disabled={loading || checkingInitialStatus}
-                                                        className="w-full bg-[#12B886] hover:bg-[#0F9D72] text-white disabled:opacity-50"
+                                                    {/* Botón desconectar */}
+                                                    <motion.button
+                                                        onClick={disconnectWhatsApp}
+                                                        disabled={loading}
+                                                        whileHover={{ scale: 1.02 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        className="w-full flex items-center justify-center gap-3 rounded-xl bg-white border-2 border-red-200 hover:border-red-300 hover:bg-red-50 transition-all text-red-500 hover:text-red-600 py-4 font-medium disabled:opacity-50"
                                                     >
-                                                        {loading || checkingInitialStatus ? (
+                                                        {loading ? (
                                                             <>
-                                                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                                                {checkingInitialStatus ? "Verificando..." : "Conectando..."}
+                                                                <RefreshCw className="w-5 h-5 animate-spin" />
+                                                                Desconectando...
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <MessageSquare className="w-4 h-4 mr-2" />
-                                                                Conectar WhatsApp
+                                                                <LogOut className="w-5 h-5" />
+                                                                Cerrar Sesión de WhatsApp
                                                             </>
                                                         )}
-                                                    </Button>
+                                                    </motion.button>
+                                                </motion.div>
+                                            ) : (
+                                                <motion.div
+                                                    key="connect-form"
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -20 }}
+                                                    className="space-y-6"
+                                                >
+                                                    <div>
+                                                        <label className="text-sm text-gray-500 font-medium">Número de WhatsApp Business</label>
+                                                        <div className="mt-2 flex rounded-xl border bg-white overflow-hidden shadow-sm">
+                                                            <span className="px-4 flex items-center text-gray-500 bg-gray-50 border-r">+57</span>
+                                                            <input
+                                                                className="flex-1 px-4 py-3 outline-none text-lg"
+                                                                placeholder="3012345678"
+                                                                value={config.whatsappBusinessPhone}
+                                                                onChange={(e) => handlePhoneChange(e.target.value)}
+                                                                maxLength={10}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <motion.button
+                                                        onClick={startWhatsAppSession}
+                                                        disabled={loading || checkingInitialStatus || !config.whatsappBusinessPhone}
+                                                        whileHover={{ scale: 1.02 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        className="w-full rounded-xl bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition text-white py-4 font-medium text-lg shadow-lg shadow-green-500/20"
+                                                    >
+                                                        {loading || checkingInitialStatus ? (
+                                                            <span className="flex items-center justify-center gap-2">
+                                                                <RefreshCw className="w-5 h-5 animate-spin" />
+                                                                {checkingInitialStatus ? "Verificando..." : "Conectando..."}
+                                                            </span>
+                                                        ) : (
+                                                            "Conectar WhatsApp"
+                                                        )}
+                                                    </motion.button>
 
                                                     {error && (
-                                                        <div className="p-3 bg-red-50 border border-red-300 rounded-lg">
-                                                            <div className="flex items-start gap-2 text-red-800">
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className="p-4 bg-red-50 border border-red-200 rounded-xl"
+                                                        >
+                                                            <div className="flex items-start gap-2 text-red-700">
                                                                 <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                                                                <div className="text-sm">
-                                                                    <p className="font-semibold mb-1">Error al conectar</p>
-                                                                    <p className="text-xs">{error}</p>
-                                                                </div>
+                                                                <p className="text-sm">{error}</p>
                                                             </div>
-                                                        </div>
+                                                        </motion.div>
                                                     )}
-                                                </div>
+                                                </motion.div>
                                             )}
-                                        </div>
-
-                                        <div className="flex flex-col items-center justify-center">
-                                            {loading && !qrCodeImage ? (
-                                                <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
-                                                    <RefreshCw className="w-16 h-16 mb-4 animate-spin" />
-                                                    <p className="text-sm">Generando código QR...</p>
-                                                </div>
-                                            ) : sessionStatus === "connecting" && qrCodeImage ? (
-                                                <div className="space-y-4">
-                                                    <div className="p-4 bg-white border-2 border-[#D8BD80] rounded-2xl shadow-lg">
-                                                        <img src={qrCodeImage} alt="QR WhatsApp Web" className="w-64 h-64" />
-                                                    </div>
-                                                    <div className="text-center">
-                                                        <p className="text-sm font-semibold text-neutral-700 mb-1">
-                                                            Escanea con WhatsApp Business
-                                                        </p>
-                                                        <div className="flex items-center justify-center gap-2 mt-2 text-orange-600">
-                                                            <RefreshCw className="w-4 h-4 animate-spin" />
-                                                            <span className="text-xs">Esperando escaneo...</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ) : checkingInitialStatus ? (
-                                                <div className="flex flex-col items-center justify-center h-64 text-neutral-400">
-                                                    <RefreshCw className="w-12 h-12 mb-4 animate-spin" />
-                                                    <p className="text-sm text-center">Verificando estado...</p>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center justify-center h-64 text-neutral-400">
-                                                    <QrCode className="w-16 h-16 mb-4" />
-                                                    <p className="text-sm text-center">
-                                                        Ingresa un número y click en<br />"Conectar WhatsApp"
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
+                                        </AnimatePresence>
                                     </div>
-                                )}
-                            </Card>
+
+                                    {/* Right – Visual */}
+                                    <div className="relative h-[320px] flex items-center justify-center">
+                                        <AnimatePresence mode="wait">
+                                            {sessionStatus === "disconnected" && !qrCodeImage && !loading && (
+                                                <motion.div
+                                                    key="idle"
+                                                    initial={{ opacity: 0, scale: 0.9 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.9 }}
+                                                    className="flex flex-col items-center"
+                                                >
+                                                    <div className="w-56 h-56 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                                                        <QrCode className="w-20 h-20 text-gray-300" />
+                                                    </div>
+                                                    <p className="text-sm text-gray-400 mt-4 text-center">
+                                                        El código QR aparecerá aquí
+                                                    </p>
+                                                </motion.div>
+                                            )}
+
+                                            {(loading || checkingInitialStatus) && !qrCodeImage && sessionStatus !== "connected" && (
+                                                <motion.div
+                                                    key="loading"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    exit={{ opacity: 0 }}
+                                                    className="flex flex-col items-center"
+                                                >
+                                                    <motion.div
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                                                        className="w-24 h-24 rounded-full border-4 border-green-200 border-t-green-600"
+                                                    />
+                                                    <p className="text-sm text-gray-500 mt-4">
+                                                        {checkingInitialStatus ? "Verificando estado..." : "Generando código QR..."}
+                                                    </p>
+                                                </motion.div>
+                                            )}
+
+                                            {sessionStatus === "connecting" && qrCodeImage && (
+                                                <motion.div
+                                                    key="qr"
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                    className="flex flex-col items-center"
+                                                >
+                                                    <div className="p-4 bg-white rounded-2xl shadow-xl border-2 border-[#D8BD80]">
+                                                        <img src={qrCodeImage} alt="QR WhatsApp" className="w-56 h-56 rounded-lg" />
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-4 text-orange-600">
+                                                        <motion.div
+                                                            animate={{ rotate: 360 }}
+                                                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                                        >
+                                                            <RefreshCw className="w-4 h-4" />
+                                                        </motion.div>
+                                                        <span className="text-sm font-medium">Esperando escaneo...</span>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {sessionStatus === "connected" && (
+                                                <motion.div
+                                                    key="connected"
+                                                    initial={{ scale: 0.5, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                                                    className="flex flex-col items-center gap-4"
+                                                >
+                                                    <motion.div
+                                                        className="relative"
+                                                        animate={{ y: [0, -10, 0] }}
+                                                        transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                                                    >
+                                                        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-2xl shadow-green-500/40">
+                                                            <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="currentColor">
+                                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                                            </svg>
+                                                        </div>
+                                                        <motion.div
+                                                            className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"
+                                                            initial={{ scale: 0 }}
+                                                            animate={{ scale: 1 }}
+                                                            transition={{ delay: 0.3, type: "spring" }}
+                                                        >
+                                                            <CheckCircle className="w-6 h-6 text-green-500" />
+                                                        </motion.div>
+                                                    </motion.div>
+                                                    <motion.p
+                                                        className="text-green-600 font-semibold text-lg flex items-center gap-2"
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 0.4 }}
+                                                    >
+                                                        <CheckCircle className="w-5 h-5" />
+                                                        WhatsApp conectado correctamente
+                                                    </motion.p>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            </div>
 
                             {/* Email Notifications */}
                             <Card className="p-6 border border-neutral-200 rounded-2xl">
