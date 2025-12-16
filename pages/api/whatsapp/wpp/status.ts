@@ -1,12 +1,12 @@
-// API Route para obtener estado de sesión WAHA
+// API Route para obtener estado de sesión WhatsApp (Baileys Gateway)
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export const config = {
   runtime: 'nodejs',
 };
 
-const base = process.env.WAHA_BASE_URL || '';
-const SESSION_NAME = 'default';
+// Usa BAILEYS_GATEWAY_URL (nuevo) o WAHA_BASE_URL (legacy)
+const GATEWAY_URL = process.env.BAILEYS_GATEWAY_URL || process.env.WAHA_BASE_URL || '';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -14,29 +14,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    if (!base) {
+    if (!GATEWAY_URL) {
       return res.status(500).json({
-        error: 'WAHA_CONFIG_MISSING',
-        detail: 'WAHA_BASE_URL no configurada'
+        error: 'GATEWAY_CONFIG_MISSING',
+        detail: 'BAILEYS_GATEWAY_URL no configurada en Vercel'
       });
     }
 
-    console.log('[WAHA] 📡 Verificando estado de sesión...');
+    console.log('[WA-STATUS] 📡 Verificando estado en:', GATEWAY_URL);
 
-    const response = await fetch(`${base}/api/${SESSION_NAME}/status`, {
+    const response = await fetch(`${GATEWAY_URL}/status`, {
       signal: AbortSignal.timeout(10000),
+      headers: { 'Content-Type': 'application/json' },
     });
 
     const data = await response.json();
 
-    return res.status(response.ok ? 200 : 502).json(data);
+    // Mapear respuesta al formato esperado por el frontend
+    return res.status(200).json({
+      ok: data.ok ?? true,
+      isConnected: data.isConnected ?? false,
+      hasQR: data.hasQR ?? false,
+      error: data.error || null,
+      lastUpdate: data.lastUpdate || null,
+    });
 
   } catch (error: any) {
-    console.error('[WAHA] Error:', error);
+    console.error('[WA-STATUS] Error:', error);
     return res.status(500).json({
-      error: 'WAHA_ERROR',
-      detail: error.message
+      ok: false,
+      error: 'GATEWAY_ERROR',
+      detail: error.message,
+      isConnected: false,
     });
   }
 }
-
