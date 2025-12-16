@@ -1,142 +1,109 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Usa el gateway BuilderBot
-// BAILEYS_GATEWAY_URL=http://localhost:3010 (local)
-// BAILEYS_GATEWAY_URL=http://IP_VPS:3010 (producción)
 const GATEWAY_URL = process.env.BAILEYS_GATEWAY_URL || "http://localhost:3010"
 
-// Forzar runtime Node y sin caché
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-// Función para hacer polling hasta obtener el QR
-async function pollForQR(maxAttempts = 10, delayMs = 2000): Promise<any> {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        console.log(`📡 Intento ${attempt}/${maxAttempts} - Obteniendo QR de ${GATEWAY_URL}/qr`)
-
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 10000)
-
-        try {
-            const gwRes = await fetch(`${GATEWAY_URL}/qr`, {
-                cache: "no-store",
-                signal: controller.signal,
-            })
-            clearTimeout(timeout)
-
-            const raw = await gwRes.text()
-            let json: any
-
-            try {
-                json = JSON.parse(raw)
-            } catch {
-                console.log(`⚠️ Intento ${attempt}: Respuesta no es JSON válido`)
-                continue
-            }
-
-            // Si ya está conectado, retornar éxito
-            if (json.isConnected) {
-                console.log(`✅ WhatsApp ya está conectado`)
-                return { ...json, ok: true }
-            }
-
-            // Si hay QR, retornarlo
-            if (json.hasQR && json.qr) {
-                console.log(`✅ QR obtenido en intento ${attempt}`)
-                return { ...json, ok: true }
-            }
-
-            // Si hay error, reportarlo
-            if (json.error) {
-                console.log(`❌ Error del gateway: ${json.error}`)
-                return { ...json, ok: false }
-            }
-
-            // Si no hay QR aún, esperar y reintentar
-            console.log(`⏳ Intento ${attempt}: QR no disponible aún, esperando ${delayMs}ms...`)
-            if (attempt < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, delayMs))
-            }
-        } catch (err: any) {
-            clearTimeout(timeout)
-            console.log(`⚠️ Intento ${attempt} falló: ${err.message}`)
-            if (attempt < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, delayMs))
-            }
-        }
-    }
-
-    return {
-        ok: false,
-        error: "QR_TIMEOUT",
-        detail: `No se pudo obtener el QR después de ${maxAttempts} intentos. El gateway puede estar iniciándose.`,
-    }
-}
-
 async function handleStart(_req: NextRequest) {
     try {
-        console.log(`🚀 Iniciando conexión WhatsApp via BuilderBot Gateway: ${GATEWAY_URL}`)
+        console.log(`🚀 Verificando estado de WhatsApp en: ${GATEWAY_URL}`)
 
-        // Primero intentamos reiniciar el bot para forzar nuevo QR
-        try {
-            const restartRes = await fetch(`${GATEWAY_URL}/restart`, {
-                method: "POST",
-                cache: "no-store",
-            })
-            console.log(`🔄 Restart del gateway: ${restartRes.status}`)
-            // Esperar un poco después del restart
-            await new Promise(resolve => setTimeout(resolve, 3000))
-        } catch (e) {
-            console.log(`⚠️ No se pudo reiniciar el gateway (puede estar bien): ${e}`)
+        // Primero verificar el estado actual
+        const statusRes = await fetch(`${GATEWAY_URL}/status`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+        })
+
+        const status = await statusRes.json()
+        console.log(`📊 Estado actual:`, JSON.stringify(status))
+
+        // Si ya está conectado, retornar éxito sin hacer nada más
+        if (status.isConnected) {
+            console.log(`✅ WhatsApp ya está conectado`)
+            return NextResponse.json({
+                ok: true,
+                isConnected: true,
+                hasQR: false,
+                qr: null,
+                qrcode: null,
+                message: "WhatsApp ya está conectado",
+            }, { status: 200 })
         }
 
-        // Hacer polling para obtener el QR
-        const result = await pollForQR(10, 2000)
+        // Si hay QR disponible, retornarlo
+        const qrRes = await fetch(`${GATEWAY_URL}/qr`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+        })
 
-        // Mapear respuesta al formato esperado por el frontend
-        return NextResponse.json(
-            {
-                ok: result.ok ?? false,
-                isConnected: result.isConnected ?? false,
-                hasQR: result.hasQR ?? false,
-                qr: result.qr || null,
-                qrcode: result.qr || null, // alias para compatibilidad
-                message: result.message || null,
-                error: result.error || null,
-                detail: result.detail || null,
-                lastUpdate: result.lastUpdate || null,
-            },
-            {
-                status: result.ok ? 200 : 502,
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Cache-Control": "no-store, no-cache, must-revalidate",
-                }
-            },
-        )
+        const qrData = await qrRes.json()
+        console.log(`📊 QR data:`, JSON.stringify({ hasQR: qrData.hasQR, isConnected: qrData.isConnected }))
+
+        if (qrData.isConnected) {
+            return NextResponse.json({
+                ok: true,
+                isConnected: true,
+                hasQR: false,
+                qr: null,
+                qrcode: null,
+                message: "WhatsApp conectado",
+            }, { status: 200 })
+        }
+
+        if (qrData.hasQR && qrData.qr) {
+            return NextResponse.json({
+                ok: true,
+                isConnected: false,
+                hasQR: true,
+                qr: qrData.qr,
+                qrcode: qrData.qr,
+                message: "Escanea el código QR",
+            }, { status: 200 })
+        }
+
+        // Si no hay QR y no está conectado, hacer restart para generar uno nuevo
+        console.log(`🔄 No hay QR ni conexión, reiniciando gateway...`)
+
+        const restartRes = await fetch(`${GATEWAY_URL}/restart`, {
+            method: "POST",
+            cache: "no-store",
+            signal: AbortSignal.timeout(30000),
+        })
+
+        const restartData = await restartRes.json()
+        console.log(`🔄 Restart resultado:`, JSON.stringify(restartData))
+
+        // Esperar y obtener el QR
+        await new Promise(r => setTimeout(r, 5000))
+
+        const newQrRes = await fetch(`${GATEWAY_URL}/qr`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+        })
+
+        const newQrData = await newQrRes.json()
+
+        return NextResponse.json({
+            ok: newQrData.hasQR || newQrData.isConnected,
+            isConnected: newQrData.isConnected ?? false,
+            hasQR: newQrData.hasQR ?? false,
+            qr: newQrData.qr || null,
+            qrcode: newQrData.qr || null,
+            message: newQrData.message || null,
+            error: newQrData.error || null,
+        }, { status: 200 })
+
     } catch (err: any) {
         console.error("❌ Error en /api/whatsapp/wpp/start:", err)
 
-        let errorCode = "GATEWAY_UNREACHABLE"
-        let detail = String(err?.message || err)
-
-        if (err?.name === "AbortError") {
-            errorCode = "GATEWAY_TIMEOUT"
-            detail = "El gateway no respondió en tiempo"
-        } else if (err?.cause?.code === "ECONNREFUSED") {
-            errorCode = "GATEWAY_NOT_RUNNING"
-            detail = `No se puede conectar a ${GATEWAY_URL}. ¿Está el gateway ejecutándose?`
-        }
-
-        return NextResponse.json(
-            {
-                ok: false,
-                error: errorCode,
-                detail,
-                gatewayUrl: GATEWAY_URL,
-            },
-            { status: 502 },
-        )
+        return NextResponse.json({
+            ok: false,
+            error: "GATEWAY_ERROR",
+            detail: String(err?.message || err),
+            isConnected: false,
+            hasQR: false,
+        }, { status: 502 })
     }
 }
 
