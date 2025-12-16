@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       ok: data.ok ?? true,
       isConnected: data.isConnected ?? false,
+      connected: data.isConnected ?? false, // alias para compatibilidad
       hasQR: data.hasQR ?? false,
       error: data.error || null,
       lastUpdate: data.lastUpdate || null,

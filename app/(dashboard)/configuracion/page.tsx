@@ -212,7 +212,8 @@ export default function ConfiguracionPage() {
 
             console.log("📥 Estado:", data)
 
-            if (data?.ok && data?.connected) {
+            // Verificar si está conectado (aceptar ambos nombres de campo)
+            if (data?.ok && (data?.isConnected || data?.connected)) {
                 // Ya está conectado!
                 console.log("✅ WhatsApp conectado!")
                 setSessionStatus("connected")
