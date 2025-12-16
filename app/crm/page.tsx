@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useCallback, useMemo } from "react"
+import { useState, useRef, useCallback, useMemo, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -26,8 +26,29 @@ import {
   Mail,
   Calendar,
   User,
+  RefreshCw,
+  Wifi,
+  WifiOff,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Tipo para conversaciones
+interface Conversation {
+  id: string
+  clientName: string
+  client_name?: string
+  lastMessage: string
+  last_message?: string
+  timestamp: string
+  unread: number
+  status: string
+  canal: string
+  avatar?: string
+  clientType: string
+  client_type?: string
+  interest?: string
+  phone?: string
+}
 
 // Estados del CRM (config sin counts, los conteos se calculan dinámicamente)
 const ESTADOS_CONFIG = [
@@ -233,27 +254,37 @@ function detectInterest(message: string): "Balinería" | "Joyería" | null {
   return null
 }
 
-function getMinutesSinceConversation(conversation: (typeof MOCK_CONVERSATIONS)[0]): number {
-  // Simulamos tiempos realistas basados en el ID de la conversación
-  const mockMinutes: Record<string, number> = {
-    "1": 15, // María González - 15 minutos sin responder (urgente)
-    "2": 8, // Carlos Ramírez - 8 minutos sin responder (urgente)
-    "3": 3, // Ana Martínez - 3 minutos sin responder
-    "4": 6, // Luis Hernández - 6 minutos sin responder (urgente)
-    "5": 0, // Patricia Silva - pedido completo, no urgente
-    "6": 0, // Roberto Díaz - pendiente datos
-    "7": 12, // Laura Pérez - 12 minutos sin responder (urgente)
-    "8": 0, // Diego Torres - pendiente datos
-    "9": 0, // Sofía Ruiz - por confirmar
-    "10": 0, // Miguel Ángel Castro - pedido completo
-  }
-
-  // Solo mostrar para conversaciones "Por Contestar"
+function getMinutesSinceConversation(conversation: Conversation): number {
+  // Calcular minutos desde el timestamp
   if (conversation.status !== "por-contestar") {
     return 0
   }
 
-  return mockMinutes[conversation.id] || 0
+  try {
+    const timestamp = new Date(conversation.timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - timestamp.getTime()
+    return Math.floor(diffMs / (1000 * 60))
+  } catch {
+    return 0
+  }
+}
+
+// Normalizar conversación de la API a formato del componente
+function normalizeConversation(conv: any): Conversation {
+  return {
+    id: conv.id,
+    clientName: conv.client_name || conv.clientName || 'Cliente',
+    lastMessage: conv.last_message || conv.lastMessage || '',
+    timestamp: conv.timestamp || new Date().toISOString(),
+    unread: conv.unread || 0,
+    status: conv.status || 'por-contestar',
+    canal: conv.canal || 'whatsapp',
+    avatar: conv.avatar,
+    clientType: conv.client_type || conv.clientType || 'Nuevo',
+    interest: conv.interest,
+    phone: conv.phone,
+  }
 }
 
 export default function CRMPage() {
@@ -262,6 +293,13 @@ export default function CRMPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [messageInput, setMessageInput] = useState("")
   const [activeTab, setActiveTab] = useState<"reply" | "note" | "schedule">("reply")
+
+  // Estados para datos reales
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isConnected, setIsConnected] = useState(false)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
   // Estados para secciones expandibles
   const [expandedSections, setExpandedSections] = useState({
     contactInfo: false,
@@ -276,8 +314,44 @@ export default function CRMPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Cargar conversaciones de la API
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/crm/conversations')
+      const data = await res.json()
+
+      if (data.ok && data.conversations && data.conversations.length > 0) {
+        // Tenemos datos reales de la base de datos
+        const normalized = data.conversations.map(normalizeConversation)
+        setConversations(normalized)
+        setIsConnected(true)
+      } else {
+        // Sin datos reales, usar mock como fallback
+        setConversations(MOCK_CONVERSATIONS.map(normalizeConversation))
+        setIsConnected(false)
+      }
+
+      setLastUpdate(new Date())
+    } catch (error) {
+      console.error('Error loading conversations:', error)
+      // En caso de error, usar datos mock
+      setConversations(MOCK_CONVERSATIONS.map(normalizeConversation))
+      setIsConnected(false)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Cargar datos al montar y cada 30 segundos
+  useEffect(() => {
+    loadConversations()
+
+    const interval = setInterval(loadConversations, 30000)
+    return () => clearInterval(interval)
+  }, [loadConversations])
+
   const filteredConversations = useMemo(() => {
-    return MOCK_CONVERSATIONS.filter((conv) => {
+    return conversations.filter((conv) => {
       const matchesEstado = selectedEstado === "todas" || conv.status === selectedEstado
       const matchesSearch =
         searchQuery === "" ||
@@ -285,23 +359,23 @@ export default function CRMPage() {
         conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
       return matchesEstado && matchesSearch
     })
-  }, [selectedEstado, searchQuery])
+  }, [selectedEstado, searchQuery, conversations])
 
   // Compute counts per estado from conversations (so 'devolucion' shows correctly)
   const estados = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const s of ESTADOS_CONFIG) counts[s.id] = 0
-    counts['todas'] = MOCK_CONVERSATIONS.length
-    for (const c of MOCK_CONVERSATIONS) {
+    counts['todas'] = conversations.length
+    for (const c of conversations) {
       if (counts[c.status] === undefined) counts[c.status] = 0
       counts[c.status] = (counts[c.status] || 0) + 1
     }
     return ESTADOS_CONFIG.map((s) => ({ ...s, count: counts[s.id] || 0 }))
-  }, [])
+  }, [conversations])
 
   const currentConversation = useMemo(
-    () => MOCK_CONVERSATIONS.find((c) => c.id === selectedConversation),
-    [selectedConversation],
+    () => conversations.find((c) => c.id === selectedConversation),
+    [selectedConversation, conversations],
   )
 
   const currentCanal = useMemo(() => CANALES.find((c) => c.id === currentConversation?.canal), [currentConversation])
@@ -445,7 +519,39 @@ export default function CRMPage() {
         <div className="flex w-80 flex-col border-r border-zinc-200 bg-white">
           {/* Header */}
           <div className="border-b border-zinc-200 p-4">
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900">Inbox</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-zinc-900">Inbox</h2>
+              <div className="flex items-center gap-2">
+                {/* Indicador de conexión */}
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+                  isConnected
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+                )}>
+                  {isConnected ? (
+                    <>
+                      <Wifi className="w-3 h-3" />
+                      <span>En vivo</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3" />
+                      <span>Demo</span>
+                    </>
+                  )}
+                </div>
+                {/* Botón refrescar */}
+                <button
+                  onClick={loadConversations}
+                  disabled={loading}
+                  className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500 hover:text-zinc-700 transition-colors disabled:opacity-50"
+                  title="Actualizar conversaciones"
+                >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                </button>
+              </div>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <Input
