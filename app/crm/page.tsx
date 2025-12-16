@@ -342,6 +342,27 @@ export default function CRMPage() {
     }
   }, [])
 
+  // Sincronizar chats de WhatsApp
+  const syncWhatsAppChats = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/crm/sync', { method: 'POST' })
+      const data = await res.json()
+
+      if (data.ok) {
+        console.log('✅ Sincronización completada:', data.message)
+        // Recargar conversaciones
+        await loadConversations()
+      } else {
+        console.error('❌ Error sincronizando:', data.error)
+      }
+    } catch (error) {
+      console.error('Error syncing:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [loadConversations])
+
   // Cargar datos al montar y cada 30 segundos
   useEffect(() => {
     loadConversations()
@@ -550,6 +571,17 @@ export default function CRMPage() {
                 >
                   <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
                 </button>
+                {/* Botón sincronizar WhatsApp */}
+                {!isConnected && (
+                  <button
+                    onClick={syncWhatsAppChats}
+                    disabled={loading}
+                    className="px-2 py-1 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium transition-colors disabled:opacity-50"
+                    title="Sincronizar chats de WhatsApp"
+                  >
+                    Sync
+                  </button>
+                )}
               </div>
             </div>
             <div className="relative">
