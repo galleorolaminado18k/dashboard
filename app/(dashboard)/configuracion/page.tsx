@@ -58,11 +58,12 @@ export default function ConfiguracionPage() {
     >("disconnected")
     const [pollingInterval, setPollingInterval] =
         useState<NodeJS.Timeout | null>(null)
+    const [checkingInitialStatus, setCheckingInitialStatus] = useState(true)
 
-    // Cargar configuración guardada (SIN checkSessionStatus automático)
+    // Cargar estado de conexión desde la base de datos al iniciar
     useEffect(() => {
         loadConfig()
-        // ✅ NO llamar checkSessionStatus aquí - causa spinner infinito
+        loadConnectionState()
     }, [])
 
     // Limpiar interval al desmontar
@@ -70,7 +71,7 @@ export default function ConfiguracionPage() {
         return () => {
             if (pollingInterval) clearInterval(pollingInterval)
         }
-    }, [pollingInterval])
+    }, [])
 
     const loadConfig = async () => {
         try {
@@ -84,22 +85,37 @@ export default function ConfiguracionPage() {
         }
     }
 
-    const checkSessionStatus = async () => {
+    // ✅ Cargar estado de conexión desde el Gateway en el VPS
+    const loadConnectionState = async () => {
         try {
-            const res = await fetch("/api/whatsapp/evolution")
-            if (res.ok) {
-                const data = await res.json()
-                if (data.ok && data.session) {
-                    if (data.session.connected) {
-                        setSessionStatus("connected")
-                    } else if (data.session.needsQR) {
-                        setSessionStatus("connecting")
-                        // No llamar startPollingQR - solo marcar como connecting
-                    }
-                }
+            setCheckingInitialStatus(true)
+            console.log("🔍 Consultando estado de conexión al Gateway del VPS...")
+
+            const res = await fetch("/api/whatsapp/connection-state", {
+                signal: AbortSignal.timeout(12000)
+            })
+            const data = await res.json()
+
+            console.log("📥 Respuesta del Gateway:", data)
+
+            if (data?.ok && data?.connected) {
+                console.log("✅ Gateway confirma: WhatsApp CONECTADO!")
+                setSessionStatus("connected")
+            } else if (data?.hasQR) {
+                console.log("📱 Hay QR pendiente de escanear")
+                setSessionStatus("connecting")
+            } else if (data?.gatewayAvailable === false) {
+                console.log("⚠️ Gateway no disponible")
+                setSessionStatus("disconnected")
+            } else {
+                console.log("❌ WhatsApp no conectado")
+                setSessionStatus("disconnected")
             }
         } catch (err) {
-            console.error("Error checking session:", err)
+            console.error("Error consultando Gateway:", err)
+            setSessionStatus("disconnected")
+        } finally {
+            setCheckingInitialStatus(false)
         }
     }
 
@@ -227,12 +243,32 @@ export default function ConfiguracionPage() {
 
     const disconnectWhatsApp = async () => {
         try {
-            await fetch("/api/whatsapp/evolution", { method: "DELETE" })
+            setLoading(true)
+            setError("")
+
+            // Usar el mismo endpoint de start con forceNew para hacer logout
+            console.log("🔌 Desconectando WhatsApp...")
+
+            // Llamar al endpoint que hace logout
+            const res = await fetch("/api/whatsapp/wpp/logout", { method: "POST" })
+
+            if (!res.ok) {
+                // Si no existe /logout, intentar con el evolution legacy
+                await fetch("/api/whatsapp/evolution", { method: "DELETE" })
+            }
+
+            // Limpiar estado local
             setSessionStatus("disconnected")
             setQrCodeImage("")
             if (pollingInterval) clearInterval(pollingInterval)
+            console.log("✅ WhatsApp desconectado")
         } catch (err) {
-            setError("Error al desconectar")
+            console.error("Error al desconectar:", err)
+            // Aún así limpiar el estado local
+            setSessionStatus("disconnected")
+            setQrCodeImage("")
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -428,7 +464,8 @@ export default function ConfiguracionPage() {
 
                                         {/* Botón de Conectar */}
                                         {sessionStatus === "disconnected" &&
-                                            config.whatsappBusinessPhone && (
+                                            config.whatsappBusinessPhone &&
+                                            !checkingInitialStatus && (
                                                 <div className="space-y-3">
                                                     <Button
                                                         onClick={startWhatsAppSession}
@@ -531,6 +568,13 @@ export default function ConfiguracionPage() {
                                                 </p>
                                                 <p className="text-sm text-neutral-500 mt-2">
                                                     +57 {config.whatsappBusinessPhone}
+                                                </p>
+                                            </div>
+                                        ) : checkingInitialStatus ? (
+                                            <div className="flex flex-col items-center justify-center h-64 text-neutral-400">
+                                                <RefreshCw className="w-12 h-12 mb-4 animate-spin" />
+                                                <p className="text-sm text-center">
+                                                    Verificando estado de conexión...
                                                 </p>
                                             </div>
                                         ) : (

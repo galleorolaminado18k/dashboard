@@ -15,16 +15,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (!GATEWAY_URL) {
-      return res.status(500).json({
-        error: 'GATEWAY_CONFIG_MISSING',
-        detail: 'BAILEYS_GATEWAY_URL no configurada en Vercel'
+      return res.status(200).json({
+        ok: true,
+        isConnected: false,
+        connected: false,
+        hasQR: false,
+        error: 'GATEWAY_NOT_CONFIGURED',
+        detail: 'BAILEYS_GATEWAY_URL no configurada',
+        gatewayAvailable: false,
       });
     }
 
     console.log('[WA-STATUS] 📡 Verificando estado en:', GATEWAY_URL);
 
     const response = await fetch(`${GATEWAY_URL}/status`, {
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(8000), // Reducir timeout
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -32,21 +37,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Mapear respuesta al formato esperado por el frontend
     return res.status(200).json({
-      ok: data.ok ?? true,
+      ok: true,
       isConnected: data.isConnected ?? false,
       connected: data.isConnected ?? false, // alias para compatibilidad
       hasQR: data.hasQR ?? false,
       error: data.error || null,
       lastUpdate: data.lastUpdate || null,
+      gatewayAvailable: true,
     });
 
   } catch (error: any) {
-    console.error('[WA-STATUS] Error:', error);
-    return res.status(500).json({
-      ok: false,
-      error: 'GATEWAY_ERROR',
-      detail: error.message,
-      isConnected: false,
+    console.error('[WA-STATUS] Error conectando al Gateway:', error.message);
+
+    // En caso de error de conexión, devolver estado "desconocido" en vez de error 500
+    // Esto permite que el frontend use su caché local
+    return res.status(200).json({
+      ok: true,
+      isConnected: null, // null = desconocido (usar caché local)
+      connected: null,
+      hasQR: false,
+      error: 'GATEWAY_UNREACHABLE',
+      detail: `No se pudo conectar al Gateway: ${error.message}`,
+      gatewayAvailable: false,
     });
   }
 }
