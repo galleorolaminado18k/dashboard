@@ -16,7 +16,7 @@ const H = {
 
 export async function GET() {
   try {
-    const statusRes = await fetch(`${BASE}/api/sessions/${SESS}/status`, {
+    const statusRes = await fetch(`${BASE}/api/sessions/${SESS}`, {
       headers: H,
       cache: 'no-store',
     });
@@ -37,7 +37,17 @@ export async function GET() {
     const data = await statusRes.json();
     console.log('[WAHA] Status:', data);
 
-    return new Response(JSON.stringify(data), {
+    // Determinar si está conectado basándose en el status
+    const isConnected = data.status === 'WORKING' || data.status === 'CONNECTED';
+
+    // Extraer información del usuario si está disponible
+    const me = data.me || null;
+
+    return new Response(JSON.stringify({
+      ...data,
+      connected: isConnected,
+      me: me,
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
