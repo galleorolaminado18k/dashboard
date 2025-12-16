@@ -73,12 +73,29 @@ async function cleanupOldFiles(supabase: any) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar configuración
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Supabase no configurado')
+      return NextResponse.json(
+        { ok: false, error: 'Storage no configurado. Contacta al administrador.' },
+        { status: 500 }
+      )
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
 
     if (!file) {
       return NextResponse.json(
         { ok: false, error: 'No se proporcionó archivo' },
+        { status: 400 }
+      )
+    }
+
+    // Validar tamaño máximo (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { ok: false, error: 'El archivo es muy grande. Máximo 10MB.' },
         { status: 400 }
       )
     }

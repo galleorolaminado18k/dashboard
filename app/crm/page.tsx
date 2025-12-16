@@ -12,8 +12,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Search,
-  Phone,
-  Video,
   MoreVertical,
   Send,
   Paperclip,
@@ -504,7 +502,16 @@ export default function CRMPage() {
 
   // Función para enviar archivo (imagen, video, documento)
   const handleSendFile = useCallback(async (file: File) => {
-    if (!selectedConversation || !currentConversation) return
+    if (!selectedConversation || !currentConversation) {
+      alert('Selecciona una conversación primero')
+      return
+    }
+
+    // Validar tamaño
+    if (file.size > 10 * 1024 * 1024) {
+      alert('El archivo es muy grande. Máximo 10MB.')
+      return
+    }
 
     setSendingMessage(true)
 
@@ -519,12 +526,19 @@ export default function CRMPage() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const uploadRes = await fetch('/api/crm/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const uploadData = await uploadRes.json()
+      let uploadData: any
+      try {
+        const uploadRes = await fetch('/api/crm/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        uploadData = await uploadRes.json()
+      } catch (uploadError) {
+        console.error('Error en upload:', uploadError)
+        alert('Error de conexión al subir archivo. Intenta de nuevo.')
+        setSendingMessage(false)
+        return
+      }
 
       if (!uploadData.ok) {
         alert('Error subiendo archivo: ' + (uploadData.error || 'Error desconocido'))
@@ -563,7 +577,7 @@ export default function CRMPage() {
       }
     } catch (error) {
       console.error('Error enviando archivo:', error)
-      alert('Error de conexión al enviar archivo')
+      alert('Error de conexión. Verifica tu internet e intenta de nuevo.')
     } finally {
       setSendingMessage(false)
     }
@@ -669,29 +683,6 @@ export default function CRMPage() {
       }
     }
   }, [isRecording])
-
-  // Función para llamar por teléfono
-  const handleCall = useCallback(() => {
-    if (currentConversation?.phone) {
-      const phone = currentConversation.phone.replace(/\D/g, '')
-      window.open(`tel:+${phone}`, '_blank')
-    } else {
-      alert('No hay número de teléfono disponible para esta conversación')
-    }
-  }, [currentConversation])
-
-  // Función para videollamada (abre WhatsApp Web con opción de videollamada)
-  const handleVideoCall = useCallback(() => {
-    if (currentConversation?.phone) {
-      const phone = currentConversation.phone.replace(/\D/g, '')
-      // WhatsApp no tiene API para videollamadas directas,
-      // pero podemos abrir el chat y el usuario puede iniciarla manualmente
-      window.open(`https://wa.me/${phone}`, '_blank')
-      alert('Se abrió WhatsApp. Desde ahí puedes iniciar una videollamada.')
-    } else {
-      alert('No hay número de teléfono disponible para esta conversación')
-    }
-  }, [currentConversation])
 
   const toggleEmojiPicker = useCallback(() => {
     setShowEmojiPicker((prev) => !prev)
@@ -954,12 +945,7 @@ export default function CRMPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95" onClick={handleCall} title="Llamar">
-                    <Phone className="h-5 w-5 text-zinc-600" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95" onClick={handleVideoCall} title="Videollamada">
-                    <Video className="h-5 w-5 text-zinc-600" />
-                  </Button>
+                  {/* Botones de llamada ocultos - WhatsApp Web no soporta llamadas directas */}
                   <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95">
                     <MoreVertical className="h-5 w-5 text-zinc-600" />
                   </Button>
@@ -1017,27 +1003,16 @@ export default function CRMPage() {
                 </div>
               </ScrollArea>
 
-              {/* Canales de Comunicación */}
+              {/* Botón de Cámara para enviar fotos */}
               <div className="flex items-center justify-center gap-2 border-y border-zinc-200 bg-white p-2">
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">🎨</span>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">📷</span>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">🎬</span>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">🎭</span>
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 rounded-full active:scale-95"
-                  onClick={handleCall}
+                  className="h-10 w-10 rounded-full active:scale-95 hover:bg-zinc-100"
+                  onClick={handleAttachment}
+                  title="Enviar imagen o archivo"
                 >
-                  <Phone className="h-5 w-5 text-red-500" />
+                  <span className="text-xl">📷</span>
                 </Button>
               </div>
 
