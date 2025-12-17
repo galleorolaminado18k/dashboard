@@ -30,24 +30,59 @@ export async function POST(request: NextRequest) {
 
     let targetPhone = phone
 
-    // Si no hay phone pero sí conversationId, buscar el teléfono
-    if (!targetPhone && conversationId) {
+    // Si hay conversationId, preferimos el teléfono guardado en la base de datos
+    if (conversationId) {
       const supabase = createClient()
-      const { data: conv } = await supabase
+      const { data: conv, error: convError } = await supabase
         .from('crm_conversations')
         .select('phone')
         .eq('id', conversationId)
         .single()
 
+      if (convError) {
+        console.error('❌ Error consultando conversación:', convError)
+        return NextResponse.json(
+          { ok: false, error: 'Error consultando la conversación' },
+          { status: 500 }
+        )
+      }
+
       if (conv?.phone) {
+        // Si el cliente envió un phone distinto, loggear advertencia y usar el de la BD
+        if (phone && phone !== conv.phone) {
+          console.warn('⚠️ phone enviado por el cliente difiere del phone de la conversación. Usando el de la BD.', { sentPhone: phone, dbPhone: conv.phone })
+        }
         targetPhone = conv.phone
-      } else {
+      } else if (!targetPhone) {
         return NextResponse.json(
           { ok: false, error: 'No se encontró el teléfono de la conversación' },
           { status: 404 }
         )
       }
     }
+
+    // Normalizar y validar número: dejar sólo dígitos
+    const normalizePhone = (p: string) => p.replace(/\D/g, '')
+    if (!targetPhone || typeof targetPhone !== 'string') {
+      return NextResponse.json({ ok: false, error: 'Teléfono inválido' }, { status: 400 })
+    }
+
+    let cleanedPhone = normalizePhone(targetPhone)
+
+    // Validación mínima: longitud razonable (entrel 8 y 15 dígitos)
+    if (cleanedPhone.length < 8 || cleanedPhone.length > 15) {
+      console.error('❌ Teléfono con formato inválido:', targetPhone)
+      return NextResponse.json({ ok: false, error: 'Teléfono con formato inválido' }, { status: 400 })
+    }
+
+    // Si el número no tiene código de país y parece local (10 dígitos), mantener comportamiento antiguo: prefijar 57
+    if (!cleanedPhone.startsWith('57') && cleanedPhone.length === 10) {
+      cleanedPhone = '57' + cleanedPhone
+      console.log('ℹ️ Asumiendo código de país CO (57) para phone local; phone final:', cleanedPhone)
+    }
+
+    // Reemplazar targetPhone por cleanedPhone para enviar
+    targetPhone = cleanedPhone
 
     if (type === 'text' && !message) {
       return NextResponse.json(
@@ -119,41 +154,16 @@ export async function POST(request: NextRequest) {
       // Para medios con caption, mostrar el caption como contenido
       const contentToSave = type === 'text'
         ? message
-        : (caption || `[${type}${filename ? `: ${filename}` : ''}]`)
+        : caption || (type === 'audio' ? '[Nota de voz]' : `[${type}]`)
 
-      await supabase.from('crm_messages').insert({
-        conversation_id: conversationId,
-        sender: 'agent',
-        content: contentToSave,
-        type: type,
-        timestamp: new Date().toISOString(),
-        read: true,
-      })
-
-      // Actualizar la conversación
       await supabase
-        .from('crm_conversations')
-        .update({
-          last_message: contentToSave,
-          timestamp: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', conversationId)
+        .from('crm_messages')
+        .insert({ conversation_id: conversationId, content: contentToSave, direction: 'outbound', metadata: { type, filename, mimetype, mediaUrl }, created_at: new Date().toISOString() })
     }
 
-    console.log('✅ Mensaje enviado correctamente')
-
-    return NextResponse.json({
-      ok: true,
-      message: 'Mensaje enviado',
-      type,
-    })
-  } catch (error: any) {
+    return NextResponse.json({ ok: true })
+  } catch (error) {
     console.error('❌ Error en /api/crm/send:', error)
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500 }
-    )
+    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
 }
-
