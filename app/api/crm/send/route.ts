@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     let targetPhone = phone
     let waNumber = waNumberFromBody || null
 
-    // Si hay conversationId, preferimos el teléfono y wa_number guardados en la base de datos
+    // Si hay conversationId, SIEMPRE usar el teléfono y wa_number de la base de datos
     if (conversationId) {
       const supabase = createClient()
       const { data: conv, error: convError } = await supabase
@@ -49,12 +49,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (conv?.phone) {
-        // Si el cliente envió un phone distinto, loggear advertencia y usar el de la BD
-        if (phone && phone !== conv.phone) {
-          console.warn('⚠️ phone enviado por el cliente difiere del phone de la conversación. Usando el de la BD.', { sentPhone: phone, dbPhone: conv.phone })
-        }
+        // SIEMPRE usar el phone de la BD, ignorar el enviado por el cliente
         targetPhone = conv.phone
-      } else if (!targetPhone) {
+      } else {
         return NextResponse.json(
           { ok: false, error: 'No se encontró el teléfono de la conversación' },
           { status: 404 }
@@ -62,6 +59,14 @@ export async function POST(request: NextRequest) {
       }
       if (conv?.wa_number) {
         waNumber = conv.wa_number
+      }
+    } else {
+      // Si no hay conversationId, debe venir phone en el request
+      if (!targetPhone) {
+        return NextResponse.json(
+          { ok: false, error: 'Se requiere phone si no hay conversationId' },
+          { status: 400 }
+        )
       }
     }
 
