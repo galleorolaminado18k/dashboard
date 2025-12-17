@@ -19,7 +19,7 @@ const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://31.220.58.83:301
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { conversationId, phone, message, type = 'text', mediaUrl, mimetype, filename, caption } = body
+    const { conversationId, phone, message, type = 'text', mediaUrl, mimetype, filename, caption, wa_number: waNumberFromBody } = body
 
     if (!phone && !conversationId) {
       return NextResponse.json(
@@ -29,13 +29,14 @@ export async function POST(request: NextRequest) {
     }
 
     let targetPhone = phone
+    let waNumber = waNumberFromBody || null
 
-    // Si hay conversationId, preferimos el teléfono guardado en la base de datos
+    // Si hay conversationId, preferimos el teléfono y wa_number guardados en la base de datos
     if (conversationId) {
       const supabase = createClient()
       const { data: conv, error: convError } = await supabase
         .from('crm_conversations')
-        .select('phone')
+        .select('phone, wa_number')
         .eq('id', conversationId)
         .single()
 
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest) {
           { ok: false, error: 'No se encontró el teléfono de la conversación' },
           { status: 404 }
         )
+      }
+      if (conv?.wa_number) {
+        waNumber = conv.wa_number
       }
     }
 
@@ -150,15 +154,12 @@ export async function POST(request: NextRequest) {
     // Guardar el mensaje en la base de datos
     if (conversationId) {
       const supabase = createClient()
-
-      // Para medios con caption, mostrar el caption como contenido
       const contentToSave = type === 'text'
         ? message
         : caption || (type === 'audio' ? '[Nota de voz]' : `[${type}]`)
-
-      // Guardar con campos explícitos para que el frontend pueda identificar media
       const insertData = {
         conversation_id: conversationId,
+        wa_number: waNumber || '0000000000', // Siempre guardar wa_number
         sender: 'agent',
         content: contentToSave,
         type,
