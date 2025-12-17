@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require("@whiskeysockets/baileys");
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadMediaMessage } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const QRCode = require("qrcode");
 const express = require("express");
@@ -118,8 +118,36 @@ async function connectToWhatsApp(forceNew = false) {
                         msg.message?.videoMessage ? "video" :
                         msg.message?.documentMessage ? "document" : "text";
             console.log("📩 Mensaje de", from, ":", text.substring(0, 50));
+            // Intentar descargar el medio si existe y adjuntarlo como data URL base64
+            let mediaUrl = null
+            let mimetype = null
+            let filename = null
+
+            try {
+                if (type !== 'text') {
+                    // Descargar usando helper de baileys; devuelve buffer
+                    console.log('📥 Intentando descargar medio entrante (esto puede tardar)...')
+                    const buffer = await downloadMediaMessage(msg, 'buffer', {}, { logger })
+                    if (buffer && buffer.length) {
+                        // Detectar mimetype y filename desde el objeto de mensaje
+                        const mediaObj = msg.message?.imageMessage || msg.message?.videoMessage || msg.message?.audioMessage || msg.message?.documentMessage
+                        mimetype = mediaObj?.mimetype || null
+                        filename = mediaObj?.fileName || (mediaObj?.caption ? 'media' : null)
+
+                        const base64 = buffer.toString('base64')
+                        mimetype = mimetype || 'application/octet-stream'
+                        mediaUrl = `data:${mimetype};base64,${base64}`
+                        console.log('✅ Medio convertido a data URL, tamaño base64:', base64.length)
+                    } else {
+                        console.log('⚠️ No se pudo descargar el medio entrante (buffer vacío)')
+                    }
+                }
+            } catch (err) {
+                console.error('❌ Error descargando medio entrante:', err && err.message ? err.message : err)
+            }
+
             sendToWebhook("messages.upsert", {
-                message: { key: msg.key, from, pushName, body: text, type, timestamp: msg.messageTimestamp, fromMe: false }
+                message: { key: msg.key, from, pushName, body: text, type, timestamp: msg.messageTimestamp, fromMe: false, mediaUrl, mimetype, filename }
             });
         }
     });
@@ -229,8 +257,14 @@ app.post("/send", async (req, res) => {
 
     try {
         let cleanPhone = phone.replace(/\D/g, "");
-        if (!cleanPhone.startsWith("57") && cleanPhone.length === 10) cleanPhone = "57" + cleanPhone;
+        // Validar número colombiano (10 dígitos, empieza por 3, o internacional 57...)
+        if (cleanPhone.length === 10 && cleanPhone.startsWith("3")) cleanPhone = "57" + cleanPhone;
+        if (!cleanPhone.startsWith("57") || cleanPhone.length < 12 || cleanPhone.length > 13) {
+            console.error("❌ Número inválido para envío:", phone, "->", cleanPhone);
+            return res.status(400).json({ ok: false, error: "Número de teléfono inválido: " + phone });
+        }
         const jid = cleanPhone + "@s.whatsapp.net";
+        console.log("➡️ Enviando mensaje tipo:", type, "al número:", phone, "| limpio:", cleanPhone, "| jid:", jid);
 
         let msgContent;
         const captionText = caption || message || "";
@@ -301,4 +335,3 @@ app.listen(PORT, "0.0.0.0", async () => {
         connectionError = String(e);
     }
 });
-

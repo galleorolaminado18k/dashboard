@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`📤 Enviando mensaje a ${targetPhone}:`, { type, message: message?.substring(0, 50), gateway: GATEWAY_URL })
+    console.log(`📤 Enviando mensaje a ${targetPhone}:`, { type, message: message?.substring(0, 50), gateway: GATEWAY_URL, mediaUrl, mimetype, filename, caption })
 
     // Verificar que el gateway esté configurado
     if (!GATEWAY_URL || GATEWAY_URL === 'http://localhost:3010') {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!gatewayData.ok) {
-      console.error('❌ Error del gateway:', gatewayData.error)
+      console.error('❌ Error del gateway:', gatewayData.error, { mediaUrl, mimetype, filename, caption })
       return NextResponse.json(
         { ok: false, error: gatewayData.error || 'Error enviando mensaje' },
         { status: 500 }
@@ -156,9 +156,28 @@ export async function POST(request: NextRequest) {
         ? message
         : caption || (type === 'audio' ? '[Nota de voz]' : `[${type}]`)
 
-      await supabase
+      // Guardar con campos explícitos para que el frontend pueda identificar media
+      const insertData = {
+        conversation_id: conversationId,
+        sender: 'agent',
+        content: contentToSave,
+        type,
+        direction: 'outbound',
+        metadata: { type, filename, mimetype, mediaUrl },
+        timestamp: new Date().toISOString(),
+        read: true,
+        created_at: new Date().toISOString(),
+      }
+      // LOG: Verificar datos antes de guardar
+      console.log('[CRM] Insertando en crm_messages:', JSON.stringify(insertData, null, 2))
+      const { error: insertError } = await supabase
         .from('crm_messages')
-        .insert({ conversation_id: conversationId, content: contentToSave, direction: 'outbound', metadata: { type, filename, mimetype, mediaUrl }, created_at: new Date().toISOString() })
+        .insert(insertData)
+      if (insertError) {
+        console.error('❌ Error insertando mensaje en crm_messages:', insertError)
+      } else {
+        console.log('[CRM] Mensaje guardado correctamente en crm_messages')
+      }
     }
 
     return NextResponse.json({ ok: true })

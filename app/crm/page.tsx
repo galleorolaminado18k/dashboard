@@ -28,9 +28,6 @@ import {
   Wifi,
   WifiOff,
   Phone,
-  Camera,
-  Image,
-  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -245,17 +242,6 @@ function formatTime(date: Date): string {
   return `${hours12}:${minutesStr} ${ampm}`
 }
 
-function detectInterest(message: string): "Balinería" | "Joyería" | null {
-  const lowerMessage = message.toLowerCase()
-  if (lowerMessage.includes("balinería") || lowerMessage.includes("balineria")) {
-    return "Balinería"
-  }
-  if (lowerMessage.includes("joyería") || lowerMessage.includes("joyeria") || lowerMessage.includes("joyas")) {
-    return "Joyería"
-  }
-  return null
-}
-
 function getMinutesSinceConversation(conversation: Conversation): number {
   // Calcular minutos desde el timestamp
   if (conversation.status !== "por-contestar") {
@@ -287,6 +273,14 @@ function normalizeConversation(conv: any): Conversation {
     interest: conv.interest,
     phone: conv.phone,
   }
+}
+
+// Función utilitaria para normalizar y validar números colombianos
+function normalizarNumero(phone: string): string | null {
+  let clean = (phone || '').replace(/\D/g, '');
+  if (clean.length === 10 && clean.startsWith('3')) clean = '57' + clean;
+  if (!clean.startsWith('57') || clean.length < 12 || clean.length > 13) return null;
+  return clean;
 }
 
 export default function CRMPage() {
@@ -390,13 +384,29 @@ export default function CRMPage() {
       const data = await res.json()
 
       if (data.ok && data.messages) {
-        setMessages(data.messages.map((m: any) => ({
-          id: m.id,
-          sender: m.sender === 'client' ? 'client' : 'agent',
-          content: m.content,
-          timestamp: new Date(m.timestamp),
-          avatar: m.sender === 'client' ? '/diverse-woman-portrait.png' : '/business-agent.png',
-        })))
+        setMessages(data.messages.map((m: any) => {
+          return {
+            id: m.id,
+            sender: m.sender === 'client' ? 'client' : 'agent',
+            content: m.content,
+            timestamp: new Date(m.timestamp),
+            avatar: m.sender === 'client' ? '/diverse-woman-portrait.png' : '/business-agent.png',
+            // Nuevo: extraer metadata para soportar medios (audio/image/video/document)
+            mediaType: (m.metadata && m.metadata.type) || m.type || null,
+            mediaUrl: (m.metadata && (m.metadata.mediaUrl || m.metadata.url)) || m.mediaUrl || null,
+            mimetype: (m.metadata && m.metadata.mimetype) || m.mimetype || null,
+            filename: (m.metadata && m.metadata.filename) || m.filename || null,
+          }
+        }))
+        // LOG: Verificar mensajes cargados y mediaUrl
+        console.log('[CRM] Mensajes cargados:', data.messages)
+        if (data.messages) {
+          data.messages.forEach((msg: any) => {
+            if (msg.type === 'audio' || (msg.metadata && msg.metadata.type === 'audio')) {
+              console.log('[CRM] Mensaje de audio:', msg)
+            }
+          })
+        }
       } else {
         // Si no hay mensajes, usar mock
         setMessages(MOCK_MESSAGES)
@@ -492,6 +502,12 @@ export default function CRMPage() {
     const messageToSend = messageInput.trim()
     setMessageInput("")
     setSendingMessage(true)
+    const phoneNormalizado = normalizarNumero(currentConversation.phone || "");
+    if (!phoneNormalizado) {
+      alert('Número de teléfono inválido para WhatsApp.')
+      setSendingMessage(false)
+      return
+    }
 
     try {
       const res = await fetch('/api/crm/send', {
@@ -499,7 +515,7 @@ export default function CRMPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConversation,
-          phone: currentConversation.phone,
+          phone: phoneNormalizado,
           message: messageToSend,
           type: 'text',
         }),
@@ -577,12 +593,19 @@ export default function CRMPage() {
       // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
       console.log('📤 Enviando URL al gateway:', uploadData.url)
 
+      const phoneNormalizado = normalizarNumero(currentConversation.phone || "");
+      if (!phoneNormalizado) {
+        alert('Número de teléfono inválido para WhatsApp.')
+        setSendingMessage(false)
+        return
+      }
+
       const sendRes = await fetch('/api/crm/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConversation,
-          phone: currentConversation.phone,
+          phone: phoneNormalizado,
           type,
           mediaUrl: uploadData.url,
           mimetype: file.type,
@@ -593,6 +616,16 @@ export default function CRMPage() {
 
       const sendData = await sendRes.json()
       console.log('📤 Gateway respuesta:', sendData)
+      // LOG: Verificar mediaUrl enviada
+      if (type === 'audio') {
+        console.log('[CRM] Enviando audio:', {
+          conversationId: selectedConversation,
+          phone: phoneNormalizado,
+          mediaUrl: uploadData.url,
+          mimetype: file.type,
+          filename: file.name,
+        })
+      }
 
       if (sendData.ok) {
         setMessages(prev => [...prev, {
@@ -725,12 +758,19 @@ export default function CRMPage() {
             // PASO 2: Enviar mensaje con la URL al gateway
             console.log('📤 Enviando al gateway:', usedBase64 ? 'base64' : 'URL Cloudinary')
 
+            const phoneNormalizado = normalizarNumero(currentConversation.phone || "");
+            if (!phoneNormalizado) {
+              alert('Número de teléfono inválido para WhatsApp.')
+              setSendingMessage(false)
+              return
+            }
+
             const sendRes = await fetch('/api/crm/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 conversationId: selectedConversation,
-                phone: currentConversation.phone,
+                phone: phoneNormalizado,
                 type: 'audio',
                 mediaUrl: audioUrl,
                 mimetype: mimeType,
@@ -740,6 +780,14 @@ export default function CRMPage() {
 
             const sendData = await sendRes.json()
             console.log('📤 Gateway respuesta:', sendData)
+            // LOG: Verificar mediaUrl enviada
+            console.log('[CRM] Enviando audio grabado:', {
+              conversationId: selectedConversation,
+              phone: phoneNormalizado,
+              mediaUrl: audioUrl,
+              mimetype: mimeType,
+              filename: audioFile.name,
+            })
 
             if (sendData.ok) {
               setMessages(prev => [...prev, {
@@ -880,6 +928,10 @@ export default function CRMPage() {
                     </>
                   )}
                 </div>
+                {/* Mostrar última actualización si está disponible */}
+                {lastUpdate && (
+                  <div className="text-[11px] text-zinc-500">Última: {new Date(lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                )}
                 {/* Botón refrescar */}
                 <button
                   onClick={loadConversations}
@@ -1078,7 +1130,21 @@ export default function CRMPage() {
                             message.sender === "agent" ? "bg-[#dcf8c6] text-zinc-900" : "bg-white text-zinc-900",
                           )}
                         >
-                          <p className="text-sm leading-relaxed">{message.content}</p>
+                          {/* Renderizar media: audio, imagen, video o texto */}
+                          {message.mediaType === 'audio' ? (
+                            // Preferir mediaUrl (Cloudinary/url) o content (base64 data URL)
+                            <>
+                              <audio controls src={message.mediaUrl || message.content} className="w-full rounded-md" />
+                              {/* LOG: Mostrar mediaUrl renderizada */}
+                              <div style={{fontSize:10, color:'#888'}}>mediaUrl: {message.mediaUrl || 'N/A'}</div>
+                            </>
+                          ) : message.mediaType === 'image' ? (
+                            <img src={message.mediaUrl || message.content} alt={message.filename || 'imagen'} className="max-w-full rounded-md" />
+                          ) : message.mediaType === 'video' ? (
+                            <video controls src={message.mediaUrl || message.content} className="max-w-full rounded-md" />
+                          ) : (
+                            <p className="text-sm leading-relaxed">{message.content}</p>
+                          )}
 
                           <div className="mt-1 flex items-center justify-end gap-1">
                             <span className="text-[11px] text-zinc-500">{formatTime(message.timestamp)}</span>

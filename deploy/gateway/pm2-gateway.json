@@ -1,0 +1,16 @@
+{
+  "apps": [
+    {
+      "name": "gateway-audio",
+      "script": "gateway-audio-fix.cjs",
+      "exec_mode": "fork",
+      "instances": 1,
+      "watch": false,
+      "max_memory_restart": "200M",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
+
