@@ -129,10 +129,27 @@ async function connectToWhatsApp(forceNew = false) {
 
 // Función para convertir data URL a Buffer
 function dataUrlToBuffer(dataUrl) {
-    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!matches) return null;
+    // Soporta formatos como:
+    // data:audio/webm;base64,....
+    // data:audio/webm;codecs=opus;base64,....
+    // data:audio/ogg;codecs=opus;base64,....
+    const matches = dataUrl.match(/^data:([^;,]+)(;[^;,]+)*;base64,(.+)$/);
+    if (!matches) {
+        console.log('⚠️ Regex no coincide. Intentando formato alternativo...');
+        // Formato alternativo: buscar base64, directamente
+        const base64Index = dataUrl.indexOf(';base64,');
+        if (base64Index === -1) {
+            console.log('❌ No se encontró ;base64, en el data URL');
+            console.log('📋 Inicio del data URL:', dataUrl.substring(0, 100));
+            return null;
+        }
+        const mimeType = dataUrl.substring(5, base64Index).split(';')[0];
+        const base64Data = dataUrl.substring(base64Index + 8);
+        const buffer = Buffer.from(base64Data, 'base64');
+        return { buffer, mimeType };
+    }
     const mimeType = matches[1];
-    const base64Data = matches[2];
+    const base64Data = matches[3];
     const buffer = Buffer.from(base64Data, 'base64');
     return { buffer, mimeType };
 }
