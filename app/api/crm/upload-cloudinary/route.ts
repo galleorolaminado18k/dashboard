@@ -8,11 +8,11 @@ import { NextRequest, NextResponse } from 'next/server'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Configuración de Cloudinary
-const CLOUDINARY_CLOUD_NAME = 'dusyyg1dd'
-const CLOUDINARY_API_KEY = '791156185862577'
-const CLOUDINARY_API_SECRET = 'kU6UoxWyFnUvS3PVqM0OgbtIxIg'
-const CLOUDINARY_UPLOAD_PRESET = 'galleorolaminadosubida'
+// Configuración de Cloudinary (usar env vars si están definidas)
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'dusyyg1dd'
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '791156185862577'
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || 'kU6UoxWyFnUvS3PVqM0OgbtIxIg'
+const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || 'galleorolaminadosubida'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +41,12 @@ export async function POST(request: NextRequest) {
 
     // Subir a Cloudinary usando su API REST directamente
     const cloudinaryFormData = new FormData()
-    cloudinaryFormData.append('file', dataUri)
+    // Cloudinary acepta archivos binarios directamente en 'file' para RAW/audio
+    if (file.type.startsWith('audio/')) {
+      cloudinaryFormData.append('file', new Blob([arrayBuffer], { type: file.type }), file.name)
+    } else {
+      cloudinaryFormData.append('file', dataUri)
+    }
     cloudinaryFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
     cloudinaryFormData.append('folder', 'whatsapp-media')
 
@@ -78,4 +83,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
