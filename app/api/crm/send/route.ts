@@ -65,28 +65,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Normalizar y validar número: dejar sólo dígitos
-    const normalizePhone = (p: string) => p.replace(/\D/g, '')
-    if (!targetPhone || typeof targetPhone !== 'string') {
-      return NextResponse.json({ ok: false, error: 'Teléfono inválido' }, { status: 400 })
+    // Mejor normalización y validación de número
+    function normalizeAndValidatePhone(raw: string): string | null {
+      if (!raw) return null;
+      let cleaned = raw.replace(/[^\d]/g, ''); // Solo dígitos
+      // Si empieza por 57 y tiene 12 dígitos, es válido para Colombia
+      if (cleaned.startsWith('57') && cleaned.length === 12) return cleaned;
+      // Si tiene 10 dígitos, anteponer 57
+      if (cleaned.length === 10) return '57' + cleaned;
+      // Si tiene entre 8 y 15 dígitos, devolver tal cual (internacional)
+      if (cleaned.length >= 8 && cleaned.length <= 15) return cleaned;
+      // Si no cumple, es inválido
+      return null;
     }
 
-    let cleanedPhone = normalizePhone(targetPhone)
-
-    // Validación mínima: longitud razonable (entrel 8 y 15 dígitos)
-    if (cleanedPhone.length < 8 || cleanedPhone.length > 15) {
-      console.error('❌ Teléfono con formato inválido:', targetPhone)
+    const cleanedPhone = normalizeAndValidatePhone(targetPhone);
+    if (!cleanedPhone) {
+      console.error('❌ Teléfono con formato inválido (después de limpiar):', targetPhone)
       return NextResponse.json({ ok: false, error: 'Teléfono con formato inválido' }, { status: 400 })
     }
-
-    // Si el número no tiene código de país y parece local (10 dígitos), mantener comportamiento antiguo: prefijar 57
-    if (!cleanedPhone.startsWith('57') && cleanedPhone.length === 10) {
-      cleanedPhone = '57' + cleanedPhone
-      console.log('ℹ️ Asumiendo código de país CO (57) para phone local; phone final:', cleanedPhone)
-    }
-
-    // Reemplazar targetPhone por cleanedPhone para enviar
-    targetPhone = cleanedPhone
+    targetPhone = cleanedPhone;
+    console.log('📞 Teléfono final para envío:', targetPhone)
 
     if (type === 'text' && !message) {
       return NextResponse.json(
