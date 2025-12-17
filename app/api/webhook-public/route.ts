@@ -32,6 +32,107 @@ export async function POST(request: NextRequest) {
 
     const eventType = event.event || event.type
 
+    // Helper: subir data URL (base64) a Cloudinary y devolver metadata actualizada
+    async function uploadDataUrlToCloudinary(metadata: Record<string, any>) {
+      try {
+        if (!metadata?.mediaUrl || typeof metadata.mediaUrl !== 'string') return metadata
+
+        const MAX = 10 * 1024 * 1024
+        let mediaDataUrl: string | null = null
+
+        // Si es data URL ya lista
+        if (metadata.mediaUrl.startsWith('data:')) {
+          mediaDataUrl = metadata.mediaUrl
+        } else if (metadata.mediaUrl.startsWith('http://') || metadata.mediaUrl.startsWith('https://')) {
+          // Intentar descargar el recurso remoto
+          try {
+            // Hacer HEAD para conocer tamaño y tipo si es posible
+            const headRes = await fetch(metadata.mediaUrl, { method: 'HEAD' })
+            let contentLength = headRes.headers.get('content-length')
+            const contentType = metadata.mimetype || headRes.headers.get('content-type') || ''
+
+            if (contentLength) {
+              const size = parseInt(contentLength, 10)
+              if (!isNaN(size) && size > MAX) {
+                console.warn('⚠️ Recurso remoto demasiado grande, se omitirá mediaUrl:', size)
+                delete metadata.mediaUrl
+                return metadata
+              }
+            }
+
+            // Descargar el recurso completo
+            const getRes = await fetch(metadata.mediaUrl)
+            if (!getRes.ok) {
+              console.warn('⚠️ No se pudo descargar recurso remoto:', getRes.status)
+              return metadata
+            }
+
+            const arrayBuffer = await getRes.arrayBuffer()
+            if (arrayBuffer.byteLength > MAX) {
+              console.warn('⚠️ Recurso descargado supera el máximo, omitiendo mediaUrl')
+              delete metadata.mediaUrl
+              return metadata
+            }
+
+            const b64 = Buffer.from(arrayBuffer).toString('base64')
+            const mime = contentType || metadata.mimetype || 'application/octet-stream'
+            mediaDataUrl = `data:${mime};base64,${b64}`
+            // actualizar mimetype si estaba ausente
+            if (!metadata.mimetype) metadata.mimetype = mime
+          } catch (downloadErr) {
+            console.warn('⚠️ Error descargando recurso remoto:', downloadErr)
+            return metadata
+          }
+        } else {
+          // No es data ni http
+          return metadata
+        }
+
+        if (!mediaDataUrl) return metadata
+
+        // Ahora tenemos mediaDataUrl y podemos medir
+        const base64 = mediaDataUrl.split(',')[1] || ''
+        const byteLength = Buffer.from(base64, 'base64').length
+        if (byteLength > MAX) {
+          console.warn('⚠️ Media demasiado grande para subir a Cloudinary, se omitirá mediaUrl')
+          delete metadata.mediaUrl
+          return metadata
+        }
+
+        // Cloudinary config (usar env vars si están definidas)
+        const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'dusyyg1dd'
+        const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || 'galleorolaminadosubida'
+
+        // Determinar resourceType
+        let resourceType = 'raw'
+        if (metadata.mimetype && metadata.mimetype.startsWith('image/')) resourceType = 'image'
+        else if (metadata.mimetype && (metadata.mimetype.startsWith('video/') || metadata.mimetype.startsWith('audio/'))) resourceType = 'video'
+
+        const cloudForm = new FormData()
+        cloudForm.append('file', mediaDataUrl)
+        cloudForm.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+        cloudForm.append('folder', 'whatsapp-media')
+
+        const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`
+        const uploadRes = await fetch(uploadUrl, { method: 'POST', body: cloudForm })
+        const result = await uploadRes.json()
+
+        if (result && result.secure_url) {
+          console.log('✅ Subido a Cloudinary desde webhook-public:', result.secure_url)
+          metadata.mediaUrl = result.secure_url
+          metadata.cloudinary_id = result.public_id
+          metadata.cloudinary_raw = result
+        } else {
+          console.error('❌ Error subiendo a Cloudinary desde webhook-public:', result)
+        }
+
+        return metadata
+      } catch (err) {
+        console.error('❌ Excepción subiendo data URL a Cloudinary:', err)
+        return metadata
+      }
+    }
+
     // Procesar mensajes
     if (eventType === 'messages.upsert' || eventType === 'message' || eventType === 'message.any') {
       const payload = event.payload || event.data || event
@@ -44,19 +145,22 @@ export async function POST(request: NextRequest) {
 
       // Ignorar mensajes propios y grupos
       if (message.fromMe || message.key?.fromMe) {
+        console.log('🔕 Ignorado mensaje propio')
         return NextResponse.json({ ok: true, ignored: 'fromMe' })
       }
       if (from?.includes('@g.us') || from?.includes('@broadcast')) {
+        console.log('🔕 Ignorado mensaje de grupo/broadcast')
         return NextResponse.json({ ok: true, ignored: 'group' })
       }
 
       // Formatear teléfono
       const phone = from?.replace(/@.*$/, '').replace(/\D/g, '') || ''
       if (!phone || phone.length < 8) {
+        console.warn('⚠️ Número inválido recibido en webhook:', { from, phone })
         return NextResponse.json({ ok: false, error: 'invalid phone' })
       }
 
-      console.log('💬 Procesando mensaje:', { phone, body: body.substring(0, 50), pushName })
+      console.log('💬 Procesando mensaje:', { from, phone, body: body.substring(0, 50), pushName })
 
       // Buscar o crear conversación
       const { data: existing, error: searchError } = await supabase
@@ -87,15 +191,36 @@ export async function POST(request: NextRequest) {
         }
 
         // Guardar mensaje
+        const incomingType = message.type || payload.type || 'text'
+        const metadata: Record<string, any> = {}
+        if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
+        if (payload.mimetype) metadata.mimetype = payload.mimetype
+        if (payload.filename) metadata.filename = payload.filename
+        if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
+        if (message.mimetype) metadata.mimetype = message.mimetype
+        if (message.filename) metadata.filename = message.filename
+
+        // Si metadata.mediaUrl es data URL, subir a Cloudinary y reemplazar
+        await uploadDataUrlToCloudinary(metadata)
+
+        if (incomingType === 'audio') {
+          if (!metadata.mediaUrl || !metadata.mediaUrl.startsWith('http')) {
+            console.warn('⚠️ Nota de voz sin URL pública en metadata:', { phone, metadata })
+          } else {
+            console.log('🎵 Nota de voz registrada:', { phone, url: metadata.mediaUrl })
+          }
+        }
+
         const { error: msgError } = await supabase
           .from('crm_messages')
           .insert({
             conversation_id: existing.id,
             sender: 'client',
             content: body,
-            type: 'text',
+            type: incomingType,
             timestamp: new Date().toISOString(),
             read: false,
+            metadata: Object.keys(metadata).length ? metadata : null,
           })
 
         if (msgError) {
@@ -127,15 +252,28 @@ export async function POST(request: NextRequest) {
 
         if (newConv) {
           // Guardar mensaje
+          const incomingType = message.type || payload.type || 'text'
+          const metadata: Record<string, any> = {}
+          if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
+          if (payload.mimetype) metadata.mimetype = payload.mimetype
+          if (payload.filename) metadata.filename = payload.filename
+          if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
+          if (message.mimetype) metadata.mimetype = message.mimetype
+          if (message.filename) metadata.filename = message.filename
+
+          // Subir si es data URL
+          await uploadDataUrlToCloudinary(metadata)
+
           const { error: msgError } = await supabase
             .from('crm_messages')
             .insert({
               conversation_id: newConv.id,
               sender: 'client',
               content: body,
-              type: 'text',
+              type: incomingType,
               timestamp: new Date().toISOString(),
               read: false,
+              metadata: Object.keys(metadata).length ? metadata : null,
             })
 
           if (msgError) {
@@ -166,4 +304,3 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   })
 }
-
