@@ -13,6 +13,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'No se recibió el número de WhatsApp' }, { status: 400 })
     }
 
+    // Normaliza y valida el número recibido
+    function normalizarNumero(raw: string): string | null {
+      if (!raw) return null;
+      let cleaned = raw.replace(/[^\d]/g, '');
+      // Si empieza por 57 y tiene 12 dígitos, es válido para Colombia
+      if (cleaned.startsWith('57') && cleaned.length === 12) return cleaned;
+      // Si tiene 10 dígitos y empieza por 3, anteponer 57
+      if (cleaned.length === 10 && cleaned.startsWith('3')) return '57' + cleaned;
+      // Si tiene entre 8 y 15 dígitos, devolver tal cual (internacional)
+      if (cleaned.length >= 8 && cleaned.length <= 15) return cleaned;
+      return null;
+    }
+
+    const numeroNormalizado = normalizarNumero(body.from);
+    if (!numeroNormalizado) {
+      return NextResponse.json({ ok: false, error: 'Número de WhatsApp inválido recibido' }, { status: 400 });
+    }
+
     const supabase = createClient()
 
     // Actualiza el número en la conversación si existe, o crea una nueva si no existe
@@ -20,13 +38,13 @@ export async function POST(request: NextRequest) {
       .from('crm_conversations')
       .upsert([
         {
-          phone: numeroReal,
+          phone: numeroNormalizado,
           client_name: nombre,
           canal: 'whatsapp',
           status: 'por-contestar',
           // Puedes agregar más campos si quieres
         }
-      ], { onConflict: ['phone'] })
+      ], { onConflict: 'phone' })
 
     // Aquí puedes guardar el mensaje recibido si lo deseas
     // await supabase.from('crm_messages').insert({ ... })
