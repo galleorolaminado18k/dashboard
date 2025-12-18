@@ -207,6 +207,9 @@ export async function POST(request: NextRequest) {
       console.log('✅ Número normalizado:', { original: from, normalized: phone })
       console.log('💬 Procesando mensaje:', { from, phone, body: body.substring(0, 50), pushName })
 
+      // 🚨 LOG CRÍTICO: Ver número exacto antes de guardar en DB
+      console.log('🚨 CRÍTICO - Guardando conversación con número:', phone, '| Nombre:', pushName || `Cliente ${phone.slice(-4)}`)
+
       // Buscar o crear conversación
       const { data: existing, error: searchError } = await supabase
         .from('crm_conversations')
