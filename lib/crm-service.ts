@@ -139,8 +139,8 @@ export function formatPhone(phone: string): string {
     return cleaned.slice(2)
   }
 
-  // 6. Validaciones de longitud estándar E.164 (aprox 10-15 dígitos)
-  if (cleaned.length >= 10 && cleaned.length <= 15) {
+  // 6. Validaciones de longitud estándar E.164 (aprox 10-15+ dígitos)
+  if (cleaned.length >= 10 && cleaned.length <= 16) {
     return cleaned
   }
 
@@ -171,6 +171,7 @@ export async function getOrCreateConversation(
     const { data: updated } = await supabase
       .from('crm_conversations')
       .update({
+        client_name: clientName || existing.client_name, // ✅ Actualizar nombre si cambia
         last_message: initialMessage,
         timestamp: new Date().toISOString(),
         unread: existing.unread + 1,

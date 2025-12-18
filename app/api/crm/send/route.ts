@@ -35,35 +35,48 @@ export async function POST(request: NextRequest) {
     // Si hay conversationId, SIEMPRE usar el teléfono y wa_number de la base de datos
     if (conversationId) {
       const supabase = createClient()
+      // Usamos select('*') para ser resilientes a cambios en el esquema y evitar errores por columnas faltantes
       const { data: conv, error: convError } = await supabase
         .from('crm_conversations')
-        .select('phone, wa_number, client_name')
+        .select('*')
         .eq('id', conversationId)
         .single()
 
       if (convError) {
         console.error('❌ Error consultando conversación:', convError)
+        // Log extra para ver si el ID es el que causa el error
+        console.log('🔍 ID buscado:', conversationId)
         return NextResponse.json(
-          { ok: false, error: 'Error consultando la conversación' },
+          { ok: false, error: 'Error consultando la conversación en la base de datos' },
           { status: 500 }
         )
       }
 
       // 🚨 LOG CRÍTICO: Ver qué phone está en la BD para esta conversación
-      console.log('🚨 CRÍTICO ENVÍO - conversationId:', conversationId, '| Phone en BD:', conv?.phone, '| Cliente:', conv?.client_name, '| Phone recibido del frontend:', phone)
+      console.log('🚨 CRÍTICO ENVÍO - Datos en BD:', {
+        id: conversationId,
+        phoneEnBD: conv?.phone,
+        nombreEnBD: conv?.client_name,
+        phoneRecibidoFrontend: phone
+      })
 
       if (conv?.phone) {
         // SIEMPRE usar el phone de la BD, ignorar el enviado por el cliente
         targetPhone = conv.phone
-        console.log('✅ Usando phone de BD:', targetPhone)
+        console.log('✅ Usando phone de BD para envío:', targetPhone)
       } else {
+        console.error('❌ No se encontró el teléfono para la conversación:', conversationId)
         return NextResponse.json(
-          { ok: false, error: 'No se encontró el teléfono de la conversación' },
+          { ok: false, error: 'No se encontró el teléfono asociado a esta conversación' },
           { status: 404 }
         )
       }
+      
+      // Intentar obtener wa_number de la conversación o de los metadatos
       if (conv?.wa_number) {
         waNumber = conv.wa_number
+      } else if (conv?.metadata?.wa_number) {
+        waNumber = conv.metadata.wa_number
       }
     } else {
       // Si no hay conversationId, debe venir phone en el request
