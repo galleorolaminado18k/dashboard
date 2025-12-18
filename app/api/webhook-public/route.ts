@@ -153,13 +153,47 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, ignored: 'group' })
       }
 
-      // Formatear teléfono
-      const phone = from?.replace(/@.*$/, '').replace(/\D/g, '') || ''
-      if (!phone || phone.length < 8) {
+      // ✅ NORMALIZAR teléfono correctamente (Colombia: 57XXXXXXXXXX)
+      function normalizePhone(raw: string): string | null {
+        if (!raw) return null
+        // Remover @c.us, @s.whatsapp.net, etc.
+        let cleaned = raw.replace(/@.*$/, '')
+        // Solo dígitos
+        cleaned = cleaned.replace(/\D/g, '')
+
+        // Validar longitud mínima
+        if (cleaned.length < 8) return null
+
+        // Colombia: 10 dígitos con 3 → 57XXXXXXXXXX
+        if (cleaned.length === 10 && cleaned.startsWith('3')) {
+          return `57${cleaned}`
+        }
+
+        // Ya tiene 12 dígitos y empieza con 57 → correcto
+        if (cleaned.length === 12 && cleaned.startsWith('57')) {
+          return cleaned
+        }
+
+        // Evitar duplicación 5757XXXXXXXXXX
+        if (cleaned.startsWith('5757')) {
+          return `57${cleaned.slice(4)}`
+        }
+
+        // Internacional (8-15 dígitos)
+        if (cleaned.length >= 8 && cleaned.length <= 15) {
+          return cleaned
+        }
+
+        return null
+      }
+
+      const phone = normalizePhone(from || '')
+      if (!phone) {
         console.warn('⚠️ Número inválido recibido en webhook:', { from, phone })
         return NextResponse.json({ ok: false, error: 'invalid phone' })
       }
 
+      console.log('✅ Número normalizado:', { original: from, normalized: phone })
       console.log('💬 Procesando mensaje:', { from, phone, body: body.substring(0, 50), pushName })
 
       // Buscar o crear conversación
