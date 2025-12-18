@@ -138,40 +138,60 @@ export async function POST(request: NextRequest) {
       const payload = event.payload || event.data || event
       const message = payload.message || payload
 
-      const from = message.from || message.key?.remoteJid || payload.from
+      // 🔍 Lógica sugerida por el usuario para extraer el JID real del cliente
+      function pickClientJid(m: any) {
+        const k = m?.key || {}
+        const remote = String(k.remoteJid || payload.from || "")
+        const participant = String(k.participant || "")
+
+        // grupo => el cliente es participant
+        if (remote.endsWith("@g.us")) return participant
+
+        // 1:1 => el cliente es remoteJid (aunque fromMe sea true/false)
+        return remote
+      }
+
+      function digitsFromJid(jid: string) {
+        if (!jid) return null
+        const base = jid.split("@")[0]
+        const digits = base.replace(/\D/g, "")
+        return digits || null
+      }
+
+      const clientJid = pickClientJid(message)
+      const rawPhone = digitsFromJid(clientJid)
+
       const body = message.body || message.message?.conversation ||
                    message.message?.extendedTextMessage?.text || ''
       const pushName = message.pushName || message.notifyName || ''
 
       // 🔍 LOG DETALLADO: Ver QUÉ está llegando
       console.log('🔍 WEBHOOK DEBUG:', {
-        from,
-        fromType: typeof from,
+        clientJid,
+        rawPhone,
         body: body?.substring(0, 50),
         pushName,
         fromMe: message.fromMe || message.key?.fromMe,
-        hasGroupMarker: from?.includes('@g.us'),
-        hasBroadcastMarker: from?.includes('@broadcast'),
+        remoteJid: message.key?.remoteJid,
+        participant: message.key?.participant
       })
 
-      // Ignorar mensajes propios y grupos
+      // Ignorar mensajes propios (los grupos los procesamos por participante ahora)
       if (message.fromMe || message.key?.fromMe) {
         console.log('🔕 Ignorado mensaje propio')
         return NextResponse.json({ ok: true, ignored: 'fromMe' })
       }
-      if (from?.includes('@g.us') || from?.includes('@broadcast')) {
-        console.log('🔕 Ignorado mensaje de grupo/broadcast', { from })
-        return NextResponse.json({ ok: true, ignored: 'group' })
+
+      // Si después de pickClientJid no tenemos un JID válido o es broadcast, ignorar
+      if (!clientJid || clientJid.includes('@broadcast')) {
+        console.log('🔕 Ignorado broadcast o JID inválido', { clientJid })
+        return NextResponse.json({ ok: true, ignored: 'broadcast' })
       }
 
       // ✅ NORMALIZAR teléfono correctamente (Colombia: 57XXXXXXXXXX)
-      function normalizePhone(raw: string): string | null {
-        if (!raw) return null
-        // Remover @c.us, @s.whatsapp.net, etc.
-        let cleaned = raw.replace(/@.*$/, '')
-        // Solo dígitos
-        cleaned = cleaned.replace(/\D/g, '')
-
+      function normalizePhone(cleaned: string | null): string | null {
+        if (!cleaned) return null
+        
         // Validar longitud mínima
         if (cleaned.length < 8) return null
 
@@ -190,22 +210,22 @@ export async function POST(request: NextRequest) {
           return `57${cleaned.slice(4)}`
         }
 
-        // Internacional (8-15 dígitos)
-        if (cleaned.length >= 8 && cleaned.length <= 15) {
+        // Internacional (8-16 dígitos)
+        if (cleaned.length >= 8 && cleaned.length <= 16) {
           return cleaned
         }
 
         return null
       }
 
-      const phone = normalizePhone(from || '')
+      const phone = normalizePhone(rawPhone)
       if (!phone) {
-        console.warn('⚠️ Número inválido recibido en webhook:', { from, phone })
+        console.warn('⚠️ Número inválido recibido en webhook:', { clientJid, rawPhone, phone })
         return NextResponse.json({ ok: false, error: 'invalid phone' })
       }
 
-      console.log('✅ Número normalizado:', { original: from, normalized: phone })
-      console.log('💬 Procesando mensaje:', { from, phone, body: body.substring(0, 50), pushName })
+      console.log('✅ Número normalizado:', { original: clientJid, normalized: phone })
+      console.log('💬 Procesando mensaje:', { clientJid, phone, body: body.substring(0, 50), pushName })
 
       // 🚨 LOG CRÍTICO: Ver número exacto antes de guardar en DB
       console.log('🚨 CRÍTICO - Guardando conversación con número:', phone, '| Nombre:', pushName || `Cliente ${phone.slice(-4)}`)

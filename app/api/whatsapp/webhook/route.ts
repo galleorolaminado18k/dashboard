@@ -68,16 +68,28 @@ async function handleIncomingMessage(event: any) {
     const payload = event.payload || event.data || event
     const message = payload.message || payload
 
-    // Obtener información del remitente
-    const from = message.from || message.key?.remoteJid || payload.from
+    // 🔍 Lógica sugerida por el usuario para extraer el JID real del cliente
+    function pickClientJid(m: any) {
+      const k = m?.key || {}
+      const remote = String(k.remoteJid || payload.from || "")
+      const participant = String(k.participant || "")
+
+      // grupo => el cliente es participant
+      if (remote.endsWith("@g.us")) return participant
+
+      // 1:1 => el cliente es remoteJid (aunque fromMe sea true/false)
+      return remote
+    }
+
+    const clientJid = pickClientJid(message)
     const body = message.body || message.message?.conversation ||
                  message.message?.extendedTextMessage?.text || ''
     const pushName = message.pushName || message.notifyName || ''
     const type = message.type || 'text'
 
-    // ⚠️ VALIDACIÓN CRÍTICA: Verificar que 'from' no sea vacío ni inválido
-    if (!from || typeof from !== 'string') {
-      console.error('❌ Número de origen inválido o vacío:', from)
+    // ⚠️ VALIDACIÓN CRÍTICA: Verificar que 'clientJid' no sea vacío ni inválido
+    if (!clientJid || typeof clientJid !== 'string') {
+      console.error('❌ JID de origen inválido o vacío:', clientJid)
       return
     }
 
@@ -87,19 +99,19 @@ async function handleIncomingMessage(event: any) {
       return
     }
 
-    // Ignorar mensajes de grupos o broadcasts
-    if (from?.includes('@g.us') || from?.includes('@broadcast')) {
-      console.log('👥 Mensaje de grupo/broadcast, ignorando...')
+    // Ignorar broadcasts (los grupos ahora los procesamos por participante)
+    if (clientJid.includes('@broadcast')) {
+      console.log('📡 Mensaje de broadcast, ignorando...')
       return
     }
 
     // ✅ Normalizar y validar número ANTES de guardar
-    const formattedPhone = formatPhone(from)
+    const formattedPhone = formatPhone(clientJid)
 
-    // Validación estricta: debe tener entre 10 y 15 dígitos
-    if (!formattedPhone || formattedPhone.length < 10 || formattedPhone.length > 15) {
+    // Validación estricta: debe tener entre 10 y 16 dígitos
+    if (!formattedPhone || formattedPhone.length < 10 || formattedPhone.length > 16) {
       console.error('❌ Número normalizado inválido, rechazando mensaje:', {
-        original: from,
+        original: clientJid,
         formatted: formattedPhone
       })
       return
@@ -113,7 +125,7 @@ async function handleIncomingMessage(event: any) {
 
     console.log('💬 Mensaje entrante para CRM:', {
       from: formattedPhone,
-      original: from,
+      original: clientJid,
       text: body.substring(0, 50) + (body.length > 50 ? '...' : ''),
       type,
       clientName: pushName,
