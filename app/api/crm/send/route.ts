@@ -3,212 +3,178 @@
  * Envía mensajes a través del gateway de WhatsApp
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
-import { formatPhone, saveMessage } from '@/lib/crm-service'
+import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/client"
+import { formatPhone, saveMessage } from "@/lib/crm-service"
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 // URL del gateway de WhatsApp en el VPS
-const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://31.220.58.83:3010'
+const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || "http://31.220.58.83:3010"
+
+function digitsOnly(raw: string) {
+    return String(raw || "").replace(/\D/g, "")
+}
 
 /**
- * POST /api/crm/send
- * Enviar un mensaje de WhatsApp
+ * Convierte cualquier cosa que venga como:
+ * - 57300...@s.whatsapp.net ✅
+ * - 57300...@c.us ✅
+ * - 6030...@lid ❌  -> ✅ 6030...@s.whatsapp.net
+ * - " +57 300..." -> ✅ 57300...@s.whatsapp.net
  */
+function toSendableJid(input: any): string | null {
+    const s = String(input || "")
+    // ya es jid válido
+    if (s.includes("@")) {
+        const [left, domain] = s.split("@")
+        const d = digitsOnly(left)
+        if (d.length < 10 || d.length > 15) return null
+
+        // 🔥 CLAVE: lid -> s.whatsapp.net
+        if (domain === "lid") return `${d}@s.whatsapp.net`
+
+        // normaliza dominios conocidos
+        if (domain === "c.us") return `${d}@s.whatsapp.net`
+        if (domain === "s.whatsapp.net") return `${d}@s.whatsapp.net`
+
+        // grupos / broadcast, no los tocamos
+        return `${d}@${domain}`
+    }
+
+    // no trae @ -> convertir a dígitos y a jid
+    const d = digitsOnly(s)
+    if (d.length < 10 || d.length > 15) return null
+    return `${d}@s.whatsapp.net`
+}
+
 export async function POST(request: NextRequest) {
-  function buildToJid(conversation: any) {
-    const jid = conversation?.client_jid
-    if (jid && typeof jid === "string" && jid.includes("@")) return jid
-
-    const raw = String(conversation?.phone_norm || conversation?.phone || "")
-    const digits = raw.replace(/\D/g, "")
-    if (digits.length < 10 || digits.length > 15) return null
-    return `${digits}@s.whatsapp.net`
-  }
-
-  try {
-    const body = await request.json()
-    const { conversationId, phone, message, type = 'text', mediaUrl, mimetype, filename, caption, wa_number: waNumberFromBody } = body
-
-    if (!phone && !conversationId) {
-      return NextResponse.json(
-        { ok: false, error: 'Se requiere phone o conversationId' },
-        { status: 400 }
-      )
-    }
-
-    let targetPhone = phone
-    let waNumber = waNumberFromBody || null
-
-    // Si hay conversationId, SIEMPRE usar el teléfono y wa_number de la base de datos
-    if (conversationId) {
-      const supabase = createClient()
-      // Usamos select('*') para ser resilientes a cambios en el esquema y evitar errores por columnas faltantes
-      const { data: conv, error: convError } = await supabase
-        .from('crm_conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single()
-
-      if (convError) {
-        console.error('❌ Error consultando conversación:', convError)
-        // Log extra para ver si el ID es el que causa el error
-        console.log('🔍 ID buscado:', conversationId)
-        return NextResponse.json(
-          { ok: false, error: 'Error consultando la conversación en la base de datos' },
-          { status: 500 }
-        )
-      }
-
-      // 🚨 LOG CRÍTICO: Ver qué phone está en la BD para esta conversación
-      console.log('🚨 CRÍTICO ENVÍO - Datos en BD:', {
-        id: conversationId,
-        phoneEnBD: conv?.phone,
-        nombreEnBD: conv?.client_name,
-        phoneRecibidoFrontend: phone
-      })
-
-      const to_jid = buildToJid(conv)
-      if (!to_jid) {
-        console.error('❌ No se encontró el identificador (JID) para la conversación:', conversationId)
-        return NextResponse.json(
-          { ok: false, error: 'No se encontró un destinatario válido para esta conversación' },
-          { status: 404 }
-        )
-      }
-
-      console.log('🚨 CRÍTICO - JID FINAL que se enviará al gateway:', to_jid)
-
-      await fetch(`${GATEWAY_URL}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: to_jid, // ✅ AQUÍ
-          message,
-          type,
-          mediaUrl,
-          mimetype,
-          filename,
-          caption,
-        }),
-      })
-
-      // Intentar obtener wa_number de la conversación o de los metadatos
-      if (conv?.wa_number) {
-        waNumber = conv.wa_number
-      } else if (conv?.metadata?.wa_number) {
-        waNumber = conv.metadata.wa_number
-      }
-    } else {
-      // Si no hay conversationId, debe venir phone en el request
-      if (!targetPhone) {
-        return NextResponse.json(
-          { ok: false, error: 'Se requiere phone si no hay conversationId' },
-          { status: 400 }
-        )
-      }
-      
-      // Si el número no es un JID completo, normalizarlo
-      if (!targetPhone.includes('@')) {
-        const validationResult = formatPhone(targetPhone);
-        if (validationResult) {
-          targetPhone = `${validationResult}@s.whatsapp.net`
-        }
-      }
-    }
-
-    // 🚨 LOG CRÍTICO FINAL: Ver número exacto que se enviará al gateway
-    console.log('🚨 CRÍTICO - Destinatario FINAL que se enviará al gateway:', targetPhone, '| Mensaje:', message?.substring(0, 30))
-
-    if (type === 'text' && !message) {
-      return NextResponse.json(
-        { ok: false, error: 'Se requiere message para tipo texto' },
-        { status: 400 }
-      )
-    }
-
-    console.log(`📤 Enviando mensaje a ${targetPhone}:`, { type, message: message?.substring(0, 50), gateway: GATEWAY_URL, mediaUrl, mimetype, filename, caption })
-
-    // Verificar que el gateway esté configurado
-    if (!GATEWAY_URL || GATEWAY_URL === 'http://localhost:3010') {
-      console.error('❌ WHATSAPP_GATEWAY_URL no configurado correctamente')
-      return NextResponse.json(
-        { ok: false, error: 'Gateway no configurado. Configura WHATSAPP_GATEWAY_URL en Vercel.' },
-        { status: 503 }
-      )
-    }
-
-    // Enviar al gateway con timeout
-    let gatewayResponse: Response
-    let gatewayData: any
-
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 segundos
+        const body = await request.json()
+        const {
+            conversationId,
+            phone,
+            message,
+            type = "text",
+            mediaUrl,
+            mimetype,
+            filename,
+            caption,
+            wa_number: waNumberFromBody,
+        } = body
 
-      gatewayResponse = await fetch(`${GATEWAY_URL}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: targetPhone,
-          message,
-          type,
-          mediaUrl,
-          mimetype,
-          filename,
-          caption, // Descripción opcional para medios
-        }),
-        signal: controller.signal,
-      })
+        if (!phone && !conversationId) {
+            return NextResponse.json({ ok: false, error: "Se requiere phone o conversationId" }, { status: 400 })
+        }
 
-      clearTimeout(timeoutId)
-      gatewayData = await gatewayResponse.json()
-    } catch (fetchError: any) {
-      console.error('❌ Error de conexión con gateway:', fetchError.message)
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `No se pudo conectar con el gateway de WhatsApp: ${fetchError.message}`,
-          hint: 'Verifica que el gateway esté corriendo en el VPS y que WHATSAPP_GATEWAY_URL esté configurado en Vercel'
-        },
-        { status: 503 }
-      )
+        if (type === "text" && !message) {
+            return NextResponse.json({ ok: false, error: "Se requiere message para tipo texto" }, { status: 400 })
+        }
+
+        if (!GATEWAY_URL || GATEWAY_URL.includes("localhost")) {
+            return NextResponse.json(
+                { ok: false, error: "Gateway no configurado. Configura WHATSAPP_GATEWAY_URL en Vercel." },
+                { status: 503 }
+            )
+        }
+
+        const supabase = createClient()
+
+        let waNumber: string | null = waNumberFromBody || null
+        let toJid: string | null = null
+        let conv: any = null
+
+        if (conversationId) {
+            const { data, error } = await supabase.from("crm_conversations").select("*").eq("id", conversationId).single()
+            if (error) {
+                console.error("❌ Error consultando conversación:", error)
+                return NextResponse.json({ ok: false, error: "Error consultando la conversación en la base de datos" }, { status: 500 })
+            }
+            conv = data
+
+            // ✅ usar client_jid si existe, pero ARREGLANDO @lid
+            toJid = toSendableJid(conv?.client_jid) || toSendableJid(conv?.phone_norm) || toSendableJid(conv?.phone)
+
+            // wa_number para guardar el mensaje
+            waNumber = conv?.wa_number || conv?.metadata?.wa_number || waNumber
+        } else {
+            // si viene por phone directo
+            // formatPhone (tu helper) puede devolver e164 sin @
+            const formatted = phone?.includes("@") ? phone : formatPhone(phone)
+            toJid = toSendableJid(formatted || phone)
+        }
+
+        if (!toJid) {
+            return NextResponse.json({ ok: false, error: "No se encontró un destinatario válido (JID) para enviar" }, { status: 400 })
+        }
+
+        console.log("🚨 CRÍTICO - JID FINAL que se enviará al gateway:", toJid)
+
+        // 🔥 ENVIAR SOLO UNA VEZ (no doble envío)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+        let gatewayRes: Response
+        let gatewayData: any
+
+        try {
+            gatewayRes = await fetch(`${GATEWAY_URL}/send`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    to: toJid,      // ✅ lo correcto para Baileys
+                    phone: toJid,   // ✅ por compatibilidad si tu gateway lee "phone"
+                    message,
+                    type,
+                    mediaUrl,
+                    mimetype,
+                    filename,
+                    caption,
+                }),
+                signal: controller.signal,
+            })
+            clearTimeout(timeoutId)
+
+            // algunos gateways devuelven vacío; intenta json pero no te mueras si falla
+            try {
+                gatewayData = await gatewayRes.json()
+            } catch {
+                gatewayData = { ok: gatewayRes.ok }
+            }
+        } catch (e: any) {
+            clearTimeout(timeoutId)
+            console.error("❌ Error de conexión con gateway:", e?.message || e)
+            return NextResponse.json({ ok: false, error: `No se pudo conectar con el gateway: ${e?.message || e}` }, { status: 503 })
+        }
+
+        if (!gatewayData?.ok) {
+            console.error("❌ Error del gateway:", gatewayData)
+            return NextResponse.json({ ok: false, error: gatewayData?.error || "Error enviando mensaje" }, { status: 500 })
+        }
+
+        // Guardar el mensaje en BD
+        if (conversationId) {
+            const contentToSave =
+                type === "text" ? message : caption || (type === "audio" ? "[Nota de voz]" : `[${type}]`)
+
+            try {
+                await saveMessage(
+                    conversationId,
+                    "agent",
+                    contentToSave,
+                    type as any,
+                    { type, filename, mimetype, mediaUrl },
+                    waNumber || "0000000000"
+                )
+            } catch (saveError) {
+                console.error("❌ Error guardando mensaje en CRM:", saveError)
+            }
+        }
+
+        return NextResponse.json({ ok: true, to: toJid })
+    } catch (error) {
+        console.error("❌ Error en /api/crm/send:", error)
+        return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
     }
-
-    if (!gatewayData.ok) {
-      console.error('❌ Error del gateway:', gatewayData.error, { mediaUrl, mimetype, filename, caption })
-      return NextResponse.json(
-        { ok: false, error: gatewayData.error || 'Error enviando mensaje' },
-        { status: 500 }
-      )
-    }
-
-    // Guardar el mensaje en la base de datos usando la función centralizada
-    if (conversationId) {
-      try {
-        const contentToSave = type === 'text'
-          ? message
-          : caption || (type === 'audio' ? '[Nota de voz]' : `[${type}]`)
-        
-        await saveMessage(
-          conversationId,
-          'agent',
-          contentToSave,
-          type as any,
-          { type, filename, mimetype, mediaUrl },
-          waNumber || '0000000000'
-        )
-        console.log('[CRM] Mensaje guardado correctamente en CRM')
-      } catch (saveError) {
-        console.error('❌ Error guardando mensaje en CRM:', saveError)
-      }
-    }
-
-    return NextResponse.json({ ok: true })
-  } catch (error) {
-    console.error('❌ Error en /api/crm/send:', error)
-    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
-  }
 }
