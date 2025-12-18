@@ -283,6 +283,19 @@ function normalizarNumero(phone: string): string | null {
   return clean;
 }
 
+// ============================== // ✅ AGREGADO: normalización robusta para WhatsApp en frontend
+// Acepta: "+57 301...", "5730...", "5730...@c.us"
+// Devuelve solo dígitos E.164 (sin +, sin espacios)
+function normalizeToE164(raw: string) {
+  if (!raw) return null;
+  const noJid = raw.split("@")[0];
+  let d = noJid.replace(/\D/g, "");
+  if (d.length === 10 && d.startsWith("3")) d = `57${d}`;
+  if (d.startsWith("5757")) d = d.replace(/^5757/, "57");
+  if (d.length < 10 || d.length > 15) return null;
+  return d;
+}
+
 export default function CRMPage() {
   const [selectedEstado, setSelectedEstado] = useState("todas")
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
@@ -395,7 +408,7 @@ export default function CRMPage() {
             mediaType: (m.metadata && m.metadata.type) || m.type || null,
             mediaUrl: (m.metadata && (m.metadata.mediaUrl || m.metadata.url)) || m.mediaUrl || null,
             mimetype: (m.metadata && m.metadata.mimetype) || m.mimetype || null,
-            filename: (m.metadata && m.metadata.filename) || m.filename || null,
+            filename: (m.metadata && m.metadata.filename) || m.filename || null
           }
         }))
         // LOG: Verificar mensajes cargados y mediaUrl
@@ -502,11 +515,12 @@ export default function CRMPage() {
     const messageToSend = messageInput.trim()
     setMessageInput("")
     setSendingMessage(true)
-    const phoneNormalizado = normalizarNumero(currentConversation.phone || "");
-    if (!phoneNormalizado) {
-      alert('Número de teléfono inválido para WhatsApp.')
-      setSendingMessage(false)
-      return
+    // Usar la nueva función robusta
+    const phoneNormalized = normalizeToE164(currentConversation.phone || currentConversation?.wa_id || "");
+    if (!phoneNormalized) {
+      alert('Número de teléfono inválido para WhatsApp.');
+      setSendingMessage(false);
+      return;
     }
 
     try {
@@ -515,7 +529,7 @@ export default function CRMPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConversation,
-          phone: phoneNormalizado,
+          phone: phoneNormalized,
           message: messageToSend,
           type: 'text',
         }),
