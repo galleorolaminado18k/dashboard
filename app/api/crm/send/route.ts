@@ -18,6 +18,16 @@ const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://31.220.58.83:301
  * Enviar un mensaje de WhatsApp
  */
 export async function POST(request: NextRequest) {
+  function buildToJid(conversation: any) {
+    const jid = conversation?.client_jid
+    if (jid && typeof jid === "string" && jid.includes("@")) return jid
+
+    const raw = String(conversation?.phone_norm || conversation?.phone || "")
+    const digits = raw.replace(/\D/g, "")
+    if (digits.length < 10 || digits.length > 15) return null
+    return `${digits}@s.whatsapp.net`
+  }
+
   try {
     const body = await request.json()
     const { conversationId, phone, message, type = 'text', mediaUrl, mimetype, filename, caption, wa_number: waNumberFromBody } = body
@@ -60,31 +70,31 @@ export async function POST(request: NextRequest) {
         phoneRecibidoFrontend: phone
       })
 
-      if (conv?.client_jid) {
-        // ✅ PRIORIDAD ABSOLUTA: Usar el JID real exacto (incluyendo @lid)
-        targetPhone = conv.client_jid
-        console.log('✅ Usando client_jid de BD para envío:', targetPhone)
-      } else if (conv?.phone_norm) {
-        // Fallback al phone normalizado si no hay JID
-        targetPhone = `${conv.phone_norm}@s.whatsapp.net`
-        console.log('⚠️ Usando phone_norm de BD para envío:', targetPhone)
-      } else if (conv?.remote_jid) {
-        // Fallback al remote_jid anterior si existe
-        targetPhone = conv.remote_jid
-        console.log('⚠️ Usando remote_jid anterior de BD:', targetPhone)
-      } else if (conv?.phone) {
-        // Fallback final al phone
-        const cleaned = conv.phone.replace(/\D/g, '')
-        targetPhone = `${cleaned}@s.whatsapp.net`
-        console.log('⚠️ Usando phone de BD:', targetPhone)
-      } else {
+      const to_jid = buildToJid(conv)
+      if (!to_jid) {
         console.error('❌ No se encontró el identificador (JID) para la conversación:', conversationId)
         return NextResponse.json(
           { ok: false, error: 'No se encontró un destinatario válido para esta conversación' },
           { status: 404 }
         )
       }
-      
+
+      console.log('🚨 CRÍTICO - JID FINAL que se enviará al gateway:', to_jid)
+
+      await fetch(`${GATEWAY_URL}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: to_jid, // ✅ AQUÍ
+          message,
+          type,
+          mediaUrl,
+          mimetype,
+          filename,
+          caption,
+        }),
+      })
+
       // Intentar obtener wa_number de la conversación o de los metadatos
       if (conv?.wa_number) {
         waNumber = conv.wa_number
@@ -99,18 +109,14 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-    }
-
-    // Normalización y validación de número usando la lógica unificada
-    const validationResult = formatPhone(targetPhone);
-    if (!validationResult) {
-      console.error('❌ Teléfono con formato inválido (después de limpiar):', targetPhone)
-      return NextResponse.json({ ok: false, error: 'Teléfono con formato inválido' }, { status: 400 })
-    }
-    
-    // Si el número no es un JID completo, usamos el normalizado
-    if (!targetPhone.includes('@')) {
-      targetPhone = validationResult;
+      
+      // Si el número no es un JID completo, normalizarlo
+      if (!targetPhone.includes('@')) {
+        const validationResult = formatPhone(targetPhone);
+        if (validationResult) {
+          targetPhone = `${validationResult}@s.whatsapp.net`
+        }
+      }
     }
 
     // 🚨 LOG CRÍTICO FINAL: Ver número exacto que se enviará al gateway

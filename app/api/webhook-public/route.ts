@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
 
     const eventType = event.event || event.type
 
+    function extractJidAndDigits(remoteJid?: string | null) {
+      const jid = remoteJid || null
+      const digits = jid ? jid.split("@")[0].replace(/\D/g, "") : null
+      return { jid, digits }
+    }
+
     // Helper: subir data URL (base64) a Cloudinary y devolver metadata actualizada
     async function uploadDataUrlToCloudinary(metadata: Record<string, any>) {
       try {
@@ -185,8 +191,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, ignored: 'no_client_jid' })
       }
 
-      // Normalizar para mostrar (opcional)
-      const phoneDisplay = clientJid.split('@')[0].replace(/\D/g, '')
+      const { jid: client_jid, digits } = extractJidAndDigits(clientJid);
+      const phone_norm = digits && digits.length >= 10 && digits.length <= 15 ? digits : null;
 
       const body = message.body || message.message?.conversation ||
                    message.message?.extendedTextMessage?.text || ''
@@ -211,17 +217,16 @@ export async function POST(request: NextRequest) {
       const { data: conversation, error: upsertError } = await supabase
         .from("crm_conversations")
         .upsert({
-          wa_number: activeWaNumber,
-          client_jid: clientJid,        // ✅ VERDAD PARA RESPONDER
-          client_jid_alt: jidAlt || null,
-          phone: phoneDisplay || null,  // Solo para mostrar
-          client_name: pushName || `Cliente ${phoneDisplay.slice(-4) || 'WhatsApp'}`,
+          client_jid, // ✅ GUARDA EL JID EXACTO
+          phone: phone_norm ?? (digits || clientJid), // display
+          phone_norm, // display / filtros
+          client_name: pushName || `Cliente ${digits?.slice(-4) || 'WhatsApp'}`,
           last_message: body,
           timestamp: new Date().toISOString(),
           canal: 'whatsapp',
           status: 'por-contestar',
           updated_at: new Date().toISOString(),
-        }, { onConflict: "wa_number,client_jid" })
+        }, { onConflict: "id" })
         .select()
         .single()
 

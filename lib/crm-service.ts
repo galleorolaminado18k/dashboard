@@ -189,6 +189,7 @@ export async function getOrCreateConversation(
           status: CRM_ESTADOS.POR_CONTESTAR,
           updated_at: new Date().toISOString(),
           phone: formattedPhone || existing.phone,
+          phone_norm: formattedPhone || existing.phone_norm,
           client_jid_alt: client_jid_alt || existing.client_jid_alt,
           remote_jid: remote_jid || existing.remote_jid,
         })
