@@ -143,13 +143,24 @@ export async function POST(request: NextRequest) {
                    message.message?.extendedTextMessage?.text || ''
       const pushName = message.pushName || message.notifyName || ''
 
+      // 🔍 LOG DETALLADO: Ver QUÉ está llegando
+      console.log('🔍 WEBHOOK DEBUG:', {
+        from,
+        fromType: typeof from,
+        body: body?.substring(0, 50),
+        pushName,
+        fromMe: message.fromMe || message.key?.fromMe,
+        hasGroupMarker: from?.includes('@g.us'),
+        hasBroadcastMarker: from?.includes('@broadcast'),
+      })
+
       // Ignorar mensajes propios y grupos
       if (message.fromMe || message.key?.fromMe) {
         console.log('🔕 Ignorado mensaje propio')
         return NextResponse.json({ ok: true, ignored: 'fromMe' })
       }
       if (from?.includes('@g.us') || from?.includes('@broadcast')) {
-        console.log('🔕 Ignorado mensaje de grupo/broadcast')
+        console.log('🔕 Ignorado mensaje de grupo/broadcast', { from })
         return NextResponse.json({ ok: true, ignored: 'group' })
       }
 
