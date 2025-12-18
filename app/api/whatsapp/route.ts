@@ -1,244 +1,242 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
-// ============================== // EXISTENTE (no se elimina)
 const GATEWAY_URL = process.env.BAILEYS_GATEWAY_URL || "http://localhost:3010"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-// ============================== // ✅ AGREGADO: Supabase (solo server)
-// Requiere en Vercel:
-// - NEXT_PUBLIC_SUPABASE_URL
-// - SUPABASE_SERVICE_ROLE_KEY   (NO la expongas en el cliente)
-// ==============================
-import { createClient } from "@supabase/supabase-js"
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-
+// ✅ Supabase (service role para escribir config global)
+const SUPABASE_URL = process.env.SUPABASE_URL || ""
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 const supabase =
-  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-        auth: { persistSession: false },
-      })
-    : null
+    SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+        ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+        : null
 
-// ============================== // ✅ AGREGADO: normalización robusta para WhatsApp
-// Acepta: "+57 301...", "5730...", "5730...@c.us"
-// Devuelve solo dígitos E.164 (sin +, sin espacios)
-// ==============================
-function normalizeWaE164(raw?: string | null): string | null {
-  if (!raw) return null
-  const noJid = String(raw).split("@")[0]
-  let digits = noJid.replace(/\D/g, "")
-  // Colombia: 10 dígitos iniciando en 3 => anteponer 57
-  if (digits.length === 10 && digits.startsWith("3")) digits = `57${digits}`
-  // evitar doble 57
-  if (digits.startsWith("5757")) digits = digits.replace(/^5757/, "57")
-  // E.164 típico: 10-15 dígitos
-  if (digits.length < 10 || digits.length > 15) return null
-  return digits
+function normalizeDigits(raw?: string | null) {
+    if (!raw) return null
+    // quita @c.us / @s.whatsapp.net etc
+    const base = raw.split("@")[0]
+    const digits = base.replace(/\D/g, "")
+    if (digits.length < 10 || digits.length > 15) return null
+    // Colombia: si 10 dígitos y empieza por 3 => +57
+    if (digits.length === 10 && digits.startsWith("3")) return `57${digits}`
+    // evitar 5757
+    if (digits.startsWith("5757")) return `57${digits.slice(4)}`
+    return digits
 }
 
-// ============================== // ✅ AGREGADO: Detectar si esta petición es webhook entrante
-// Si el body trae "from" y algún contenido, lo tratamos como webhook
-// ==============================
-function looksLikeInboundWebhook(body: any): boolean {
-  if (!body || typeof body !== "object") return false
-  // comunes: from, sender, phone, waId, jid
-  const hasFrom =
-    typeof body.from === "string" ||
-    typeof body.wa_id === "string" ||
-    typeof body.waId === "string" ||
-    typeof body.sender === "string"
-  // contenido típico
-  const hasContent =
-    typeof body.message === "string" ||
-    typeof body.text === "string" ||
-    typeof body.body === "string" ||
-    (body.message && typeof body.message === "object")
-  return Boolean(hasFrom && hasContent)
+/**
+ * Intenta sacar el número del payload típico de Baileys:
+ * status.user.id, status.me.id, status.user, status.me, etc.
+ */
+function extractConnectedNumber(status: any): { wa_number: string | null; wa_jid: string | null } {
+    const candidates: Array<string | null | undefined> = [
+        status?.user?.id,
+        status?.me?.id,
+        status?.user,
+        status?.me,
+        status?.wid,
+        status?.jid,
+    ]
+
+    const jid = candidates.find(v => typeof v === "string" && v.includes("@")) as string | undefined
+    const raw = (jid || candidates.find(v => typeof v === "string")) as string | undefined
+
+    return {
+        wa_number: normalizeDigits(raw || null),
+        wa_jid: jid || (raw?.includes("@") ? raw : null),
+    }
 }
 
-// ============================== // ✅ AGREGADO: extraer campos de distintos proveedores
-// (WAHA / Baileys gateways / otros)
-// ==============================
-function extractInbound(body: any) {
-  // from / waId
-  const rawFrom =
-    body.from ||
-    body.wa_id ||
-    body.waId ||
-    body.sender ||
-    body?.data?.from ||
-    body?.payload?.from
-  // nombre
-  const name =
-    body.name ||
-    body.pushName ||
-    body?.contact?.name ||
-    body?.data?.name ||
-    body?.payload?.name ||
-    "Desconocido"
-  // texto
-  const text =
-    body.message?.text ||
-    body.text ||
-    body.body ||
-    (typeof body.message === "string" ? body.message : "") ||
-    body?.data?.text ||
-    body?.payload?.text ||
-    ""
-  // tipo
-  const type =
-    body.type ||
-    body.message?.type ||
-    body?.data?.type ||
-    body?.payload?.type ||
-    "text"
-  // id mensaje (si existe)
-  const msgId =
-    body.id ||
-    body.messageId ||
-    body.message?.id ||
-    body?.data?.id ||
-    body?.payload?.id ||
-    null
-  // tu número (cuenta conectada) si llega por algún lado
-  const rawWaNumber =
-    body.wa_number ||
-    body.waNumber ||
-    body?.account ||
-    body?.data?.wa_number ||
-    body?.payload?.wa_number ||
-    null
-  return { rawFrom, rawWaNumber, name, text, type, msgId }
-}
-
-// ============================== // ✅ AGREGADO: Handler webhook → UPSERT conversaciones + INSERT mensajes
-// NO elimina nada. Solo agrega auto-sync.
-// ==============================
-async function handleInboundWebhook(req: NextRequest, body: any) {
-  try {
+async function saveActiveLineToSupabase(status: any) {
     if (!supabase) {
-      return NextResponse.json(
-        { ok: false, error: "SUPABASE_NOT_CONFIGURED" },
-        { status: 500 }
-      )
+        console.log("⚠️ Supabase no configurado (SUPABASE_URL / SERVICE_ROLE_KEY faltan). No se guardará wa_number.")
+        return
     }
-    const { rawFrom, rawWaNumber, name, text, type, msgId } = extractInbound(body)
-    const phone = normalizeWaE164(rawFrom)
-    if (!phone) {
-      return NextResponse.json(
-        { ok: false, error: "INVALID_FROM", rawFrom },
-        { status: 400 }
-      )
+
+    const { wa_number, wa_jid } = extractConnectedNumber(status)
+
+    // Si está conectado pero no pudimos leer número, igual marcamos estado
+    const payload = {
+        key: "active",
+        wa_number: wa_number,
+        wa_jid: wa_jid,
+        is_connected: Boolean(status?.isConnected),
+        last_seen: new Date().toISOString(),
+        metadata: status ?? {},
     }
-    // wa_number = tu cuenta conectada (si no llega, dejamos el default)
-    // OJO: tu DB tiene default '0000000000'. Si NO tienes multi-cuenta, puedes fijarlo a un env.
-    const wa_number_env = process.env.WA_NUMBER_E164 || null
-    const wa_number =
-      normalizeWaE164(rawWaNumber) ||
-      normalizeWaE164(wa_number_env) ||
-      "0000000000"
-    // 1) UPSERT conversación por (wa_number, phone)
-    // Tu tabla tiene unique_wa_phone (wa_number, phone) ✅
-    const now = new Date().toISOString()
-    const upsertConversation = await supabase
-      .from("crm_conversations")
-      .upsert(
-        {
-          wa_number,
-          phone,
-          client_name: String(name || "Desconocido"),
-          last_message: String(text || ""),
-          timestamp: now,
-          canal: "whatsapp",
-          updated_at: now,
-          // NOTA: unread lo puedes incrementar si quieres (se deja como está)
-        },
-        { onConflict: "wa_number,phone" }
-      )
-      .select("id, unread")
-      .single()
-    if (upsertConversation.error) {
-      return NextResponse.json(
-        { ok: false, error: "UPSERT_CONVERSATION_FAILED", detail: upsertConversation.error.message },
-        { status: 500 }
-      )
-    }
-    const conversationId = upsertConversation.data.id
-    // 2) INSERT mensaje inbound
-    // (No forzamos unique por msgId porque tu tabla no tiene columna; lo guardamos en metadata)
-    const insertMsg = await supabase.from("crm_messages").insert({
-      conversation_id: conversationId,
-      wa_number,
-      sender: "client",
-      content: String(text || ""),
-      type: ["text", "image", "audio", "video", "document"].includes(String(type))
-        ? String(type)
-        : "text",
-      direction: "inbound",
-      timestamp: now,
-      read: false,
-      metadata: {
-        raw: body,
-        msgId,
-        from: rawFrom,
-      },
-      created_at: now,
-    })
-    if (insertMsg.error) {
-      return NextResponse.json(
-        { ok: false, error: "INSERT_MESSAGE_FAILED", detail: insertMsg.error.message },
-        { status: 500 }
-      )
-    }
-    // 3) (Opcional) Incrementar unread (si quieres)
-    await supabase
-      .from("crm_conversations")
-      .update({
-        unread: (upsertConversation.data.unread ?? 0) + 1,
-        updated_at: now,
-        timestamp: now,
-        last_message: String(text || ""),
-      })
-      .eq("id", conversationId)
-    return NextResponse.json({ ok: true, conversationId, phone, wa_number }, { status: 200 })
-  } catch (err: any) {
-    console.error("❌ Webhook Error:", err)
-    return NextResponse.json(
-      { ok: false, error: "WEBHOOK_ERROR", detail: String(err?.message || err) },
-      { status: 500 }
-    )
-  }
+
+    const { error } = await supabase
+        .from("crm_whatsapp_accounts")
+        .upsert(payload, { onConflict: "key" })
+
+    if (error) console.log("❌ Error guardando línea activa:", error)
+    else console.log("✅ Línea activa guardada:", { wa_number, wa_jid })
 }
 
-// ============================== // EXISTENTE (no se elimina): Start / QR / status
 async function handleStart(req: NextRequest) {
-  // ...existing code...
+    try {
+        // Verificar si se pide forzar nuevo QR
+        const url = new URL(req.url)
+        const forceNew = url.searchParams.get("forceNew") === "true"
+
+        console.log(`🚀 WhatsApp Start - forceNew: ${forceNew}, Gateway: ${GATEWAY_URL}`)
+
+        // Si se pide forzar nuevo QR, hacer logout + restart
+        if (forceNew) {
+            console.log(`🔄 Forzando nuevo QR...`)
+
+            // Logout primero
+            try {
+                await fetch(`${GATEWAY_URL}/logout`, {
+                    method: "POST",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(10000),
+                })
+                console.log(`🧹 Logout ejecutado`)
+            } catch (e) {
+                console.log(`⚠️ Logout falló (puede ser normal):`, e)
+            }
+
+            // Esperar un poco
+            await new Promise(r => setTimeout(r, 2000))
+
+            // Restart para generar nuevo QR
+            try {
+                await fetch(`${GATEWAY_URL}/restart`, {
+                    method: "POST",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(30000),
+                })
+                console.log(`🔄 Restart ejecutado`)
+            } catch (e) {
+                console.log(`⚠️ Restart timeout (puede ser normal)`)
+            }
+
+            // Esperar a que se genere el QR
+            await new Promise(r => setTimeout(r, 8000))
+        }
+
+        // Verificar el estado actual
+        const statusRes = await fetch(`${GATEWAY_URL}/status`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+        })
+
+        const status = await statusRes.json()
+        console.log(`📊 Estado:`, JSON.stringify(status))
+
+        // ✅ Guardar línea conectada en Supabase (si está conectado o si cambió)
+        await saveActiveLineToSupabase(status)
+
+        const extracted = extractConnectedNumber(status)
+
+        // Si ya está conectado, retornar éxito
+        if (status.isConnected) {
+            return NextResponse.json(
+                {
+                    ok: true,
+                    isConnected: true,
+                    hasQR: false,
+                    qr: null,
+                    qrcode: null,
+                    waNumber: extracted.wa_number, // ✅ número automático
+                    waJid: extracted.wa_jid,
+                    message: "WhatsApp conectado",
+                },
+                { status: 200 }
+            )
+        }
+
+        // Obtener QR
+        const qrRes = await fetch(`${GATEWAY_URL}/qr`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+        })
+
+        const qrData = await qrRes.json()
+
+        if (qrData.hasQR && qrData.qr) {
+            return NextResponse.json(
+                {
+                    ok: true,
+                    isConnected: false,
+                    hasQR: true,
+                    qr: qrData.qr,
+                    qrcode: qrData.qr,
+                    message: "Escanea el código QR",
+                },
+                { status: 200 }
+            )
+        }
+
+        // Si no hay QR, intentar restart
+        if (!forceNew) {
+            console.log(`🔄 No hay QR, haciendo restart...`)
+
+            try {
+                await fetch(`${GATEWAY_URL}/restart`, {
+                    method: "POST",
+                    cache: "no-store",
+                    signal: AbortSignal.timeout(30000),
+                })
+            } catch (e) {
+                console.log(`⚠️ Restart timeout`)
+            }
+
+            await new Promise(r => setTimeout(r, 8000))
+
+            const newQrRes = await fetch(`${GATEWAY_URL}/qr`, {
+                cache: "no-store",
+                signal: AbortSignal.timeout(10000),
+            })
+
+            const newQrData = await newQrRes.json()
+
+            return NextResponse.json(
+                {
+                    ok: newQrData.hasQR || newQrData.isConnected,
+                    isConnected: newQrData.isConnected ?? false,
+                    hasQR: newQrData.hasQR ?? false,
+                    qr: newQrData.qr || null,
+                    qrcode: newQrData.qr || null,
+                    message: newQrData.message || "Esperando QR...",
+                },
+                { status: 200 }
+            )
+        }
+
+        return NextResponse.json(
+            {
+                ok: false,
+                isConnected: false,
+                hasQR: false,
+                message: "No se pudo generar QR. Intenta de nuevo.",
+            },
+            { status: 200 }
+        )
+    } catch (err: any) {
+        console.error("❌ Error:", err)
+
+        return NextResponse.json(
+            {
+                ok: false,
+                error: "GATEWAY_ERROR",
+                detail: String(err?.message || err),
+                isConnected: false,
+                hasQR: false,
+            },
+            { status: 502 }
+        )
+    }
 }
 
-// ============================== // EXISTENTE: POST y GET (no se elimina)
-// ✅ AGREGADO: POST detecta webhook vs start
 export async function POST(req: NextRequest) {
-  // Intentar leer JSON sin romper el start
-  const contentType = req.headers.get("content-type") || ""
-  if (contentType.includes("application/json")) {
-    try {
-      const body = await req.clone().json()
-      if (looksLikeInboundWebhook(body)) {
-        return handleInboundWebhook(req, body)
-      }
-    } catch {
-      // si falla parseo, seguimos al start
-    }
-  }
-  return handleStart(req)
+    return handleStart(req)
 }
 
 export async function GET(req: NextRequest) {
-  return handleStart(req)
+    return handleStart(req)
 }
-// ...existing code...
-
