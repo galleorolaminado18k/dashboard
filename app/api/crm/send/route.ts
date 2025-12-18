@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       const supabase = createClient()
       const { data: conv, error: convError } = await supabase
         .from('crm_conversations')
-        .select('phone, wa_number')
+        .select('phone, wa_number, client_name')
         .eq('id', conversationId)
         .single()
 
@@ -48,9 +48,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // 🚨 LOG CRÍTICO: Ver qué phone está en la BD para esta conversación
+      console.log('🚨 CRÍTICO ENVÍO - conversationId:', conversationId, '| Phone en BD:', conv?.phone, '| Cliente:', conv?.client_name, '| Phone recibido del frontend:', phone)
+
       if (conv?.phone) {
         // SIEMPRE usar el phone de la BD, ignorar el enviado por el cliente
         targetPhone = conv.phone
+        console.log('✅ Usando phone de BD:', targetPhone)
       } else {
         return NextResponse.json(
           { ok: false, error: 'No se encontró el teléfono de la conversación' },
@@ -90,7 +94,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Teléfono con formato inválido' }, { status: 400 })
     }
     targetPhone = cleanedPhone;
-    console.log('📞 Teléfono final para envío:', targetPhone)
+
+    // 🚨 LOG CRÍTICO FINAL: Ver número exacto que se enviará al gateway
+    console.log('🚨 CRÍTICO - Número FINAL que se enviará al gateway:', targetPhone, '| Mensaje:', message?.substring(0, 30))
 
     if (type === 'text' && !message) {
       return NextResponse.json(
