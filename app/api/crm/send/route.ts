@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/client'
+import { formatPhone, saveMessage } from '@/lib/crm-service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -74,21 +75,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Mejor normalización y validación de número
-    function normalizeAndValidatePhone(raw: string): string | null {
-      if (!raw) return null;
-      let cleaned = raw.replace(/[^\d]/g, ''); // Solo dígitos
-      // Si empieza por 57 y tiene 12 dígitos, es válido para Colombia
-      if (cleaned.startsWith('57') && cleaned.length === 12) return cleaned;
-      // Si tiene 10 dígitos, anteponer 57
-      if (cleaned.length === 10) return '57' + cleaned;
-      // Si tiene entre 8 y 15 dígitos, devolver tal cual (internacional)
-      if (cleaned.length >= 8 && cleaned.length <= 15) return cleaned;
-      // Si no cumple, es inválido
-      return null;
-    }
-
-    const cleanedPhone = normalizeAndValidatePhone(targetPhone);
+    // Normalización y validación de número usando la lógica unificada
+    const cleanedPhone = formatPhone(targetPhone);
     if (!cleanedPhone) {
       console.error('❌ Teléfono con formato inválido (después de limpiar):', targetPhone)
       return NextResponse.json({ ok: false, error: 'Teléfono con formato inválido' }, { status: 400 })
@@ -161,33 +149,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Guardar el mensaje en la base de datos
+    // Guardar el mensaje en la base de datos usando la función centralizada
     if (conversationId) {
-      const supabase = createClient()
-      const contentToSave = type === 'text'
-        ? message
-        : caption || (type === 'audio' ? '[Nota de voz]' : `[${type}]`)
-      const insertData = {
-        conversation_id: conversationId,
-        wa_number: waNumber || '0000000000', // Siempre guardar wa_number
-        sender: 'agent',
-        content: contentToSave,
-        type,
-        direction: 'outbound',
-        metadata: { type, filename, mimetype, mediaUrl },
-        timestamp: new Date().toISOString(),
-        read: true,
-        created_at: new Date().toISOString(),
-      }
-      // LOG: Verificar datos antes de guardar
-      console.log('[CRM] Insertando en crm_messages:', JSON.stringify(insertData, null, 2))
-      const { error: insertError } = await supabase
-        .from('crm_messages')
-        .insert(insertData)
-      if (insertError) {
-        console.error('❌ Error insertando mensaje en crm_messages:', insertError)
-      } else {
-        console.log('[CRM] Mensaje guardado correctamente en crm_messages')
+      try {
+        const contentToSave = type === 'text'
+          ? message
+          : caption || (type === 'audio' ? '[Nota de voz]' : `[${type}]`)
+        
+        await saveMessage(
+          conversationId,
+          'agent',
+          contentToSave,
+          type as any,
+          { type, filename, mimetype, mediaUrl },
+          waNumber || '0000000000'
+        )
+        console.log('[CRM] Mensaje guardado correctamente en CRM')
+      } catch (saveError) {
+        console.error('❌ Error guardando mensaje en CRM:', saveError)
       }
     }
 

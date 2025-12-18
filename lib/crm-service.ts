@@ -44,12 +44,15 @@ export interface CRMConversation {
 export interface CRMMessage {
   id?: string
   conversation_id: string
+  wa_number?: string
   sender: 'client' | 'agent'
   content: string
   type: 'text' | 'image' | 'audio' | 'video' | 'document'
+  direction?: 'inbound' | 'outbound'
   timestamp: string
   read: boolean
   metadata?: Record<string, any>
+  created_at?: string
 }
 
 /**
@@ -106,40 +109,43 @@ export function determineInitialStatus(message: string): string {
 
 /**
  * Formatear y normalizar número de teléfono a formato colombiano 57XXXXXXXXXX
+ * O mantener formato internacional si ya viene con código de país.
  */
 export function formatPhone(phone: string): string {
   if (!phone) return ''
 
-  // Remover @c.us, @s.whatsapp.net, etc.
-  let cleaned = phone.replace(/@.*$/, '')
+  // 1. Manejar formatos especiales de WhatsApp
+  if (phone.includes('@broadcast') || phone.includes('@g.us')) {
+    return '' // Ignorar grupos y estados
+  }
 
-  // Remover caracteres no numéricos
+  // 2. Remover @c.us, @s.whatsapp.net, etc.
+  let cleaned = phone.split('@')[0]
+
+  // 3. Remover caracteres no numéricos
   cleaned = cleaned.replace(/\D/g, '')
 
-  // Si no tiene dígitos o tiene menos de 8, es inválido
-  if (!cleaned || cleaned.length < 8) return cleaned
+  // 4. Si no tiene dígitos, es inválido
+  if (!cleaned) return ''
 
-  // Colombia: si tiene 10 dígitos y empieza con 3, anteponer 57
+  // 5. Normalización específica para Colombia
+  // Si tiene 10 dígitos y empieza con 3, anteponer 57
   if (cleaned.length === 10 && cleaned.startsWith('3')) {
     return `57${cleaned}`
   }
 
-  // Si ya tiene 12 dígitos y empieza con 57, está correcto
-  if (cleaned.length === 12 && cleaned.startsWith('57')) {
-    return cleaned
-  }
-
   // Evitar duplicación 5757XXXXXXXXXX
-  if (cleaned.startsWith('5757')) {
-    return `57${cleaned.slice(4)}`
+  if (cleaned.startsWith('5757') && cleaned.length >= 12) {
+    return cleaned.slice(2)
   }
 
-  // Si tiene entre 8 y 15 dígitos pero no empieza con 57, devolver tal cual (internacional)
-  if (cleaned.length >= 8 && cleaned.length <= 15) {
+  // 6. Validaciones de longitud estándar E.164 (aprox 10-15 dígitos)
+  if (cleaned.length >= 10 && cleaned.length <= 15) {
     return cleaned
   }
 
-  return cleaned
+  // Si es muy corto o muy largo y no pudimos normalizarlo, es inválido
+  return ''
 }
 
 /**
@@ -213,7 +219,8 @@ export async function saveMessage(
   sender: 'client' | 'agent',
   content: string,
   type: 'text' | 'image' | 'audio' | 'video' | 'document' = 'text',
-  metadata?: Record<string, any>
+  metadata?: Record<string, any>,
+  wa_number?: string
 ): Promise<CRMMessage> {
   const supabase = createClient()
 
@@ -222,9 +229,12 @@ export async function saveMessage(
     sender,
     content,
     type,
+    direction: sender === 'client' ? 'inbound' : 'outbound',
     timestamp: new Date().toISOString(),
     read: sender === 'agent',
     metadata,
+    wa_number,
+    created_at: new Date().toISOString(),
   }
 
   const { data, error } = await supabase

@@ -45,6 +45,21 @@ const welcomeFlow = addKeyword(EVENTS.WELCOME)
     .addAction(async (ctx, { flowDynamic }) => {
         console.log(`📩 Mensaje de ${ctx.from}: ${ctx.body}`)
 
+            // ⚠️ FILTRO CRÍTICO: Ignorar actualizaciones de estado y broadcasts
+        if (ctx.from === 'status@broadcast' || ctx.from?.includes('@broadcast')) {
+            console.log('🔕 Ignorando actualización de estado/broadcast')
+            return
+        }
+
+        // ⚠️ FILTRO: Ignorar grupos
+        if (ctx.from?.includes('@g.us')) {
+            console.log('🔕 Ignorando mensaje de grupo')
+            return
+        }
+
+        // ✅ Solo enviar mensajes de contactos reales
+        console.log(`✅ Enviando mensaje real al webhook`)
+
         // Enviar al webhook del dashboard
         await sendToWebhook({
             event: "message",
@@ -295,6 +310,60 @@ app.post("/restart", async (req, res) => {
 })
 
 // Enviar mensaje
+app.post("/send", async (req, res) => {
+    const { phone, message, type = "text", mediaUrl, mimetype, filename, caption } = req.body
+    
+    if (!phone) {
+        return res.status(400).json({ ok: false, error: "Falta phone" })
+    }
+    
+    if (type === "text" && !message) {
+        return res.status(400).json({ ok: false, error: "Falta message" })
+    }
+
+    if (!isConnected || !providerInstance) {
+        return res.status(503).json({ ok: false, error: "No conectado" })
+    }
+
+    try {
+        // Limpiar número
+        let cleanPhone = phone.replace(/\D/g, "")
+        if (cleanPhone.length === 10 && cleanPhone.startsWith("3")) {
+            cleanPhone = "57" + cleanPhone
+        }
+        const recipient = `${cleanPhone}@s.whatsapp.net`
+
+        console.log(`📤 Enviando ${type} a ${recipient}`)
+
+        if (type === "text") {
+            await providerInstance.sendMessage(recipient, message, {})
+        } else if (mediaUrl) {
+            // Nota: BuilderBot/Baileys maneja diferentes tipos de media
+            const options = { caption: caption || message }
+            
+            if (type === "image") {
+                await providerInstance.sendImage(recipient, mediaUrl, caption || message)
+            } else if (type === "video") {
+                await providerInstance.sendVideo(recipient, mediaUrl, caption || message)
+            } else if (type === "audio") {
+                await providerInstance.sendAudio(recipient, mediaUrl)
+            } else if (type === "document") {
+                await providerInstance.sendFile(recipient, mediaUrl, filename || "archivo")
+            } else {
+                await providerInstance.sendMessage(recipient, message, {})
+            }
+        } else {
+            await providerInstance.sendMessage(recipient, message, {})
+        }
+
+        res.json({ ok: true, message: "Enviado" })
+    } catch (error) {
+        console.error("❌ Error enviando mensaje:", error)
+        res.status(500).json({ ok: false, error: String(error) })
+    }
+})
+
+// Endpoint anterior por compatibilidad
 app.post("/send-message", async (req, res) => {
     const { to, text } = req.body
     if (!to || !text) {

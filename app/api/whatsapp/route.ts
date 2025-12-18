@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { formatPhone } from "@/lib/crm-service"
 
 const GATEWAY_URL = process.env.BAILEYS_GATEWAY_URL || "http://localhost:3010"
 
@@ -14,23 +15,6 @@ const supabase =
         ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
         : null
 
-function normalizeDigits(raw?: string | null) {
-    if (!raw) return null
-    // quita @c.us / @s.whatsapp.net etc
-    const base = raw.split("@")[0]
-    const digits = base.replace(/\D/g, "")
-    if (digits.length < 10 || digits.length > 15) return null
-    // Colombia: si 10 dígitos y empieza por 3 => +57
-    if (digits.length === 10 && digits.startsWith("3")) return `57${digits}`
-    // evitar 5757
-    if (digits.startsWith("5757")) return `57${digits.slice(4)}`
-    return digits
-}
-
-/**
- * Intenta sacar el número del payload típico de Baileys:
- * status.user.id, status.me.id, status.user, status.me, etc.
- */
 function extractConnectedNumber(status: any): { wa_number: string | null; wa_jid: string | null } {
     const candidates: Array<string | null | undefined> = [
         status?.user?.id,
@@ -45,7 +29,7 @@ function extractConnectedNumber(status: any): { wa_number: string | null; wa_jid
     const raw = (jid || candidates.find(v => typeof v === "string")) as string | undefined
 
     return {
-        wa_number: normalizeDigits(raw || null),
+        wa_number: formatPhone(raw || null),
         wa_jid: jid || (raw?.includes("@") ? raw : null),
     }
 }
