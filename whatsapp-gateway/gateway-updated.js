@@ -324,11 +324,16 @@ app.post("/send", async (req, res) => {
     if (!isConnected || !sock) return res.status(503).json({ ok: false, error: "No conectado" });
 
     try {
-        let cleanPhone = phone.replace(/\D/g, "");
-        if (!cleanPhone.startsWith("57") && cleanPhone.length === 10) {
-            cleanPhone = "57" + cleanPhone;
+        let jid;
+        if (phone.includes("@")) {
+            jid = phone;
+        } else {
+            let cleanPhone = phone.replace(/\D/g, "");
+            if (!cleanPhone.startsWith("57") && cleanPhone.length === 10) {
+                cleanPhone = "57" + cleanPhone;
+            }
+            jid = cleanPhone + "@s.whatsapp.net";
         }
-        const jid = cleanPhone + "@s.whatsapp.net";
 
         let msgContent;
         const captionText = caption || message || "";

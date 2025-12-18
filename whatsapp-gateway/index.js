@@ -326,12 +326,18 @@ app.post("/send", async (req, res) => {
     }
 
     try {
-        // Limpiar número
-        let cleanPhone = phone.replace(/\D/g, "")
-        if (cleanPhone.length === 10 && cleanPhone.startsWith("3")) {
-            cleanPhone = "57" + cleanPhone
+        let recipient
+        if (phone.includes("@")) {
+            // Si ya trae el JID completo (ej: @s.whatsapp.net, @lid, @g.us)
+            recipient = phone
+        } else {
+            // Limpiar número y asumir @s.whatsapp.net
+            let cleanPhone = phone.replace(/\D/g, "")
+            if (cleanPhone.length === 10 && cleanPhone.startsWith("3")) {
+                cleanPhone = "57" + cleanPhone
+            }
+            recipient = `${cleanPhone}@s.whatsapp.net`
         }
-        const recipient = `${cleanPhone}@s.whatsapp.net`
 
         console.log(`📤 Enviando ${type} a ${recipient}`)
 
@@ -374,7 +380,12 @@ app.post("/send-message", async (req, res) => {
     }
 
     try {
-        const recipient = `${to.replace(/\D/g, "")}@s.whatsapp.net`
+        let recipient
+        if (to.includes("@")) {
+            recipient = to
+        } else {
+            recipient = `${to.replace(/\D/g, "")}@s.whatsapp.net`
+        }
         await providerInstance.sendMessage(recipient, text, {})
         res.json({ ok: true, message: "Enviado" })
     } catch (error) {
