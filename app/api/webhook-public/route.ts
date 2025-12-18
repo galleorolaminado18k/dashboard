@@ -138,143 +138,122 @@ export async function POST(request: NextRequest) {
       const payload = event.payload || event.data || event
       const message = payload.message || payload
 
-      // 🔍 Lógica sugerida por el usuario para extraer el JID real del cliente
-      function pickClientJid(m: any) {
-        const k = m?.key || {}
+      // 🔍 Lógica para extraer el JID real del cliente (según SOLUCIÓN REAL)
+      function pickReplyJid(msg: any) {
+        const k = msg?.key || {}
         const remote = String(k.remoteJid || payload.from || "")
         const participant = String(k.participant || "")
+        const remoteAlt = String(k.remoteJidAlt || "")
+        const participantAlt = String(k.participantAlt || "")
 
-        // grupo => el cliente es participant
-        if (remote.endsWith("@g.us")) return participant
+        // status/broadcast: el chat real puede ser participant (Baileys getChatId)
+        if (remote === "status@broadcast") {
+          return { jid: participant || participantAlt, jidAlt: participantAlt || null }
+        }
 
-        // 1:1 => el cliente es remoteJid (aunque fromMe sea true/false)
-        return remote
+        // grupos: responder al participant
+        if (remote.endsWith("@g.us")) {
+          return { jid: participant || participantAlt, jidAlt: participantAlt || null }
+        }
+
+        // 1:1: responder al remoteJid tal cual venga (puede ser @lid)
+        return { jid: remote, jidAlt: remoteAlt || null }
       }
 
-      function digitsFromJid(jid: string) {
-        if (!jid) return null
-        const base = jid.split("@")[0]
-        const digits = base.replace(/\D/g, "")
-        return digits || null
+      function safeJid(s?: string | null) {
+        if (!s) return null
+        if (s.includes("@g.us")) return null
+        if (s === "status@broadcast") return null
+        return s
       }
 
-    const clientJid = pickClientJid(message)
-    const rawPhone = digitsFromJid(clientJid)
+      const { jid, jidAlt } = pickReplyJid(message)
+      const clientJid = safeJid(jid)
 
-    // ⚠️ FILTRO CRÍTICO Sugerido: Ignorar estados y grupos (algunos grupos ya se filtran por pickClientJid si remoteJid es null)
-    const remoteJid = message.key?.remoteJid || payload.from || clientJid;
-    if (!remoteJid || remoteJid.includes("@g.us") || remoteJid === "status@broadcast") {
-      console.log('🔕 Ignorado estado o grupo (estructura remoteJid)', { remoteJid })
-      return NextResponse.json({ ok: true, ignored: 'broadcast_or_group' })
-    }
+      console.log("🚨 CRÍTICO - JID REAL ENTRANTE:", {
+        remoteJid: message?.key?.remoteJid || payload.from,
+        remoteJidAlt: message?.key?.remoteJidAlt,
+        participant: message?.key?.participant,
+        participantAlt: message?.key?.participantAlt,
+        fromMe: message?.key?.fromMe,
+        picked: clientJid,
+        pickedAlt: jidAlt,
+      })
 
-    const body = message.body || message.message?.conversation ||
-                 message.message?.extendedTextMessage?.text || ''
-    const pushName = message.pushName || message.notifyName || ''
+      if (!clientJid) {
+        console.log('🔕 Ignorado estado o grupo (no clientJid)')
+        return NextResponse.json({ ok: true, ignored: 'no_client_jid' })
+      }
 
-    // 🔍 LOG DETALLADO: Ver QUÉ está llegando
-    console.log('🔍 WEBHOOK DEBUG:', {
-      clientJid,
-      remoteJid,
-      rawPhone,
-      body: body?.substring(0, 50),
-      pushName,
-      fromMe: message.fromMe || message.key?.fromMe,
-    })
+      const body = message.body || message.message?.conversation ||
+                   message.message?.extendedTextMessage?.text || ''
+      const pushName = message.pushName || message.notifyName || ''
 
-    // Ignorar mensajes propios
-    if (message.fromMe || message.key?.fromMe) {
-      console.log('🔕 Ignorado mensaje propio')
-      return NextResponse.json({ ok: true, ignored: 'fromMe' })
-    }
+      // Ignorar mensajes propios
+      if (message.fromMe || message.key?.fromMe) {
+        console.log('🔕 Ignorado mensaje propio')
+        return NextResponse.json({ ok: true, ignored: 'fromMe' })
+      }
 
-    // ✅ NORMALIZAR teléfono correctamente (Colombia: 57XXXXXXXXXX)
-    function normalizePhone(cleaned: string | null): string | null {
-      if (!cleaned) return null
+      // Obtener la línea activa (wa_number)
+      const { data: waAccount } = await supabase
+        .from('crm_whatsapp_accounts')
+        .select('wa_number')
+        .eq('key', 'active')
+        .single()
       
-      // Validar longitud mínima
-      if (cleaned.length < 8) return null
+      const activeWaNumber = waAccount?.wa_number || '0000000000'
 
-      // Colombia: 10 dígitos con 3 → 57XXXXXXXXXX
-      if (cleaned.length === 10 && cleaned.startsWith('3')) {
-        return `57${cleaned}`
+      // Guardar o actualizar conversación usando client_jid (según SOLUCIÓN REAL)
+      const { data: conversation, error: upsertError } = await supabase
+        .from("crm_conversations")
+        .upsert({
+          wa_number: activeWaNumber,
+          client_jid: clientJid,        // ✅ VERDAD PARA RESPONDER
+          client_jid_alt: jidAlt || null,
+          phone: (clientJid.split("@")[0] || ""), // SOLO PARA MOSTRAR (no para enviar)
+          client_name: pushName || `Cliente ${clientJid.split("@")[0].slice(-4)}`,
+          last_message: body,
+          timestamp: new Date().toISOString(),
+          canal: 'whatsapp',
+          status: 'por-contestar', // Por defecto, o podrías usar determineInitialStatus
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "wa_number,client_jid" })
+        .select()
+        .single()
+
+      if (upsertError) {
+        console.error('❌ Error haciendo upsert de conversación:', upsertError)
+        return NextResponse.json({ ok: false, error: upsertError.message })
       }
 
-      // Ya tiene 12 dígitos y empieza con 57 → correcto
-      if (cleaned.length === 12 && cleaned.startsWith('57')) {
-        return cleaned
+      if (conversation) {
+        // Preparar metadata
+        const incomingType = message.type || payload.type || 'text'
+        const metadata: Record<string, any> = {}
+        if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
+        if (payload.mimetype) metadata.mimetype = payload.mimetype
+        if (payload.filename) metadata.filename = payload.filename
+        if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
+        if (message.mimetype) metadata.mimetype = message.mimetype
+        if (message.filename) metadata.filename = message.filename
+
+        // Subir si es data URL
+        await uploadDataUrlToCloudinary(metadata)
+
+        // Guardar mensaje
+        const { saveMessage } = await import('@/lib/crm-service')
+        await saveMessage(
+          conversation.id!,
+          'client',
+          body,
+          incomingType as any,
+          metadata,
+          activeWaNumber
+        )
+
+        console.log('✅ Mensaje y conversación procesados:', conversation.id)
       }
-
-      // Evitar duplicación 5757XXXXXXXXXX
-      if (cleaned.startsWith('5757')) {
-        return `57${cleaned.slice(4)}`
-      }
-
-      // Internacional (8-16 dígitos)
-      if (cleaned.length >= 8 && cleaned.length <= 16) {
-        return cleaned
-      }
-
-      return null
-    }
-
-    const phone = normalizePhone(rawPhone)
-    if (!phone) {
-      console.warn('⚠️ Número inválido recibido en webhook:', { clientJid, rawPhone, phone })
-      return NextResponse.json({ ok: false, error: 'invalid phone' })
-    }
-
-    // Obtener la línea activa (wa_number)
-    const { data: waAccount } = await supabase
-      .from('crm_whatsapp_accounts')
-      .select('wa_number')
-      .eq('key', 'active')
-      .single()
-    
-    const activeWaNumber = waAccount?.wa_number || '0000000000'
-
-    console.log('✅ Datos procesados:', { original: clientJid, normalized: phone, remoteJid, activeWaNumber })
-
-    // 🚨 LOG CRÍTICO: Ver número exacto antes de guardar en DB
-    console.log('🚨 CRÍTICO - Guardando conversación:', { phone, remoteJid, activeWaNumber, name: pushName })
-
-    // Usar la función centralizada para obtener o crear conversación
-    const { getOrCreateConversation, saveMessage } = await import('@/lib/crm-service')
-    
-    const conversation = await getOrCreateConversation(
-      phone,
-      pushName,
-      body,
-      remoteJid,
-      activeWaNumber
-    )
-
-    if (conversation) {
-      // Preparar metadata
-      const incomingType = message.type || payload.type || 'text'
-      const metadata: Record<string, any> = {}
-      if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
-      if (payload.mimetype) metadata.mimetype = payload.mimetype
-      if (payload.filename) metadata.filename = payload.filename
-      if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
-      if (message.mimetype) metadata.mimetype = message.mimetype
-      if (message.filename) metadata.filename = message.filename
-
-      // Subir si es data URL
-      await uploadDataUrlToCloudinary(metadata)
-
-      // Guardar mensaje
-      await saveMessage(
-        conversation.id!,
-        'client',
-        body,
-        incomingType as any,
-        metadata,
-        activeWaNumber
-      )
-
-      console.log('✅ Mensaje y conversación procesados:', conversation.id)
-    }
 
     return NextResponse.json({ ok: true, processed: true })
     }

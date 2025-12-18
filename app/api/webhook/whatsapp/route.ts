@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Número de WhatsApp inválido recibido', numeroRecibido: body.from }, { status: 400 });
     }
 
+    const clientJid = body.remoteJid || body.from + '@s.whatsapp.net';
+    const clientJidAlt = body.remoteJidAlt || null;
+
     const supabase = createClient()
 
     // Obtener la línea activa (wa_number)
@@ -42,13 +45,15 @@ export async function POST(request: NextRequest) {
         {
           phone: numeroNormalizado,
           remote_jid: remoteJid,
+          client_jid: clientJid,
+          client_jid_alt: clientJidAlt,
           wa_number: activeWaNumber,
           client_name: nombre,
           canal: 'whatsapp',
           status: 'por-contestar',
           updated_at: new Date().toISOString(),
         }
-      ], { onConflict: 'wa_number,remote_jid' })
+      ], { onConflict: 'wa_number,client_jid' })
 
     if (upsertError) {
       console.error('Error actualizando conversación:', upsertError)

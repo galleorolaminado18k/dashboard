@@ -68,26 +68,43 @@ async function handleIncomingMessage(event: any) {
     const payload = event.payload || event.data || event
     const message = payload.message || payload
 
-    // 🔍 Lógica sugerida por el usuario para extraer el JID real del cliente
-    function pickClientJid(m: any) {
-      const k = m?.key || {}
+    // 🔍 Lógica para extraer el JID real del cliente (según SOLUCIÓN REAL)
+    function pickReplyJid(msg: any) {
+      const k = msg?.key || {}
       const remote = String(k.remoteJid || payload.from || "")
       const participant = String(k.participant || "")
+      const remoteAlt = String(k.remoteJidAlt || "")
+      const participantAlt = String(k.participantAlt || "")
 
-      // grupo => el cliente es participant
-      if (remote.endsWith("@g.us")) return participant
+      // status/broadcast: el chat real puede ser participant (Baileys getChatId)
+      if (remote === "status@broadcast") {
+        return { jid: participant || participantAlt, jidAlt: participantAlt || null }
+      }
 
-      // 1:1 => el cliente es remoteJid (aunque fromMe sea true/false)
-      return remote
+      // grupos: responder al participant
+      if (remote.endsWith("@g.us")) {
+        return { jid: participant || participantAlt, jidAlt: participantAlt || null }
+      }
+
+      // 1:1: responder al remoteJid tal cual venga (puede ser @lid)
+      return { jid: remote, jidAlt: remoteAlt || null }
     }
 
-    const clientJid = pickClientJid(message)
+    function safeJid(s?: string | null) {
+      if (!s) return null
+      if (s.includes("@g.us")) return null
+      if (s === "status@broadcast") return null
+      return s
+    }
+
+    const { jid, jidAlt } = pickReplyJid(message)
+    const clientJid = safeJid(jid)
     
     // ⚠️ FILTRO CRÍTICO Sugerido: Ignorar estados y grupos
     const remoteJid = message.key?.remoteJid || payload.from || clientJid;
-    if (!remoteJid || remoteJid.includes("@g.us") || remoteJid === "status@broadcast") {
-      console.log('🔕 Ignorado estado o grupo (estructura remoteJid)', { remoteJid })
-      return
+    if (!clientJid) {
+      console.log('🔕 Ignorado estado o grupo (no clientJid)')
+      return NextResponse.json({ ok: true, ignored: 'no_client_jid' })
     }
 
     const body = message.body || message.message?.conversation ||
@@ -98,7 +115,7 @@ async function handleIncomingMessage(event: any) {
     // ⚠️ VALIDACIÓN CRÍTICA: Verificar que 'clientJid' no sea vacío ni inválido
     if (!clientJid || typeof clientJid !== 'string') {
       console.error('❌ JID de origen inválido o vacío:', clientJid)
-      return
+      return NextResponse.json({ ok: false, error: 'invalid jid' })
     }
 
     // Ignorar mensajes propios (enviados por nosotros)
@@ -146,7 +163,9 @@ async function handleIncomingMessage(event: any) {
       pushName,
       body,
       remoteJid,
-      activeWaNumber
+      activeWaNumber,
+      clientJid,
+      jidAlt || undefined
     )
 
     console.log('📋 Conversación CRM:', {

@@ -28,6 +28,8 @@ export const CRM_CANALES = {
 export interface CRMConversation {
   id?: string
   phone: string
+  client_jid?: string
+  client_jid_alt?: string
   remote_jid?: string
   wa_number?: string
   client_name: string
@@ -159,19 +161,21 @@ export async function getOrCreateConversation(
   clientName: string,
   initialMessage: string,
   remote_jid?: string,
-  wa_number?: string
+  wa_number?: string,
+  client_jid?: string,
+  client_jid_alt?: string
 ): Promise<CRMConversation> {
   const supabase = createClient()
   const formattedPhone = formatPhone(phone)
 
-  // 1. Intentar por remote_jid + wa_number primero (MÁS PRECISO)
-  if (remote_jid && wa_number) {
+  // 1. Intentar por client_jid + wa_number (LA NUEVA VERDAD)
+  if (client_jid && wa_number) {
     const { data: existing } = await supabase
       .from('crm_conversations')
       .select('*')
-      .eq('remote_jid', remote_jid)
+      .eq('client_jid', client_jid)
       .eq('wa_number', wa_number)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       const { data: updated } = await supabase
@@ -184,19 +188,24 @@ export async function getOrCreateConversation(
           status: CRM_ESTADOS.POR_CONTESTAR,
           updated_at: new Date().toISOString(),
           phone: formattedPhone || existing.phone,
+          client_jid_alt: client_jid_alt || existing.client_jid_alt,
+          remote_jid: remote_jid || existing.remote_jid,
         })
         .eq('id', existing.id)
         .select()
         .single()
       return updated || existing
     }
-  } else {
-    // 2. Fallback a búsqueda por teléfono (legacy o canales sin JID)
+  }
+
+  // 2. Intentar por remote_jid + wa_number (fallback anterior)
+  if (remote_jid && wa_number) {
     const { data: existing } = await supabase
       .from('crm_conversations')
       .select('*')
-      .eq('phone', formattedPhone)
-      .single()
+      .eq('remote_jid', remote_jid)
+      .eq('wa_number', wa_number)
+      .maybeSingle()
 
     if (existing) {
       const { data: updated } = await supabase
@@ -208,8 +217,9 @@ export async function getOrCreateConversation(
           unread: (existing.unread || 0) + 1,
           status: CRM_ESTADOS.POR_CONTESTAR,
           updated_at: new Date().toISOString(),
-          remote_jid: remote_jid || existing.remote_jid,
-          wa_number: wa_number || existing.wa_number,
+          phone: formattedPhone || existing.phone,
+          client_jid: client_jid || existing.client_jid,
+          client_jid_alt: client_jid_alt || existing.client_jid_alt,
         })
         .eq('id', existing.id)
         .select()
@@ -218,9 +228,39 @@ export async function getOrCreateConversation(
     }
   }
 
-  // 3. Crear nueva conversación
+  // 3. Fallback a búsqueda por teléfono (legacy o canales sin JID)
+  const { data: existing } = await supabase
+    .from('crm_conversations')
+    .select('*')
+    .eq('phone', formattedPhone)
+    .maybeSingle()
+
+  if (existing) {
+    const { data: updated } = await supabase
+      .from('crm_conversations')
+      .update({
+        client_name: clientName || existing.client_name,
+        last_message: initialMessage,
+        timestamp: new Date().toISOString(),
+        unread: (existing.unread || 0) + 1,
+        status: CRM_ESTADOS.POR_CONTESTAR,
+        updated_at: new Date().toISOString(),
+        remote_jid: remote_jid || existing.remote_jid,
+        wa_number: wa_number || existing.wa_number,
+        client_jid: client_jid || existing.client_jid,
+        client_jid_alt: client_jid_alt || existing.client_jid_alt,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single()
+    return updated || existing
+  }
+
+  // 4. Crear nueva conversación
   const newConversation: any = {
     phone: formattedPhone,
+    client_jid: client_jid,
+    client_jid_alt: client_jid_alt,
     remote_jid: remote_jid,
     wa_number: wa_number,
     client_name: clientName || `Cliente ${formattedPhone.slice(-4)}`,

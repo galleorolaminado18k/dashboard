@@ -60,18 +60,22 @@ export async function POST(request: NextRequest) {
         phoneRecibidoFrontend: phone
       })
 
-      if (conv?.remote_jid) {
-        // ✅ PRIORIDAD: Usar el JID real de WhatsApp si existe
+      if (conv?.client_jid) {
+        // ✅ PRIORIDAD ABSOLUTA: Usar el JID real exacto (según SOLUCIÓN REAL)
+        targetPhone = conv.client_jid
+        console.log('✅ Usando client_jid de BD para envío:', targetPhone)
+      } else if (conv?.remote_jid) {
+        // Fallback al remote_jid anterior si existe
         targetPhone = conv.remote_jid
-        console.log('✅ Usando remote_jid de BD para envío:', targetPhone)
+        console.log('⚠️ Usando remote_jid anterior de BD:', targetPhone)
       } else if (conv?.phone) {
-        // Fallback al phone normalizado
+        // Fallback final al phone normalizado
         targetPhone = conv.phone
-        console.log('⚠️ No hay remote_jid, usando phone de BD:', targetPhone)
+        console.log('⚠️ Usando phone de BD:', targetPhone)
       } else {
-        console.error('❌ No se encontró el teléfono para la conversación:', conversationId)
+        console.error('❌ No se encontró el identificador (JID) para la conversación:', conversationId)
         return NextResponse.json(
-          { ok: false, error: 'No se encontró el teléfono asociado a esta conversación' },
+          { ok: false, error: 'No se encontró un destinatario válido para esta conversación' },
           { status: 404 }
         )
       }

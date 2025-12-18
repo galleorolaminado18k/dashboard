@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       const testConversations = [
         {
           phone: '573001234567',
+          client_jid: '573001234567@s.whatsapp.net',
           remote_jid: '573001234567@s.whatsapp.net',
           wa_number: activeWaNumber,
           client_name: 'Cliente de Prueba 1',
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
         },
         {
           phone: '573009876543',
+          client_jid: '573009876543@s.whatsapp.net',
           remote_jid: '573009876543@s.whatsapp.net',
           wa_number: activeWaNumber,
           client_name: 'Cliente de Prueba 2',
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
       for (const conv of testConversations) {
         const { error } = await supabase
           .from('crm_conversations')
-          .upsert(conv, { onConflict: 'wa_number,remote_jid' })
+          .upsert(conv, { onConflict: 'wa_number,client_jid' })
         
         if (error) {
           console.error('Error insertando conversación:', error)
@@ -115,6 +117,8 @@ export async function POST(request: NextRequest) {
 
       const conversation = {
         phone,
+        client_jid: chat.id,
+        client_jid_alt: chat.idAlt || null,
         remote_jid: chat.id,
         wa_number: activeWaNumber,
         client_name: chat.name || chat.pushName || `Cliente ${phone.slice(-4)}`,
@@ -128,7 +132,7 @@ export async function POST(request: NextRequest) {
 
       const { error } = await supabase
         .from('crm_conversations')
-        .upsert(conversation, { onConflict: 'wa_number,remote_jid' })
+        .upsert(conversation, { onConflict: 'wa_number,client_jid' })
 
       if (!error) synced++
     }
