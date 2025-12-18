@@ -105,14 +105,39 @@ export function determineInitialStatus(message: string): string {
 }
 
 /**
- * Formatear número de teléfono
+ * Formatear y normalizar número de teléfono a formato colombiano 57XXXXXXXXXX
  */
 export function formatPhone(phone: string): string {
-  // Remover @c.us o @s.whatsapp.net
+  if (!phone) return ''
+
+  // Remover @c.us, @s.whatsapp.net, etc.
   let cleaned = phone.replace(/@.*$/, '')
 
   // Remover caracteres no numéricos
   cleaned = cleaned.replace(/\D/g, '')
+
+  // Si no tiene dígitos o tiene menos de 8, es inválido
+  if (!cleaned || cleaned.length < 8) return cleaned
+
+  // Colombia: si tiene 10 dígitos y empieza con 3, anteponer 57
+  if (cleaned.length === 10 && cleaned.startsWith('3')) {
+    return `57${cleaned}`
+  }
+
+  // Si ya tiene 12 dígitos y empieza con 57, está correcto
+  if (cleaned.length === 12 && cleaned.startsWith('57')) {
+    return cleaned
+  }
+
+  // Evitar duplicación 5757XXXXXXXXXX
+  if (cleaned.startsWith('5757')) {
+    return `57${cleaned.slice(4)}`
+  }
+
+  // Si tiene entre 8 y 15 dígitos pero no empieza con 57, devolver tal cual (internacional)
+  if (cleaned.length >= 8 && cleaned.length <= 15) {
+    return cleaned
+  }
 
   return cleaned
 }

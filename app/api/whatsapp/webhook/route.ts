@@ -75,6 +75,12 @@ async function handleIncomingMessage(event: any) {
     const pushName = message.pushName || message.notifyName || ''
     const type = message.type || 'text'
 
+    // ⚠️ VALIDACIÓN CRÍTICA: Verificar que 'from' no sea vacío ni inválido
+    if (!from || typeof from !== 'string') {
+      console.error('❌ Número de origen inválido o vacío:', from)
+      return
+    }
+
     // Ignorar mensajes propios (enviados por nosotros)
     if (message.fromMe || message.key?.fromMe) {
       console.log('📤 Mensaje enviado por nosotros, ignorando...')
@@ -87,16 +93,35 @@ async function handleIncomingMessage(event: any) {
       return
     }
 
+    // ✅ Normalizar y validar número ANTES de guardar
+    const formattedPhone = formatPhone(from)
+
+    // Validación estricta: debe tener entre 10 y 15 dígitos
+    if (!formattedPhone || formattedPhone.length < 10 || formattedPhone.length > 15) {
+      console.error('❌ Número normalizado inválido, rechazando mensaje:', {
+        original: from,
+        formatted: formattedPhone
+      })
+      return
+    }
+
+    // Validación extra: no debe contener letras ni guiones
+    if (!/^\d+$/.test(formattedPhone)) {
+      console.error('❌ Número contiene caracteres inválidos después de normalizar:', formattedPhone)
+      return
+    }
+
     console.log('💬 Mensaje entrante para CRM:', {
-      from: formatPhone(from),
+      from: formattedPhone,
+      original: from,
       text: body.substring(0, 50) + (body.length > 50 ? '...' : ''),
       type,
       clientName: pushName,
     })
 
-    // Crear o actualizar conversación en el CRM
+    // Crear o actualizar conversación en el CRM con número validado
     const conversation = await getOrCreateConversation(
-      from,
+      formattedPhone, // ✅ Usar número ya normalizado y validado
       pushName,
       body
     )
