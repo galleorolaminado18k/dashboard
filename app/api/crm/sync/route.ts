@@ -110,18 +110,18 @@ export async function POST(request: NextRequest) {
     // Si hay chats del gateway, sincronizarlos
     let synced = 0
     for (const chat of chats) {
-      if (chat.id?.includes('@g.us')) continue // Ignorar grupos
+      if (chat.id?.includes('@g.us') || chat.id === 'status@broadcast') continue // Ignorar grupos y estados
       
-      const phone = formatPhone(chat.id || '')
-      if (!phone) continue
+      const clientJid = chat.id;
+      const phoneDisplay = clientJid.split('@')[0].replace(/\D/g, '');
 
       const conversation = {
-        phone,
-        client_jid: chat.id,
+        phone: phoneDisplay,
+        client_jid: clientJid,
         client_jid_alt: chat.idAlt || null,
-        remote_jid: chat.id,
+        remote_jid: clientJid,
         wa_number: activeWaNumber,
-        client_name: chat.name || chat.pushName || `Cliente ${phone.slice(-4)}`,
+        client_name: chat.name || chat.pushName || `Cliente ${phoneDisplay.slice(-4) || 'WhatsApp'}`,
         last_message: chat.lastMessage?.body || '',
         status: 'por-contestar',
         canal: 'whatsapp',

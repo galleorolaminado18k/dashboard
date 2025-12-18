@@ -124,17 +124,8 @@ async function handleIncomingMessage(event: any) {
       return
     }
 
-    // ✅ Normalizar y validar número ANTES de guardar
-    const formattedPhone = formatPhone(clientJid)
-
-    // Validación estricta: debe tener entre 10 y 16 dígitos
-    if (!formattedPhone || formattedPhone.length < 10 || formattedPhone.length > 16) {
-      console.error('❌ Número normalizado inválido, rechazando mensaje:', {
-        original: clientJid,
-        formatted: formattedPhone
-      })
-      return
-    }
+    // ✅ Normalizar para mostrar (opcional)
+    const phoneDisplay = clientJid.split('@')[0].replace(/\D/g, '')
 
     // Obtener la línea activa (wa_number)
     const { createClient } = await import('@/lib/supabase/client')
@@ -148,7 +139,7 @@ async function handleIncomingMessage(event: any) {
     const activeWaNumber = waAccount?.wa_number || '0000000000'
 
     console.log('💬 Mensaje entrante para CRM:', {
-      from: formattedPhone,
+      from: phoneDisplay,
       original: clientJid,
       remoteJid,
       activeWaNumber,
@@ -159,7 +150,7 @@ async function handleIncomingMessage(event: any) {
 
     // Crear o actualizar conversación en el CRM con número validado y JID
     const conversation = await getOrCreateConversation(
-      formattedPhone, 
+      phoneDisplay, 
       pushName,
       body,
       remoteJid,

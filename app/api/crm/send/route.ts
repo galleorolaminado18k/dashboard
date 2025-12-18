@@ -61,16 +61,21 @@ export async function POST(request: NextRequest) {
       })
 
       if (conv?.client_jid) {
-        // ✅ PRIORIDAD ABSOLUTA: Usar el JID real exacto (según SOLUCIÓN REAL)
+        // ✅ PRIORIDAD ABSOLUTA: Usar el JID real exacto (incluyendo @lid)
         targetPhone = conv.client_jid
         console.log('✅ Usando client_jid de BD para envío:', targetPhone)
+      } else if (conv?.phone_norm) {
+        // Fallback al phone normalizado si no hay JID
+        targetPhone = `${conv.phone_norm}@s.whatsapp.net`
+        console.log('⚠️ Usando phone_norm de BD para envío:', targetPhone)
       } else if (conv?.remote_jid) {
         // Fallback al remote_jid anterior si existe
         targetPhone = conv.remote_jid
         console.log('⚠️ Usando remote_jid anterior de BD:', targetPhone)
       } else if (conv?.phone) {
-        // Fallback final al phone normalizado
-        targetPhone = conv.phone
+        // Fallback final al phone
+        const cleaned = conv.phone.replace(/\D/g, '')
+        targetPhone = `${cleaned}@s.whatsapp.net`
         console.log('⚠️ Usando phone de BD:', targetPhone)
       } else {
         console.error('❌ No se encontró el identificador (JID) para la conversación:', conversationId)

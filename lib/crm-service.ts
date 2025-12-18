@@ -28,6 +28,7 @@ export const CRM_CANALES = {
 export interface CRMConversation {
   id?: string
   phone: string
+  phone_norm?: string
   client_jid?: string
   client_jid_alt?: string
   remote_jid?: string

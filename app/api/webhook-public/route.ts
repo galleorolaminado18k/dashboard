@@ -185,6 +185,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, ignored: 'no_client_jid' })
       }
 
+      // Normalizar para mostrar (opcional)
+      const phoneDisplay = clientJid.split('@')[0].replace(/\D/g, '')
+
       const body = message.body || message.message?.conversation ||
                    message.message?.extendedTextMessage?.text || ''
       const pushName = message.pushName || message.notifyName || ''
@@ -211,12 +214,12 @@ export async function POST(request: NextRequest) {
           wa_number: activeWaNumber,
           client_jid: clientJid,        // ✅ VERDAD PARA RESPONDER
           client_jid_alt: jidAlt || null,
-          phone: (clientJid.split("@")[0] || ""), // SOLO PARA MOSTRAR (no para enviar)
-          client_name: pushName || `Cliente ${clientJid.split("@")[0].slice(-4)}`,
+          phone: phoneDisplay || null,  // Solo para mostrar
+          client_name: pushName || `Cliente ${phoneDisplay.slice(-4) || 'WhatsApp'}`,
           last_message: body,
           timestamp: new Date().toISOString(),
           canal: 'whatsapp',
-          status: 'por-contestar', // Por defecto, o podrías usar determineInitialStatus
+          status: 'por-contestar',
           updated_at: new Date().toISOString(),
         }, { onConflict: "wa_number,client_jid" })
         .select()

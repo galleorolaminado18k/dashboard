@@ -17,13 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'No se recibió el número de WhatsApp' }, { status: 400 })
     }
 
-    const numeroNormalizado = formatPhone(body.from);
-    if (!numeroNormalizado) {
-      console.error('Número de WhatsApp inválido recibido:', body.from)
-      return NextResponse.json({ ok: false, error: 'Número de WhatsApp inválido recibido', numeroRecibido: body.from }, { status: 400 });
-    }
+    // Normalizar para mostrar (opcional)
+    const phoneDisplay = numeroReal.split('@')[0].replace(/\D/g, '')
 
-    const clientJid = body.remoteJid || body.from + '@s.whatsapp.net';
+    const clientJid = body.remoteJid || (numeroReal.includes('@') ? numeroReal : numeroReal + '@s.whatsapp.net');
     const clientJidAlt = body.remoteJidAlt || null;
 
     const supabase = createClient()
@@ -36,14 +33,14 @@ export async function POST(request: NextRequest) {
       .single()
     
     const activeWaNumber = waAccount?.wa_number || '0000000000'
-    const remoteJid = body.remoteJid || (numeroNormalizado + '@s.whatsapp.net');
+    const remoteJid = body.remoteJid || clientJid;
 
     // Actualiza el número en la conversación si existe, o crea una nueva si no existe
     const { error: upsertError } = await supabase
       .from('crm_conversations')
       .upsert([
         {
-          phone: numeroNormalizado,
+          phone: phoneDisplay,
           remote_jid: remoteJid,
           client_jid: clientJid,
           client_jid_alt: clientJidAlt,
