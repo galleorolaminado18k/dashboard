@@ -158,201 +158,125 @@ export async function POST(request: NextRequest) {
         return digits || null
       }
 
-      const clientJid = pickClientJid(message)
-      const rawPhone = digitsFromJid(clientJid)
+    const clientJid = pickClientJid(message)
+    const rawPhone = digitsFromJid(clientJid)
 
-      const body = message.body || message.message?.conversation ||
-                   message.message?.extendedTextMessage?.text || ''
-      const pushName = message.pushName || message.notifyName || ''
+    // ⚠️ FILTRO CRÍTICO Sugerido: Ignorar estados y grupos (algunos grupos ya se filtran por pickClientJid si remoteJid es null)
+    const remoteJid = message.key?.remoteJid || payload.from || clientJid;
+    if (!remoteJid || remoteJid.includes("@g.us") || remoteJid === "status@broadcast") {
+      console.log('🔕 Ignorado estado o grupo (estructura remoteJid)', { remoteJid })
+      return NextResponse.json({ ok: true, ignored: 'broadcast_or_group' })
+    }
 
-      // 🔍 LOG DETALLADO: Ver QUÉ está llegando
-      console.log('🔍 WEBHOOK DEBUG:', {
-        clientJid,
-        rawPhone,
-        body: body?.substring(0, 50),
-        pushName,
-        fromMe: message.fromMe || message.key?.fromMe,
-        remoteJid: message.key?.remoteJid,
-        participant: message.key?.participant
-      })
+    const body = message.body || message.message?.conversation ||
+                 message.message?.extendedTextMessage?.text || ''
+    const pushName = message.pushName || message.notifyName || ''
 
-      // Ignorar mensajes propios (los grupos los procesamos por participante ahora)
-      if (message.fromMe || message.key?.fromMe) {
-        console.log('🔕 Ignorado mensaje propio')
-        return NextResponse.json({ ok: true, ignored: 'fromMe' })
+    // 🔍 LOG DETALLADO: Ver QUÉ está llegando
+    console.log('🔍 WEBHOOK DEBUG:', {
+      clientJid,
+      remoteJid,
+      rawPhone,
+      body: body?.substring(0, 50),
+      pushName,
+      fromMe: message.fromMe || message.key?.fromMe,
+    })
+
+    // Ignorar mensajes propios
+    if (message.fromMe || message.key?.fromMe) {
+      console.log('🔕 Ignorado mensaje propio')
+      return NextResponse.json({ ok: true, ignored: 'fromMe' })
+    }
+
+    // ✅ NORMALIZAR teléfono correctamente (Colombia: 57XXXXXXXXXX)
+    function normalizePhone(cleaned: string | null): string | null {
+      if (!cleaned) return null
+      
+      // Validar longitud mínima
+      if (cleaned.length < 8) return null
+
+      // Colombia: 10 dígitos con 3 → 57XXXXXXXXXX
+      if (cleaned.length === 10 && cleaned.startsWith('3')) {
+        return `57${cleaned}`
       }
 
-      // Si después de pickClientJid no tenemos un JID válido o es broadcast, ignorar
-      if (!clientJid || clientJid.includes('@broadcast')) {
-        console.log('🔕 Ignorado broadcast o JID inválido', { clientJid })
-        return NextResponse.json({ ok: true, ignored: 'broadcast' })
+      // Ya tiene 12 dígitos y empieza con 57 → correcto
+      if (cleaned.length === 12 && cleaned.startsWith('57')) {
+        return cleaned
       }
 
-      // ✅ NORMALIZAR teléfono correctamente (Colombia: 57XXXXXXXXXX)
-      function normalizePhone(cleaned: string | null): string | null {
-        if (!cleaned) return null
-        
-        // Validar longitud mínima
-        if (cleaned.length < 8) return null
-
-        // Colombia: 10 dígitos con 3 → 57XXXXXXXXXX
-        if (cleaned.length === 10 && cleaned.startsWith('3')) {
-          return `57${cleaned}`
-        }
-
-        // Ya tiene 12 dígitos y empieza con 57 → correcto
-        if (cleaned.length === 12 && cleaned.startsWith('57')) {
-          return cleaned
-        }
-
-        // Evitar duplicación 5757XXXXXXXXXX
-        if (cleaned.startsWith('5757')) {
-          return `57${cleaned.slice(4)}`
-        }
-
-        // Internacional (8-16 dígitos)
-        if (cleaned.length >= 8 && cleaned.length <= 16) {
-          return cleaned
-        }
-
-        return null
+      // Evitar duplicación 5757XXXXXXXXXX
+      if (cleaned.startsWith('5757')) {
+        return `57${cleaned.slice(4)}`
       }
 
-      const phone = normalizePhone(rawPhone)
-      if (!phone) {
-        console.warn('⚠️ Número inválido recibido en webhook:', { clientJid, rawPhone, phone })
-        return NextResponse.json({ ok: false, error: 'invalid phone' })
+      // Internacional (8-16 dígitos)
+      if (cleaned.length >= 8 && cleaned.length <= 16) {
+        return cleaned
       }
 
-      console.log('✅ Número normalizado:', { original: clientJid, normalized: phone })
-      console.log('💬 Procesando mensaje:', { clientJid, phone, body: body.substring(0, 50), pushName })
+      return null
+    }
 
-      // 🚨 LOG CRÍTICO: Ver número exacto antes de guardar en DB
-      console.log('🚨 CRÍTICO - Guardando conversación con número:', phone, '| Nombre:', pushName || `Cliente ${phone.slice(-4)}`)
+    const phone = normalizePhone(rawPhone)
+    if (!phone) {
+      console.warn('⚠️ Número inválido recibido en webhook:', { clientJid, rawPhone, phone })
+      return NextResponse.json({ ok: false, error: 'invalid phone' })
+    }
 
-      // Buscar o crear conversación
-      const { data: existing, error: searchError } = await supabase
-        .from('crm_conversations')
-        .select('*')
-        .eq('phone', phone)
-        .single()
+    // Obtener la línea activa (wa_number)
+    const { data: waAccount } = await supabase
+      .from('crm_whatsapp_accounts')
+      .select('wa_number')
+      .eq('key', 'active')
+      .single()
+    
+    const activeWaNumber = waAccount?.wa_number || '0000000000'
 
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('❌ Error buscando conversación:', searchError)
-      }
+    console.log('✅ Datos procesados:', { original: clientJid, normalized: phone, remoteJid, activeWaNumber })
 
-      if (existing) {
-        // Actualizar conversación existente
-        const { error: updateError } = await supabase
-          .from('crm_conversations')
-          .update({
-            last_message: body,
-            timestamp: new Date().toISOString(),
-            unread: (existing.unread || 0) + 1,
-            status: 'por-contestar',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existing.id)
+    // 🚨 LOG CRÍTICO: Ver número exacto antes de guardar en DB
+    console.log('🚨 CRÍTICO - Guardando conversación:', { phone, remoteJid, activeWaNumber, name: pushName })
 
-        if (updateError) {
-          console.error('❌ Error actualizando conversación:', updateError)
-        }
+    // Usar la función centralizada para obtener o crear conversación
+    const { getOrCreateConversation, saveMessage } = await import('@/lib/crm-service')
+    
+    const conversation = await getOrCreateConversation(
+      phone,
+      pushName,
+      body,
+      remoteJid,
+      activeWaNumber
+    )
 
-        // Guardar mensaje
-        const incomingType = message.type || payload.type || 'text'
-        const metadata: Record<string, any> = {}
-        if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
-        if (payload.mimetype) metadata.mimetype = payload.mimetype
-        if (payload.filename) metadata.filename = payload.filename
-        if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
-        if (message.mimetype) metadata.mimetype = message.mimetype
-        if (message.filename) metadata.filename = message.filename
+    if (conversation) {
+      // Preparar metadata
+      const incomingType = message.type || payload.type || 'text'
+      const metadata: Record<string, any> = {}
+      if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
+      if (payload.mimetype) metadata.mimetype = payload.mimetype
+      if (payload.filename) metadata.filename = payload.filename
+      if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
+      if (message.mimetype) metadata.mimetype = message.mimetype
+      if (message.filename) metadata.filename = message.filename
 
-        // Si metadata.mediaUrl es data URL, subir a Cloudinary y reemplazar
-        await uploadDataUrlToCloudinary(metadata)
+      // Subir si es data URL
+      await uploadDataUrlToCloudinary(metadata)
 
-        if (incomingType === 'audio') {
-          if (!metadata.mediaUrl || !metadata.mediaUrl.startsWith('http')) {
-            console.warn('⚠️ Nota de voz sin URL pública en metadata:', { phone, metadata })
-          } else {
-            console.log('🎵 Nota de voz registrada:', { phone, url: metadata.mediaUrl })
-          }
-        }
+      // Guardar mensaje
+      await saveMessage(
+        conversation.id!,
+        'client',
+        body,
+        incomingType as any,
+        metadata,
+        activeWaNumber
+      )
 
-        const { error: msgError } = await supabase
-          .from('crm_messages')
-          .insert({
-            conversation_id: existing.id,
-            sender: 'client',
-            content: body,
-            type: incomingType,
-            timestamp: new Date().toISOString(),
-            read: false,
-            metadata: Object.keys(metadata).length ? metadata : null,
-          })
+      console.log('✅ Mensaje y conversación procesados:', conversation.id)
+    }
 
-        if (msgError) {
-          console.error('❌ Error guardando mensaje:', msgError)
-        }
-
-        console.log('✅ Conversación actualizada:', existing.id)
-      } else {
-        // Crear nueva conversación
-        const { data: newConv, error: convError } = await supabase
-          .from('crm_conversations')
-          .insert({
-            phone,
-            client_name: pushName || `Cliente ${phone.slice(-4)}`,
-            last_message: body,
-            timestamp: new Date().toISOString(),
-            unread: 1,
-            status: 'por-contestar',
-            canal: 'whatsapp',
-            client_type: 'Nuevo',
-          })
-          .select()
-          .single()
-
-        if (convError) {
-          console.error('❌ Error creando conversación:', convError)
-          return NextResponse.json({ ok: false, error: convError.message }, { status: 500 })
-        }
-
-        if (newConv) {
-          // Guardar mensaje
-          const incomingType = message.type || payload.type || 'text'
-          const metadata: Record<string, any> = {}
-          if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
-          if (payload.mimetype) metadata.mimetype = payload.mimetype
-          if (payload.filename) metadata.filename = payload.filename
-          if (message.mediaUrl) metadata.mediaUrl = message.mediaUrl
-          if (message.mimetype) metadata.mimetype = message.mimetype
-          if (message.filename) metadata.filename = message.filename
-
-          // Subir si es data URL
-          await uploadDataUrlToCloudinary(metadata)
-
-          const { error: msgError } = await supabase
-            .from('crm_messages')
-            .insert({
-              conversation_id: newConv.id,
-              sender: 'client',
-              content: body,
-              type: incomingType,
-              timestamp: new Date().toISOString(),
-              read: false,
-              metadata: Object.keys(metadata).length ? metadata : null,
-            })
-
-          if (msgError) {
-            console.error('❌ Error guardando mensaje:', msgError)
-          }
-
-          console.log('✅ Nueva conversación creada:', newConv.id)
-        }
-      }
-
-      return NextResponse.json({ ok: true, processed: true })
+    return NextResponse.json({ ok: true, processed: true })
     }
 
     return NextResponse.json({ ok: true, eventType })

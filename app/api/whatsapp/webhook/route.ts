@@ -82,6 +82,14 @@ async function handleIncomingMessage(event: any) {
     }
 
     const clientJid = pickClientJid(message)
+    
+    // ⚠️ FILTRO CRÍTICO Sugerido: Ignorar estados y grupos
+    const remoteJid = message.key?.remoteJid || payload.from || clientJid;
+    if (!remoteJid || remoteJid.includes("@g.us") || remoteJid === "status@broadcast") {
+      console.log('🔕 Ignorado estado o grupo (estructura remoteJid)', { remoteJid })
+      return
+    }
+
     const body = message.body || message.message?.conversation ||
                  message.message?.extendedTextMessage?.text || ''
     const pushName = message.pushName || message.notifyName || ''
@@ -99,12 +107,6 @@ async function handleIncomingMessage(event: any) {
       return
     }
 
-    // Ignorar broadcasts (los grupos ahora los procesamos por participante)
-    if (clientJid.includes('@broadcast')) {
-      console.log('📡 Mensaje de broadcast, ignorando...')
-      return
-    }
-
     // ✅ Normalizar y validar número ANTES de guardar
     const formattedPhone = formatPhone(clientJid)
 
@@ -117,32 +119,41 @@ async function handleIncomingMessage(event: any) {
       return
     }
 
-    // Validación extra: no debe contener letras ni guiones
-    if (!/^\d+$/.test(formattedPhone)) {
-      console.error('❌ Número contiene caracteres inválidos después de normalizar:', formattedPhone)
-      return
-    }
+    // Obtener la línea activa (wa_number)
+    const { createClient } = await import('@/lib/supabase/client')
+    const supabase = createClient()
+    const { data: waAccount } = await supabase
+      .from('crm_whatsapp_accounts')
+      .select('wa_number')
+      .eq('key', 'active')
+      .single()
+    
+    const activeWaNumber = waAccount?.wa_number || '0000000000'
 
     console.log('💬 Mensaje entrante para CRM:', {
       from: formattedPhone,
       original: clientJid,
+      remoteJid,
+      activeWaNumber,
       text: body.substring(0, 50) + (body.length > 50 ? '...' : ''),
       type,
       clientName: pushName,
     })
 
-    // Crear o actualizar conversación en el CRM con número validado
+    // Crear o actualizar conversación en el CRM con número validado y JID
     const conversation = await getOrCreateConversation(
-      formattedPhone, // ✅ Usar número ya normalizado y validado
+      formattedPhone, 
       pushName,
-      body
+      body,
+      remoteJid,
+      activeWaNumber
     )
 
     console.log('📋 Conversación CRM:', {
       id: conversation.id,
       status: conversation.status,
       phone: conversation.phone,
-      clientType: conversation.client_type,
+      remote_jid: conversation.remote_jid,
     })
 
     // Guardar el mensaje
@@ -152,10 +163,12 @@ async function handleIncomingMessage(event: any) {
       body,
       type as any,
       {
-        originalFrom: from,
+        originalFrom: clientJid,
+        remoteJid,
         pushName,
         timestamp: message.timestamp || Date.now(),
-      }
+      },
+      activeWaNumber
     )
 
     console.log('✅ Mensaje guardado en CRM')

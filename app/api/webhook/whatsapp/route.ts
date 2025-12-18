@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/client'
+import { formatPhone } from '@/lib/crm-service'
 
 // Endpoint para recibir mensajes entrantes de WhatsApp y actualizar el número real en la base de datos
 export async function POST(request: NextRequest) {
@@ -16,20 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'No se recibió el número de WhatsApp' }, { status: 400 })
     }
 
-    // Normaliza y valida el número recibido
-    function normalizarNumero(raw: string): string | null {
-      if (!raw) return null;
-      let cleaned = raw.replace(/[^\d]/g, '');
-      // Si empieza por 57 y tiene 12 dígitos, es válido para Colombia
-      if (cleaned.startsWith('57') && cleaned.length === 12) return cleaned;
-      // Si tiene 10 dígitos y empieza por 3, anteponer 57
-      if (cleaned.length === 10 && cleaned.startsWith('3')) return '57' + cleaned;
-      // Si tiene entre 8 y 15 dígitos, devolver tal cual (internacional)
-      if (cleaned.length >= 8 && cleaned.length <= 15) return cleaned;
-      return null;
-    }
-
-    const numeroNormalizado = normalizarNumero(body.from);
+    const numeroNormalizado = formatPhone(body.from);
     if (!numeroNormalizado) {
       console.error('Número de WhatsApp inválido recibido:', body.from)
       return NextResponse.json({ ok: false, error: 'Número de WhatsApp inválido recibido', numeroRecibido: body.from }, { status: 400 });
@@ -37,17 +25,30 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient()
 
+    // Obtener la línea activa (wa_number)
+    const { data: waAccount } = await supabase
+      .from('crm_whatsapp_accounts')
+      .select('wa_number')
+      .eq('key', 'active')
+      .single()
+    
+    const activeWaNumber = waAccount?.wa_number || '0000000000'
+    const remoteJid = body.remoteJid || (numeroNormalizado + '@s.whatsapp.net');
+
     // Actualiza el número en la conversación si existe, o crea una nueva si no existe
     const { error: upsertError } = await supabase
       .from('crm_conversations')
       .upsert([
         {
           phone: numeroNormalizado,
+          remote_jid: remoteJid,
+          wa_number: activeWaNumber,
           client_name: nombre,
           canal: 'whatsapp',
           status: 'por-contestar',
+          updated_at: new Date().toISOString(),
         }
-      ], { onConflict: 'phone' })
+      ], { onConflict: 'wa_number,remote_jid' })
 
     if (upsertError) {
       console.error('Error actualizando conversación:', upsertError)

@@ -60,10 +60,14 @@ export async function POST(request: NextRequest) {
         phoneRecibidoFrontend: phone
       })
 
-      if (conv?.phone) {
-        // SIEMPRE usar el phone de la BD, ignorar el enviado por el cliente
+      if (conv?.remote_jid) {
+        // ✅ PRIORIDAD: Usar el JID real de WhatsApp si existe
+        targetPhone = conv.remote_jid
+        console.log('✅ Usando remote_jid de BD para envío:', targetPhone)
+      } else if (conv?.phone) {
+        // Fallback al phone normalizado
         targetPhone = conv.phone
-        console.log('✅ Usando phone de BD para envío:', targetPhone)
+        console.log('⚠️ No hay remote_jid, usando phone de BD:', targetPhone)
       } else {
         console.error('❌ No se encontró el teléfono para la conversación:', conversationId)
         return NextResponse.json(
@@ -89,15 +93,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Normalización y validación de número usando la lógica unificada
-    const cleanedPhone = formatPhone(targetPhone);
-    if (!cleanedPhone) {
+    const validationResult = formatPhone(targetPhone);
+    if (!validationResult) {
       console.error('❌ Teléfono con formato inválido (después de limpiar):', targetPhone)
       return NextResponse.json({ ok: false, error: 'Teléfono con formato inválido' }, { status: 400 })
     }
-    targetPhone = cleanedPhone;
+    
+    // Si el número no es un JID completo, usamos el normalizado
+    if (!targetPhone.includes('@')) {
+      targetPhone = validationResult;
+    }
 
     // 🚨 LOG CRÍTICO FINAL: Ver número exacto que se enviará al gateway
-    console.log('🚨 CRÍTICO - Número FINAL que se enviará al gateway:', targetPhone, '| Mensaje:', message?.substring(0, 30))
+    console.log('🚨 CRÍTICO - Destinatario FINAL que se enviará al gateway:', targetPhone, '| Mensaje:', message?.substring(0, 30))
 
     if (type === 'text' && !message) {
       return NextResponse.json(

@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/client'
+import { formatPhone } from '@/lib/crm-service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,9 +43,20 @@ export async function POST(request: NextRequest) {
     if (chats.length === 0) {
       console.log('Creando conversaciones de prueba...')
       
+      // Obtener la línea activa (wa_number)
+      const { data: waAccount } = await supabase
+        .from('crm_whatsapp_accounts')
+        .select('wa_number')
+        .eq('key', 'active')
+        .single()
+      
+      const activeWaNumber = waAccount?.wa_number || '0000000000'
+
       const testConversations = [
         {
           phone: '573001234567',
+          remote_jid: '573001234567@s.whatsapp.net',
+          wa_number: activeWaNumber,
           client_name: 'Cliente de Prueba 1',
           last_message: 'Hola, quiero información sobre productos',
           status: 'por-contestar',
@@ -55,6 +67,8 @@ export async function POST(request: NextRequest) {
         },
         {
           phone: '573009876543',
+          remote_jid: '573009876543@s.whatsapp.net',
+          wa_number: activeWaNumber,
           client_name: 'Cliente de Prueba 2',
           last_message: '¿Cuánto cuesta el envío?',
           status: 'por-contestar',
@@ -68,7 +82,7 @@ export async function POST(request: NextRequest) {
       for (const conv of testConversations) {
         const { error } = await supabase
           .from('crm_conversations')
-          .upsert(conv, { onConflict: 'phone' })
+          .upsert(conv, { onConflict: 'wa_number,remote_jid' })
         
         if (error) {
           console.error('Error insertando conversación:', error)
@@ -82,27 +96,39 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Obtener la línea activa (wa_number)
+    const { data: waAccount } = await supabase
+      .from('crm_whatsapp_accounts')
+      .select('wa_number')
+      .eq('key', 'active')
+      .single()
+    
+    const activeWaNumber = waAccount?.wa_number || '0000000000'
+
     // Si hay chats del gateway, sincronizarlos
     let synced = 0
     for (const chat of chats) {
       if (chat.id?.includes('@g.us')) continue // Ignorar grupos
       
-      const phone = chat.id?.replace('@s.whatsapp.net', '') || ''
+      const phone = formatPhone(chat.id || '')
       if (!phone) continue
 
       const conversation = {
         phone,
+        remote_jid: chat.id,
+        wa_number: activeWaNumber,
         client_name: chat.name || chat.pushName || `Cliente ${phone.slice(-4)}`,
         last_message: chat.lastMessage?.body || '',
         status: 'por-contestar',
         canal: 'whatsapp',
         client_type: 'Nuevo',
         unread: chat.unreadCount || 0,
+        updated_at: new Date().toISOString(),
       }
 
       const { error } = await supabase
         .from('crm_conversations')
-        .upsert(conversation, { onConflict: 'phone' })
+        .upsert(conversation, { onConflict: 'wa_number,remote_jid' })
 
       if (!error) synced++
     }

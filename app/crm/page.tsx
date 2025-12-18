@@ -47,6 +47,8 @@ interface Conversation {
   client_type?: string
   interest?: string
   phone?: string
+  remote_jid?: string
+  wa_number?: string
 }
 
 // Estados del CRM (config sin counts, los conteos se calculan dinámicamente)
@@ -272,27 +274,34 @@ function normalizeConversation(conv: any): Conversation {
     clientType: conv.client_type || conv.clientType || 'Nuevo',
     interest: conv.interest,
     phone: conv.phone,
+    remote_jid: conv.remote_jid,
+    wa_number: conv.wa_number,
   }
 }
 
-// Función utilitaria para normalizar y validar números colombianos
-function normalizarNumero(phone: string): string | null {
-  let clean = (phone || '').replace(/\D/g, '');
-  if (clean.length === 10 && clean.startsWith('3')) clean = '57' + clean;
-  if (!clean.startsWith('57') || clean.length < 12 || clean.length > 13) return null;
-  return clean;
-}
-
-// ============================== // ✅ AGREGADO: normalización robusta para WhatsApp en frontend
-// Acepta: "+57 301...", "5730...", "5730...@c.us"
-// Devuelve solo dígitos E.164 (sin +, sin espacios)
+// ✅ Función unificada y robusta para normalización de números de WhatsApp (Frontend)
+// Coincide con la lógica de lib/crm-service.ts
 function normalizeToE164(raw: string) {
   if (!raw) return null;
+  
+  // 1. Ignorar grupos y estados
+  if (raw.includes('@broadcast') || raw.includes('@g.us')) return null;
+
+  // 2. Remover JID y caracteres no numéricos
   const noJid = raw.split("@")[0];
   let d = noJid.replace(/\D/g, "");
+  
+  if (!d) return null;
+
+  // 3. Normalización específica para Colombia (10 dígitos empezando con 3)
   if (d.length === 10 && d.startsWith("3")) d = `57${d}`;
-  if (d.startsWith("5757")) d = d.replace(/^5757/, "57");
-  if (d.length < 10 || d.length > 15) return null;
+  
+  // 4. Evitar duplicación 5757
+  if (d.startsWith("5757") && d.length >= 12) d = d.slice(2);
+
+  // 5. Validaciones de longitud (10-16 dígitos)
+  if (d.length < 10 || d.length > 16) return null;
+  
   return d;
 }
 
@@ -515,9 +524,11 @@ export default function CRMPage() {
     const messageToSend = messageInput.trim()
     setMessageInput("")
     setSendingMessage(true)
-    // Usar la nueva función robusta
-    const phoneNormalized = normalizeToE164(currentConversation.phone || currentConversation?.wa_id || "");
-    if (!phoneNormalized) {
+    // Priorizar remote_jid para evitar confusiones de contactos
+    const phoneToSend = currentConversation.remote_jid || currentConversation.phone || "";
+    
+    // Validación básica (usamos normalizeToE164 solo para validar el formato si no es JID)
+    if (!phoneToSend.includes('@') && !normalizeToE164(phoneToSend)) {
       alert('Número de teléfono inválido para WhatsApp.');
       setSendingMessage(false);
       return;
@@ -529,7 +540,7 @@ export default function CRMPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConversation,
-          phone: phoneNormalized,
+          phone: phoneToSend,
           message: messageToSend,
           type: 'text',
         }),
@@ -607,8 +618,8 @@ export default function CRMPage() {
       // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
       console.log('📤 Enviando URL al gateway:', uploadData.url)
 
-      const phoneNormalizado = normalizarNumero(currentConversation.phone || "");
-      if (!phoneNormalizado) {
+      const phoneToSend = currentConversation.remote_jid || currentConversation.phone || "";
+      if (!phoneToSend.includes('@') && !normalizeToE164(phoneToSend)) {
         alert('Número de teléfono inválido para WhatsApp.')
         setSendingMessage(false)
         return
@@ -619,7 +630,7 @@ export default function CRMPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConversation,
-          phone: phoneNormalizado,
+          phone: phoneToSend,
           type,
           mediaUrl: uploadData.url,
           mimetype: file.type,
@@ -772,8 +783,8 @@ export default function CRMPage() {
             // PASO 2: Enviar mensaje con la URL al gateway
             console.log('📤 Enviando al gateway:', usedBase64 ? 'base64' : 'URL Cloudinary')
 
-            const phoneNormalizado = normalizarNumero(currentConversation.phone || "");
-            if (!phoneNormalizado) {
+            const phoneToSend = currentConversation.remote_jid || currentConversation.phone || "";
+            if (!phoneToSend.includes('@') && !normalizeToE164(phoneToSend)) {
               alert('Número de teléfono inválido para WhatsApp.')
               setSendingMessage(false)
               return
@@ -784,7 +795,7 @@ export default function CRMPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 conversationId: selectedConversation,
-                phone: phoneNormalizado,
+                phone: phoneToSend,
                 type: 'audio',
                 mediaUrl: audioUrl,
                 mimetype: mimeType,
