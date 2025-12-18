@@ -21,10 +21,45 @@ let connectionError = null
 let lastUpdate = null
 let botReady = false
 
-// Flujo mínimo requerido
+// URL del webhook para enviar mensajes al dashboard
+const WEBHOOK_URL = process.env.WEBHOOK_URL || "https://dashboard-galle-git-fea-98639c-galleaprobaciones-9369s-projects.vercel.app/api/whatsapp/webhook"
+
+// Función para enviar mensajes al webhook
+async function sendToWebhook(messageData) {
+    try {
+        console.log(`📤 Enviando al webhook:`, WEBHOOK_URL)
+        const response = await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(messageData)
+        })
+        const result = await response.json()
+        console.log(`✅ Webhook respondió:`, result)
+    } catch (error) {
+        console.error(`❌ Error enviando al webhook:`, error.message)
+    }
+}
+
+// Flujo mínimo requerido - AHORA CON WEBHOOK
 const welcomeFlow = addKeyword(EVENTS.WELCOME)
-    .addAction(async (ctx) => {
+    .addAction(async (ctx, { flowDynamic }) => {
         console.log(`📩 Mensaje de ${ctx.from}: ${ctx.body}`)
+
+        // Enviar al webhook del dashboard
+        await sendToWebhook({
+            event: "message",
+            session: "default",
+            payload: {
+                message: {
+                    from: ctx.from,
+                    body: ctx.body,
+                    pushName: ctx.pushName || ctx.name || "Usuario",
+                    type: "text",
+                    timestamp: Date.now(),
+                    fromMe: false
+                }
+            }
+        })
     })
 
 // Función para limpiar sesiones anteriores
