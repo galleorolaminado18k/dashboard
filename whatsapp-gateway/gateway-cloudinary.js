@@ -204,61 +204,53 @@ async function getMediaBuffer(mediaUrl, expectedMimetype) {
 }
 
 app.post("/send", async (req, res) => {
-    const { phone, message, type = "text", mediaUrl, mimetype, filename, caption } = req.body;
-    if (!phone) return res.status(400).json({ ok: false, error: "Falta phone" });
-    if (type === "text" && !message) return res.status(400).json({ ok: false, error: "Falta message" });
-    if (type !== "text" && !mediaUrl) return res.status(400).json({ ok: false, error: "Falta mediaUrl para media" });
-    if (!isConnected || !sock) return res.status(503).json({ ok: false, error: "No conectado" });
+    const {
+        phone,      // puede venir jid o dígitos
+        to,         // soporte alterno
+        message,
+        type = "text",
+        mediaUrl,
+        mimetype,
+        filename,
+        caption,
+    } = req.body || {};
+
+    const destRaw = phone || to;
+    if (!destRaw) return res.status(400).json({ ok: false, error: "Falta phone" });
+
+    // Normalizar destino a JID
+    let jid = String(destRaw).trim();
+
+    // si ya viene con @lid o @s.whatsapp.net lo dejamos
+    if (!jid.includes("@")) {
+        const digits = jid.replace(/\D/g, "");
+        if (digits.length < 10 || digits.length > 15) {
+            return res.status(400).json({ ok: false, error: "phone inválido" });
+        }
+        jid = `${digits}@s.whatsapp.net`;
+    }
 
     try {
-        let jid;
-        if (phone.includes("@")) {
-            jid = phone;
-        } else {
-            let cleanPhone = phone.replace(/\D/g, "");
-            if (!cleanPhone.startsWith("57") && cleanPhone.length === 10) cleanPhone = "57" + cleanPhone;
-            jid = cleanPhone + "@s.whatsapp.net";
+        if (type === "text") {
+            if (!message) return res.status(400).json({ ok: false, error: "Falta message" });
+            await sock.sendMessage(jid, { text: message });
+            return res.json({ ok: true });
         }
 
-        let msgContent;
-        const captionText = caption || message || "";
-
-        // Para tipos de media, obtener el buffer si es necesario
-        if (type !== "text") {
-            const { buffer, mimetype: detectedMime } = await getMediaBuffer(mediaUrl, mimetype);
-            const finalMimetype = mimetype || detectedMime;
-
-            switch (type) {
-                case "image":
-                    msgContent = { image: buffer, caption: captionText, mimetype: finalMimetype };
-                    break;
-                case "video":
-                    msgContent = { video: buffer, caption: captionText, mimetype: finalMimetype };
-                    break;
-                case "audio":
-                    // Convertir webm a ogg para mejor compatibilidad con WhatsApp
-                    let audioMime = finalMimetype;
-                    if (audioMime.includes('webm')) {
-                        audioMime = 'audio/ogg; codecs=opus';
-                    }
-                    msgContent = { audio: buffer, mimetype: audioMime, ptt: true };
-                    break;
-                case "document":
-                    msgContent = { document: buffer, mimetype: finalMimetype || "application/pdf", fileName: filename || "documento" };
-                    break;
-                default:
-                    msgContent = { text: message };
-            }
-        } else {
-            msgContent = { text: message };
+        if (mediaUrl) {
+            await sock.sendMessage(jid, {
+                document: { url: mediaUrl },
+                mimetype: mimetype || "application/octet-stream",
+                fileName: filename || "archivo",
+                caption: caption || undefined,
+            });
+            return res.json({ ok: true });
         }
 
-        await sock.sendMessage(jid, msgContent);
-        console.log("📤 Mensaje enviado a", jid, "tipo:", type);
-        res.json({ ok: true, message: "Enviado", type });
+        return res.status(400).json({ ok: false, error: "Falta mediaUrl para enviar medio" });
     } catch (e) {
-        console.error("❌ Error enviando mensaje:", e);
-        res.status(500).json({ ok: false, error: String(e) });
+        console.error("❌ /send error:", e);
+        return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
 });
 
@@ -290,4 +282,3 @@ app.listen(PORT, "0.0.0.0", async () => {
         connectionError = String(e);
     }
 });
-

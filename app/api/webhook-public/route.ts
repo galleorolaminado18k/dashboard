@@ -1,6 +1,7 @@
 /**
- * API Route: Webhook público para WhatsApp (sin auth)
- * Guarda conversaciones + mensajes en CRM
+ * API Route: Webhook público para WhatsApp (Baileys)
+ * - Guarda conversaciones/mensajes en CRM
+ * - Soporta JID @lid y @s.whatsapp.net
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,66 +11,66 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+type AnyObj = Record<string, any>
+
+function digitsFromJid(jid: string) {
+    const left = jid.split('@')[0] || ''
+    const digits = left.replace(/\D/g, '')
+    return digits.length ? digits : null
+}
+
+function safeClientJid(jid?: string | null) {
+    if (!jid) return null
+    if (jid === 'status@broadcast') return null
+    if (jid.endsWith('@g.us')) return null
+    if (!jid.includes('@')) return null
+    return jid
+}
+
+/**
+ * Regla real:
+ * - 1:1 => remoteJid (puede ser @lid)
+ * - grupos/status => participant
+ */
+function pickClientJid(msg: AnyObj, payload: AnyObj) {
+    const k = msg?.key || {}
+    const remote = String(k.remoteJid || payload.from || '')
+    const participant = String(k.participant || '')
+
+    if (remote === 'status@broadcast') return participant || null
+    if (remote.endsWith('@g.us')) return participant || null
+    return remote || null
+}
+
 export async function POST(request: NextRequest) {
     try {
         const event = await request.json()
         const supabase = createClient()
 
         const eventType = event.event || event.type
+        const payload = event.payload || event.data || event
+        const message = payload.message || payload
+
         console.log('📩 Webhook recibido:', { eventType, ts: new Date().toISOString() })
 
-        // Solo mensajes
         if (!(eventType === 'messages.upsert' || eventType === 'message' || eventType === 'message.any')) {
-            return NextResponse.json({ ok: true, ignored: 'not_message_event', eventType })
-        }
-
-        const payload = event.payload || event.data || event
-        const msg = payload.message || payload
-
-        // -------- helpers ----------
-        const stripNonDigits = (s: string) => s.replace(/\D/g, '')
-        const toJidDigits = (jid: string | null) => {
-            if (!jid) return null
-            const left = jid.split('@')[0] || ''
-            const d = stripNonDigits(left)
-            if (d.length < 10 || d.length > 15) return null
-            return d
-        }
-
-        function pickClientJid(m: any) {
-            const k = m?.key || {}
-            const remote = String(k.remoteJid || payload.from || '')
-            const participant = String(k.participant || '')
-
-            // Ignorar status
-            if (remote === 'status@broadcast') return null
-
-            // Grupos: usar participant (autor)
-            if (remote.endsWith('@g.us')) return participant || null
-
-            // 1:1: usar remote tal cual (puede ser @lid o @s.whatsapp.net)
-            return remote || null
-        }
-
-        const clientJid = pickClientJid(msg)
-        if (!clientJid) {
-            console.log('🔕 Ignorado (sin clientJid o status/grupo)')
-            return NextResponse.json({ ok: true, ignored: 'no_client_jid' })
+            return NextResponse.json({ ok: true, ignored: 'eventType', eventType })
         }
 
         // Ignorar mensajes propios
-        if (msg?.fromMe || msg?.key?.fromMe) {
-            console.log('🔕 Ignorado mensaje propio')
+        if (message?.fromMe || message?.key?.fromMe) {
             return NextResponse.json({ ok: true, ignored: 'fromMe' })
         }
 
-        const phone_norm = toJidDigits(clientJid) // dígitos limpios
-        const pushName = msg.pushName || msg.notifyName || ''
-        const body =
-            msg.body ||
-            msg.message?.conversation ||
-            msg.message?.extendedTextMessage?.text ||
-            ''
+        const rawPicked = pickClientJid(message, payload)
+        const client_jid = safeClientJid(rawPicked)
+
+        if (!client_jid) {
+            console.log('🔕 Ignorado (sin client_jid válido):', { rawPicked })
+            return NextResponse.json({ ok: true, ignored: 'no_client_jid' })
+        }
+
+        const phone_norm = digitsFromJid(client_jid)
 
         // Línea activa (wa_number)
         const { data: waAccount } = await supabase
@@ -80,95 +81,59 @@ export async function POST(request: NextRequest) {
 
         const wa_number = waAccount?.wa_number || '0000000000'
 
-        console.log('🚨 JID ENTRANTE REAL:', {
-            client_jid: clientJid,
-            phone_norm,
-            wa_number,
-        })
+        console.log('🟨 JID ENTRANTE REAL:', { client_jid, phone_norm, wa_number })
 
-        // 1) Buscar conversación existente por (wa_number + client_jid)
-        const { data: existing, error: findErr } = await supabase
+        // Texto
+        const body =
+            message?.body ||
+            message?.message?.conversation ||
+            message?.message?.extendedTextMessage?.text ||
+            ''
+
+        const pushName = message?.pushName || message?.notifyName || ''
+
+        // ✅ UPSERT REAL por (wa_number, client_jid)
+        const { data: conversation, error: upsertError } = await supabase
             .from('crm_conversations')
-            .select('id')
-            .eq('wa_number', wa_number)
-            .eq('client_jid', clientJid)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
+            .upsert(
+                {
+                    wa_number,
+                    client_jid,                 // guarda EXACTO (@lid o @s.whatsapp.net)
+                    phone_norm: phone_norm,     // solo dígitos (para búsquedas)
+                    phone: phone_norm || client_jid, // display
+                    client_name: pushName || (phone_norm ? `Cliente ${phone_norm.slice(-4)}` : 'Cliente WhatsApp'),
+                    last_message: body,
+                    canal: 'whatsapp',
+                    status: 'por-contestar',
+                    timestamp: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                },
+                { onConflict: 'wa_number,client_jid' } // 👈 requiere el índice único del SQL
+            )
+            .select()
+            .single()
 
-        if (findErr) {
-            console.error('❌ Error buscando conversación:', findErr)
-            return NextResponse.json({ ok: false, error: findErr.message }, { status: 500 })
+        if (upsertError) {
+            console.error('❌ Error upsert conversación:', upsertError)
+            return NextResponse.json({ ok: false, error: upsertError.message }, { status: 500 })
         }
 
-        const nowIso = new Date().toISOString()
-        const convoPayload: any = {
-            wa_number,
-            client_jid: clientJid,
-            phone: phone_norm || clientJid, // display
-            phone_norm: phone_norm || null,
-            client_name: pushName || (phone_norm ? `Cliente ${phone_norm.slice(-4)}` : 'Cliente WhatsApp'),
-            last_message: body,
-            timestamp: nowIso,
-            canal: 'whatsapp',
-            status: 'por-contestar',
-            updated_at: nowIso,
-        }
+        // Guardar mensaje
+        const incomingType = message?.type || payload?.type || 'text'
+        const metadata: AnyObj = {}
 
-        let conversationId: string | null = null
-
-        // 2) Update o Insert
-        if (existing?.id) {
-            const { data: updated, error: updErr } = await supabase
-                .from('crm_conversations')
-                .update(convoPayload)
-                .eq('id', existing.id)
-                .select('id')
-                .single()
-
-            if (updErr) {
-                console.error('❌ Error actualizando conversación:', updErr)
-                return NextResponse.json({ ok: false, error: updErr.message }, { status: 500 })
-            }
-            conversationId = updated.id
-        } else {
-            const { data: inserted, error: insErr } = await supabase
-                .from('crm_conversations')
-                .insert(convoPayload)
-                .select('id')
-                .single()
-
-            if (insErr) {
-                console.error('❌ Error insertando conversación:', insErr)
-                return NextResponse.json({ ok: false, error: insErr.message }, { status: 500 })
-            }
-            conversationId = inserted.id
-        }
-
-        // 3) Guardar mensaje
-        const incomingType = msg.type || payload.type || 'text'
-        const metadata: Record<string, any> = {}
-
-        // (Si ya mandas mediaUrl/mimetype desde tu gateway al webhook, lo guardamos)
-        if (payload.mediaUrl) metadata.mediaUrl = payload.mediaUrl
-        if (payload.mimetype) metadata.mimetype = payload.mimetype
-        if (payload.filename) metadata.filename = payload.filename
-        if (msg.mediaUrl) metadata.mediaUrl = msg.mediaUrl
-        if (msg.mimetype) metadata.mimetype = msg.mimetype
-        if (msg.filename) metadata.filename = msg.filename
+        if (payload?.mediaUrl) metadata.mediaUrl = payload.mediaUrl
+        if (payload?.mimetype) metadata.mimetype = payload.mimetype
+        if (payload?.filename) metadata.filename = payload.filename
+        if (message?.mediaUrl) metadata.mediaUrl = message.mediaUrl
+        if (message?.mimetype) metadata.mimetype = message.mimetype
+        if (message?.filename) metadata.filename = message.filename
 
         const { saveMessage } = await import('@/lib/crm-service')
-        await saveMessage(
-            conversationId!,
-            'client',
-            body,
-            incomingType as any,
-            metadata,
-            wa_number
-        )
+        await saveMessage(conversation.id, 'client', body, incomingType as any, metadata, wa_number)
 
-        console.log('✅ Conversación y mensaje guardados:', conversationId)
-        return NextResponse.json({ ok: true, processed: true, conversationId })
+        console.log('✅ Conversación y mensaje guardados:', conversation.id)
+        return NextResponse.json({ ok: true })
     } catch (error: any) {
         console.error('❌ Error en webhook-public:', error)
         return NextResponse.json({ ok: false, error: error.message }, { status: 500 })

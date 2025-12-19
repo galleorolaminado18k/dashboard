@@ -311,61 +311,61 @@ app.post("/restart", async (req, res) => {
 
 // Enviar mensaje
 app.post("/send", async (req, res) => {
-    const { phone, message, type = "text", mediaUrl, mimetype, filename, caption } = req.body
-    
-    if (!phone) {
-        return res.status(400).json({ ok: false, error: "Falta phone" })
-    }
-    
-    if (type === "text" && !message) {
-        return res.status(400).json({ ok: false, error: "Falta message" })
-    }
+    const {
+        phone,      // puede venir jid o dígitos
+        to,         // soporte alterno
+        message,
+        type = "text",
+        mediaUrl,
+        mimetype,
+        filename,
+        caption,
+    } = req.body || {};
 
-    if (!isConnected || !providerInstance) {
-        return res.status(503).json({ ok: false, error: "No conectado" })
+    const destRaw = phone || to;
+    if (!destRaw) return res.status(400).json({ ok: false, error: "Falta phone" });
+
+    // Normalizar destino a JID
+    let jid = String(destRaw).trim();
+
+    // si ya viene con @lid o @s.whatsapp.net lo dejamos
+    if (!jid.includes("@")) {
+        const digits = jid.replace(/\D/g, "");
+        if (digits.length < 10 || digits.length > 15) {
+            return res.status(400).json({ ok: false, error: "phone inválido" });
+        }
+        jid = `${digits}@s.whatsapp.net`;
     }
 
     try {
-        let recipient
-        if (phone.includes("@")) {
-            // Si ya trae el JID completo (ej: @s.whatsapp.net, @lid, @g.us)
-            recipient = phone
-        } else {
-            // Limpiar número y asumir @s.whatsapp.net
-            let cleanPhone = phone.replace(/\D/g, "")
-            if (cleanPhone.length === 10 && cleanPhone.startsWith("3")) {
-                cleanPhone = "57" + cleanPhone
-            }
-            recipient = `${cleanPhone}@s.whatsapp.net`
+        if (type === "text") {
+            if (!message) return res.status(400).json({ ok: false, error: "Falta message" });
+            await providerInstance.sendMessage(jid, message, {})
+            return res.json({ ok: true })
         }
 
-        console.log(`📤 Enviando ${type} a ${recipient}`)
-
-        if (type === "text") {
-            await providerInstance.sendMessage(recipient, message, {})
-        } else if (mediaUrl) {
+        if (mediaUrl) {
             // Nota: BuilderBot/Baileys maneja diferentes tipos de media
             const options = { caption: caption || message }
             
             if (type === "image") {
-                await providerInstance.sendImage(recipient, mediaUrl, caption || message)
+                await providerInstance.sendImage(jid, mediaUrl, caption || message)
             } else if (type === "video") {
-                await providerInstance.sendVideo(recipient, mediaUrl, caption || message)
+                await providerInstance.sendVideo(jid, mediaUrl, caption || message)
             } else if (type === "audio") {
-                await providerInstance.sendAudio(recipient, mediaUrl)
+                await providerInstance.sendAudio(jid, mediaUrl)
             } else if (type === "document") {
-                await providerInstance.sendFile(recipient, mediaUrl, filename || "archivo")
+                await providerInstance.sendFile(jid, mediaUrl, filename || "archivo")
             } else {
-                await providerInstance.sendMessage(recipient, message, {})
+                await providerInstance.sendMessage(jid, message, {})
             }
-        } else {
-            await providerInstance.sendMessage(recipient, message, {})
+            return res.json({ ok: true })
         }
 
-        res.json({ ok: true, message: "Enviado" })
-    } catch (error) {
-        console.error("❌ Error enviando mensaje:", error)
-        res.status(500).json({ ok: false, error: String(error) })
+        return res.status(400).json({ ok: false, error: "Falta mediaUrl para enviar medio" })
+    } catch (e) {
+        console.error("❌ /send error:", e)
+        return res.status(500).json({ ok: false, error: String(e?.message || e) })
     }
 })
 
