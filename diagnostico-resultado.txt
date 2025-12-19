@@ -1,0 +1,34 @@
+🔍 DIAGNÓSTICO CRM + WhatsApp v2
+Fecha: 2025-12-16T18:37:25.607Z
+==================================================
+
+1️⃣ Verificando Gateway de WhatsApp...
+   Status: 200
+   Conectado: true
+   Teléfono: undefined
+
+2️⃣ Verificando webhook PÚBLICO...
+   URL: https://dashboard-galle-git-fea-98639c-galleaprobaciones-9369s-projects.vercel.app/api/webhook-public
+   Status: 200
+   Response: {"status":"ok","message":"WhatsApp Webhook público activo","timestamp":"2025-12-16T18:37:27.026Z"}
+
+3️⃣ Probando enviar mensaje al webhook público...
+   Status: 200
+   Response: {"ok":true,"processed":true}
+
+4️⃣ Verificando conversaciones en CRM...
+   Status: 200
+   Total: 4
+     - Test WhatsApp User: Mensaje de prueba REAL 1:37:26 p. m.
+     - Usuario de Prueba Webhook: Mensaje de prueba desde diagnóstico 1765
+     - Cliente de Prueba 2: ¿Cuánto cuesta el envío?
+     - Cliente de Prueba 1: Hola, quiero información sobre productos
+
+==================================================
+
+📋 RESUMEN:
+   ✅ Gateway CONECTADO
+   ✅ Webhook público FUNCIONA
+   ✅ Mensajes se guardan correctamente
+
+✅ Diagnóstico completado

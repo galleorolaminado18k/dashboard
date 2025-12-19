@@ -1,0 +1,20 @@
+# Reemplaza "whats.tudominio.com" con tu dominio real
+# Ejemplo: whats.miempresa.com, api.miempresa.com, etc.
+
+whats.tudominio.com {
+  reverse_proxy evolution:8080 {
+    # ✅ Asegurar que todos los headers de autenticación se pasen al backend
+    header_up apikey {http.request.header.apikey}
+    header_up X-API-KEY {http.request.header.X-API-KEY}
+    header_up x-api-key {http.request.header.x-api-key}
+    header_up Authorization {http.request.header.Authorization}
+  }
+
+  # Headers CORS automáticos
+  header {
+    Access-Control-Allow-Origin *
+    Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+    Access-Control-Allow-Headers "Content-Type, Authorization, apikey, X-API-KEY, x-api-key"
+  }
+}
+

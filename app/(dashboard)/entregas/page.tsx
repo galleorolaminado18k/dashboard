@@ -91,6 +91,7 @@ type Shipment = {
   eta: string // fecha aprox. de entrega
   lastUpdate: string
   mipaqueteStatus?: string // Estado real de MiPaquete
+  total?: number // Total de la factura
 }
 
 function EstadoBadge({ estado, mipaqueteStatus }: { estado: Estado; mipaqueteStatus?: string }) {
@@ -184,6 +185,9 @@ export default function EntregasPage() {
     })
   }, [shipments, busqueda, estadoSel, transSel])
 
+  console.log('🔥🔥🔥 ENTREGAS PAGE v3.0-FIXED CARGADO - COLUMNA ACCIONES INCLUIDA 🔥🔥🔥')
+  console.log('📊 Número de envíos filtrados:', enviosFiltrados.length)
+
   return (
     <div className="min-h-screen bg-white text-[#0B0B0C]">
       {/* Header */}
@@ -200,9 +204,10 @@ export default function EntregasPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              className="rounded-full border-red-500 text-red-600 bg-transparent"
+              className="rounded-full border-[#D8BD80] text-[#D8BD80] bg-transparent hover:bg-[#D8BD80]/10"
               onClick={async () => {
                 try {
+                  await mutate()
                   const res = await fetch('/api/shipments/force-update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -210,8 +215,8 @@ export default function EntregasPage() {
                   })
                   const data = await res.json()
                   if (data.ok) {
-                    alert('✅ Actualización forzada exitosa!')
-                    mutate() // Refrescar datos
+                    alert('✅ Actualización de envíos exitosa!')
+                    await mutate()
                   } else {
                     alert('❌ Error: ' + data.error)
                   }
@@ -221,39 +226,8 @@ export default function EntregasPage() {
               }}
               disabled={isLoading}
             >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Forzar Actualización
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-neutral-200 bg-transparent"
-              onClick={async () => {
-                try {
-                  const res = await fetch('/api/shipments/sync-mipaquete', { method: 'POST' })
-                  const data = await res.json()
-                  if (data.ok) {
-                    alert(`✅ Sincronización completada:\n- Actualizados: ${data.actualizados}\n- Con novedad: ${data.conNovedad}\n- Entregados: ${data.entregados}`)
-                    mutate() // Refrescar datos
-                  } else {
-                    alert('❌ Error en sincronización: ' + data.error)
-                  }
-                } catch (err) {
-                  alert('❌ Error al sincronizar')
-                }
-              }}
-              disabled={isLoading}
-            >
-              <Route className="w-4 h-4 mr-2" />
-              Sincronizar MiPaquete
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-full border-neutral-200 bg-transparent"
-              onClick={() => mutate()}
-              disabled={isLoading}
-            >
               <RotateCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Actualizar
+              Actualización de envíos
             </Button>
             <Button variant="outline" className="rounded-full border-neutral-200 bg-transparent">
               Exportar CSV
@@ -394,53 +368,53 @@ export default function EntregasPage() {
                 </div>
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="text-center px-4 py-3">Envío</th>
-                    <th className="text-center px-4 py-3">Pedido / Factura</th>
-                    <th className="text-center px-4 py-3">Cliente</th>
-                    <th className="text-center px-4 py-3">Ciudad</th>
-                    <th className="text-center px-4 py-3">Transportadora</th>
-                    <th className="text-center px-4 py-3">Guía</th>
-                    <th className="text-center px-4 py-3">Estado</th>
-                    <th className="text-center px-4 py-3">Progreso</th>
-                    <th className="text-center px-4 py-3">Despacho</th>
-                    <th className="text-center px-4 py-3">Fecha aproximada de entrega</th>
-                    <th className="text-center px-4 py-3">Última actualización</th>
-                    <th className="text-center px-4 py-3">Acciones</th>
+                    <th className="text-center px-2 py-2 text-xs">Pedido</th>
+                    <th className="text-center px-2 py-2 text-xs">Valor Total</th>
+                    <th className="text-center px-2 py-2 text-xs">Cliente</th>
+                    <th className="text-center px-2 py-2 text-xs">Ciudad</th>
+                    <th className="text-center px-2 py-2 text-xs">Transp.</th>
+                    <th className="text-center px-2 py-2 text-xs">Guía</th>
+                    <th className="text-center px-2 py-2 text-xs">Estado</th>
+                    <th className="text-center px-2 py-2 text-xs w-[100px]">Progreso</th>
+                    <th className="text-center px-2 py-2 text-xs">Despacho</th>
+                    <th className="text-center px-2 py-2 text-xs">F. Entrega</th>
+                    <th className="text-center px-2 py-2 text-xs">Últ. Act.</th>
+                    <th className="text-center px-2 py-2 text-xs">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {enviosFiltrados.map((e: Shipment, idx: number) => (
                   <tr key={e.envioId} className={idx % 2 ? "bg-neutral-50/50" : "bg-white"}>
-                    <td className="px-4 py-3 font-medium text-center">{e.envioId}</td>
-                    <td className="px-4 py-3 text-neutral-600 text-center">
-                      {e.pedidoId}
-                      {e.factura ? ` • ${e.factura}` : ""}
+                    <td className="px-2 py-2 font-medium text-center text-xs">
+                      {e.factura || e.pedidoId}
                     </td>
-                    <td className="px-4 py-3 text-center">{e.cliente}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 py-2 text-neutral-600 text-center text-xs font-semibold">
+                      {e.total ? `$ ${e.total.toLocaleString('es-CO')}` : 'N/A'}
+                    </td>
+                    <td className="px-2 py-2 text-center text-xs">{e.cliente}</td>
+                    <td className="px-2 py-2 text-center text-xs">
                       <div className="flex items-center gap-1 justify-center">
                         <MapPin className="w-3 h-3" /> {e.ciudad}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">{e.transportadora}</td>
-                    <td className="px-4 py-3 tabular-nums text-center">{e.guia}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 py-2 text-center text-xs">{e.transportadora}</td>
+                    <td className="px-2 py-2 tabular-nums text-center text-xs">{e.guia}</td>
+                    <td className="px-2 py-2 text-center text-xs">
                       <div className="flex justify-center">
                         <EstadoBadge estado={e.estado} mipaqueteStatus={e.mipaqueteStatus} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 w-[160px]">
+                    <td className="px-2 py-2 w-[100px]">
                       <ProgressBar value={e.progreso} />
                     </td>
-                    <td className="px-4 py-3 text-center">{e.despacho}</td>
-                    <td className="px-4 py-3 text-center">{e.eta}</td>
-                    <td className="px-4 py-3 text-neutral-500 text-center">{e.lastUpdate}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-2 py-2 text-center text-xs">{e.despacho}</td>
+                    <td className="px-2 py-2 text-center text-xs">{e.eta}</td>
+                    <td className="px-2 py-2 text-neutral-500 text-center text-xs">{e.lastUpdate}</td>
+                    <td className="px-2 py-2 text-center text-xs">
                       <div className="flex justify-center gap-2">
-                        {/* Si hay novedad, mostrar botón rojo prioritario */}
                         {(() => {
                           const hasNovedad = e.mipaqueteStatus && (
                             e.mipaqueteStatus.toLowerCase().includes('novedad') ||
@@ -450,41 +424,30 @@ export default function EntregasPage() {
                             e.estado === 'Retrasado'
                           )
 
-                          // Debug: mostrar en console
-                          if (e.guia === '58048080554') {
-                            console.log('DEBUG Envío 58048080554:', {
-                              mipaqueteStatus: e.mipaqueteStatus,
-                              estado: e.estado,
-                              hasNovedad
-                            })
-                          }
-
                           return hasNovedad ? (
                             <button
                               onClick={() => {
                                 console.log('Abriendo modal para:', e)
                                 setNovedadModal({ open: true, envio: e })
                               }}
-                              className="inline-flex items-center gap-2 rounded-lg px-6 py-2 h-10
-                              border-2 border-red-600 text-white bg-red-600 hover:bg-red-700
-                              shadow-lg shadow-red-500/50 transition-all font-bold text-sm
-                              hover:scale-105 animate-pulse"
+                              className="inline-flex items-center gap-1 rounded px-2 py-1
+                              border border-red-600 text-white bg-red-600 hover:bg-red-700
+                              transition-all text-xs whitespace-nowrap"
                               title="¡URGENTE! Click para solucionar novedad"
                             >
-                              <AlertTriangle className="w-5 h-5" />
-                              Solucionar novedad
+                              <AlertTriangle className="w-3 h-3" />
+                              Novedad
                             </button>
                           ) : (
                             <button
                               onClick={() => setTrace({ open: true, guia: e.guia })}
-                              className="inline-flex items-center gap-2 rounded-full px-4 h-9
-                              border border-[rgba(216,189,128,.6)] text-[#0B0B0C]
-                              bg-white hover:bg-[rgba(216,189,128,.08)]
-                              shadow-[0_2px_10px_rgba(0,0,0,.04)] transition"
+                              className="inline-flex items-center gap-1 rounded px-2 py-1
+                              border border-neutral-300 text-neutral-700
+                              bg-white hover:bg-neutral-50 transition text-xs whitespace-nowrap"
                               title="Ver tracking"
                             >
-                              <Route className="w-4 h-4" />
-                              Ver tracking
+                              <Route className="w-3 h-3" />
+                              Track
                             </button>
                           )
                         })()}
@@ -520,6 +483,7 @@ export default function EntregasPage() {
       )}
 
       {/* Modal de Novedad — muestra datos del cliente y pedido para contactar */}
+      {/* Version: 2025-11-04-v3 - FINAL FIX - Build timestamp for cache busting */}
       {novedadModal.open && novedadModal.envio && (
         <NovedadModal
           open={novedadModal.open}
@@ -527,6 +491,7 @@ export default function EntregasPage() {
           envio={novedadModal.envio}
         />
       )}
+
     </div>
   )
 }

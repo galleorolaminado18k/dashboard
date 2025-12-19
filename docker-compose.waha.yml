@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # WAHA - WhatsApp HTTP API con seguridad habilitada
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha-whatsapp
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./waha-data:/app/data  # persistencia de sesión
+    environment:
+      # API Configuration
+      - WAHA_HTTP_API_HOST=0.0.0.0
+      - WAHA_LICENSE_ACCEPT=true
+      - WAHA_LOG_LEVEL=info
+      - WAHA_MULTI_DEVICE=true
+
+      # Security: API Key (usa hash SHA-512, NO la clave en texto)
+      # Generada con: scripts/generate-waha-apikey.ps1
+      - WAHA_API_KEY=sha512:402d5e20c143748ded38e13e72c543b200bd75615944ba033b44e1d718eb920128f14b6dd886c6440d9513ffb1dd530dbc426f46f29c26cc2c23aaf3f6fc50ec
+
+      # Webhook Configuration (opcional)
+      - WHATSAPP_HOOK_URL=https://tu-dashboard.com/api/whatsapp/webhook
+      - WHATSAPP_HOOK_EVENTS=message,session.status,message.any
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Dashboard (opcional - si quieres correr todo junto)
+  # dashboard:
+  #   build: .
+  #   container_name: dashboard
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - WAHA_URL=http://waha:3000
+  #     - WAHA_API_KEY=tu-api-key-secreta-aqui
+  #   depends_on:
+  #     - waha
+
+volumes:
+  waha-sessions:
+    driver: local
+
+networks:
+  default:
+    name: dashboard-network
+

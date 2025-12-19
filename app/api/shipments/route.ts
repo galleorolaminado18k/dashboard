@@ -18,6 +18,7 @@ export async function GET() {
           status,
           issue_date,
           invoice_items (
+            reference,
             description,
             quantity,
             unit_price,
@@ -40,6 +41,7 @@ export async function GET() {
     const formattedShipments = (shipments || []).map((ship: any) => {
       // Extraer productos desde invoice_items si existen
       const productos = ship.invoices?.invoice_items?.map((item: any) => ({
+        sku: item.reference || undefined,
         descripcion: item.description,
         cantidad: item.quantity,
         precio: item.unit_price,

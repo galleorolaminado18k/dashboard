@@ -1,0 +1,15 @@
+wpp.tudominio.com {
+  encode zstd gzip
+  reverse_proxy wppconnect:21465
+
+  # Headers para debugging
+  header {
+    X-Powered-By "WPPConnect via Caddy"
+  }
+
+  # Logs
+  log {
+    output file /var/log/caddy/wpp-access.log
+  }
+}
+

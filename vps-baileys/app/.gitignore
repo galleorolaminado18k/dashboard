@@ -1,0 +1,10 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+*.log
+.env.local
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+

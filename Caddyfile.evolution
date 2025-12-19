@@ -1,0 +1,13 @@
+# ✅ Reemplaza "api.tudominio.com" con tu dominio real
+# Ejemplo: api.galle.com, whatsapp.miempresa.com, etc.
+
+api.galle.tu-dominio.com {
+  # Proxy inverso a Evolution API en localhost:8080
+  reverse_proxy 127.0.0.1:8080
+
+  # Headers CORS
+  header Access-Control-Allow-Origin *
+  header Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+  header Access-Control-Allow-Headers "Content-Type, Authorization, apikey"
+}
+

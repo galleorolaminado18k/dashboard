@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha-production
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - WAHA_HTTP_API_HOST=0.0.0.0
+      - WAHA_LICENSE_ACCEPT=true
+      - WAHA_LOG_LEVEL=info
+      - WAHA_MULTI_DEVICE=true
+      - WAHA_SECURITY_ENABLE=false

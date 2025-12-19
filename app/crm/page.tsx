@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef, useCallback, useMemo } from "react"
+import { useState, useRef, useCallback, useMemo, useEffect } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -12,8 +12,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Search,
-  Phone,
-  Video,
   MoreVertical,
   Send,
   Paperclip,
@@ -26,8 +24,32 @@ import {
   Mail,
   Calendar,
   User,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  Phone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// Tipo para conversaciones
+interface Conversation {
+  id: string
+  clientName: string
+  client_name?: string
+  lastMessage: string
+  last_message?: string
+  timestamp: string
+  unread: number
+  status: string
+  canal: string
+  avatar?: string
+  clientType: string
+  client_type?: string
+  interest?: string
+  phone?: string
+  remote_jid?: string
+  wa_number?: string
+}
 
 // Estados del CRM (config sin counts, los conteos se calculan dinámicamente)
 const ESTADOS_CONFIG = [
@@ -222,38 +244,65 @@ function formatTime(date: Date): string {
   return `${hours12}:${minutesStr} ${ampm}`
 }
 
-function detectInterest(message: string): "Balinería" | "Joyería" | null {
-  const lowerMessage = message.toLowerCase()
-  if (lowerMessage.includes("balinería") || lowerMessage.includes("balineria")) {
-    return "Balinería"
-  }
-  if (lowerMessage.includes("joyería") || lowerMessage.includes("joyeria") || lowerMessage.includes("joyas")) {
-    return "Joyería"
-  }
-  return null
-}
-
-function getMinutesSinceConversation(conversation: (typeof MOCK_CONVERSATIONS)[0]): number {
-  // Simulamos tiempos realistas basados en el ID de la conversación
-  const mockMinutes: Record<string, number> = {
-    "1": 15, // María González - 15 minutos sin responder (urgente)
-    "2": 8, // Carlos Ramírez - 8 minutos sin responder (urgente)
-    "3": 3, // Ana Martínez - 3 minutos sin responder
-    "4": 6, // Luis Hernández - 6 minutos sin responder (urgente)
-    "5": 0, // Patricia Silva - pedido completo, no urgente
-    "6": 0, // Roberto Díaz - pendiente datos
-    "7": 12, // Laura Pérez - 12 minutos sin responder (urgente)
-    "8": 0, // Diego Torres - pendiente datos
-    "9": 0, // Sofía Ruiz - por confirmar
-    "10": 0, // Miguel Ángel Castro - pedido completo
-  }
-
-  // Solo mostrar para conversaciones "Por Contestar"
+function getMinutesSinceConversation(conversation: Conversation): number {
+  // Calcular minutos desde el timestamp
   if (conversation.status !== "por-contestar") {
     return 0
   }
 
-  return mockMinutes[conversation.id] || 0
+  try {
+    const timestamp = new Date(conversation.timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - timestamp.getTime()
+    return Math.floor(diffMs / (1000 * 60))
+  } catch {
+    return 0
+  }
+}
+
+// Normalizar conversación de la API a formato del componente
+function normalizeConversation(conv: any): Conversation {
+  return {
+    id: conv.id,
+    clientName: conv.client_name || conv.clientName || 'Cliente',
+    lastMessage: conv.last_message || conv.lastMessage || '',
+    timestamp: conv.timestamp || new Date().toISOString(),
+    unread: conv.unread || 0,
+    status: conv.status || 'por-contestar',
+    canal: conv.canal || 'whatsapp',
+    avatar: conv.avatar,
+    clientType: conv.client_type || conv.clientType || 'Nuevo',
+    interest: conv.interest,
+    phone: conv.phone,
+    remote_jid: conv.remote_jid,
+    wa_number: conv.wa_number,
+  }
+}
+
+// ✅ Función unificada y robusta para normalización de números de WhatsApp (Frontend)
+// Coincide con la lógica de lib/crm-service.ts
+function normalizeToE164(raw: string) {
+  if (!raw) return null;
+  
+  // 1. Ignorar grupos y estados
+  if (raw.includes('@broadcast') || raw.includes('@g.us')) return null;
+
+  // 2. Remover JID y caracteres no numéricos
+  const noJid = raw.split("@")[0];
+  let d = noJid.replace(/\D/g, "");
+  
+  if (!d) return null;
+
+  // 3. Normalización específica para Colombia (10 dígitos empezando con 3)
+  if (d.length === 10 && d.startsWith("3")) d = `57${d}`;
+  
+  // 4. Evitar duplicación 5757
+  if (d.startsWith("5757") && d.length >= 12) d = d.slice(2);
+
+  // 5. Validaciones de longitud (10-16 dígitos)
+  if (d.length < 10 || d.length > 16) return null;
+  
+  return d;
 }
 
 export default function CRMPage() {
@@ -262,6 +311,15 @@ export default function CRMPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [messageInput, setMessageInput] = useState("")
   const [activeTab, setActiveTab] = useState<"reply" | "note" | "schedule">("reply")
+
+  // Estados para datos reales
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [messages, setMessages] = useState<any[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [isConnected, setIsConnected] = useState(false)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
   // Estados para secciones expandibles
   const [expandedSections, setExpandedSections] = useState({
     contactInfo: false,
@@ -272,12 +330,148 @@ export default function CRMPage() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [fileCaption, setFileCaption] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const documentInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Cargar conversaciones de la API
+  const loadConversations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/crm/conversations')
+      const data = await res.json()
+
+      if (data.ok && data.conversations && data.conversations.length > 0) {
+        // Tenemos datos reales de la base de datos
+        const normalized = data.conversations.map(normalizeConversation)
+        setConversations(normalized)
+        setIsConnected(true)
+      } else {
+        // Sin datos reales, usar mock como fallback
+        setConversations(MOCK_CONVERSATIONS.map(normalizeConversation))
+        setIsConnected(false)
+      }
+
+      setLastUpdate(new Date())
+    } catch (error) {
+      console.error('Error loading conversations:', error)
+      // En caso de error, usar datos mock
+      setConversations(MOCK_CONVERSATIONS.map(normalizeConversation))
+      setIsConnected(false)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Sincronizar chats de WhatsApp
+  const syncWhatsAppChats = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/crm/sync', { method: 'POST' })
+      const data = await res.json()
+
+      if (data.ok) {
+        console.log('✅ Sincronización completada:', data.message)
+        // Recargar conversaciones
+        await loadConversations()
+      } else {
+        console.error('❌ Error sincronizando:', data.error)
+      }
+    } catch (error) {
+      console.error('Error syncing:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [loadConversations])
+
+  // Cargar datos al montar y cada 30 segundos
+  useEffect(() => {
+    loadConversations()
+
+    const interval = setInterval(loadConversations, 30000)
+    return () => clearInterval(interval)
+  }, [loadConversations])
+
+  // Cargar mensajes cuando se selecciona una conversación
+  const loadMessages = useCallback(async (conversationId: string) => {
+    try {
+      setLoadingMessages(true)
+      const res = await fetch(`/api/crm/messages?conversationId=${conversationId}`)
+      const data = await res.json()
+
+      if (data.ok && data.messages) {
+        setMessages(data.messages.map((m: any) => {
+          return {
+            id: m.id,
+            sender: m.sender === 'client' ? 'client' : 'agent',
+            content: m.content,
+            timestamp: new Date(m.timestamp),
+            avatar: m.sender === 'client' ? '/diverse-woman-portrait.png' : '/business-agent.png',
+            // Nuevo: extraer metadata para soportar medios (audio/image/video/document)
+            mediaType: (m.metadata && m.metadata.type) || m.type || null,
+            mediaUrl: (m.metadata && (m.metadata.mediaUrl || m.metadata.url)) || m.mediaUrl || null,
+            mimetype: (m.metadata && m.metadata.mimetype) || m.mimetype || null,
+            filename: (m.metadata && m.metadata.filename) || m.filename || null
+          }
+        }))
+        // LOG: Verificar mensajes cargados y mediaUrl
+        console.log('[CRM] Mensajes cargados:', data.messages)
+        if (data.messages) {
+          data.messages.forEach((msg: any) => {
+            if (msg.type === 'audio' || (msg.metadata && msg.metadata.type === 'audio')) {
+              console.log('[CRM] Mensaje de audio:', msg)
+            }
+          })
+        }
+      } else {
+        // Si no hay mensajes, usar mock
+        setMessages(MOCK_MESSAGES)
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+      setMessages(MOCK_MESSAGES)
+    } finally {
+      setLoadingMessages(false)
+    }
+  }, [])
+
+  // Cargar mensajes cuando cambia la conversación seleccionada
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation)
+    } else {
+      setMessages([])
+    }
+  }, [selectedConversation, loadMessages])
+
+  // Scroll al final de los mensajes cuando se agregan nuevos
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages])
+
+  // Cerrar menús al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-menu-trigger]') && !target.closest('[data-menu-content]')) {
+        setShowAttachmentMenu(false)
+        setShowEmojiPicker(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
   const filteredConversations = useMemo(() => {
-    return MOCK_CONVERSATIONS.filter((conv) => {
+    return conversations.filter((conv) => {
       const matchesEstado = selectedEstado === "todas" || conv.status === selectedEstado
       const matchesSearch =
         searchQuery === "" ||
@@ -285,28 +479,28 @@ export default function CRMPage() {
         conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
       return matchesEstado && matchesSearch
     })
-  }, [selectedEstado, searchQuery])
+  }, [selectedEstado, searchQuery, conversations])
 
   // Compute counts per estado from conversations (so 'devolucion' shows correctly)
   const estados = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const s of ESTADOS_CONFIG) counts[s.id] = 0
-    counts['todas'] = MOCK_CONVERSATIONS.length
-    for (const c of MOCK_CONVERSATIONS) {
+    counts['todas'] = conversations.length
+    for (const c of conversations) {
       if (counts[c.status] === undefined) counts[c.status] = 0
       counts[c.status] = (counts[c.status] || 0) + 1
     }
     return ESTADOS_CONFIG.map((s) => ({ ...s, count: counts[s.id] || 0 }))
-  }, [])
+  }, [conversations])
 
   const currentConversation = useMemo(
-    () => MOCK_CONVERSATIONS.find((c) => c.id === selectedConversation),
-    [selectedConversation],
+    () => conversations.find((c) => c.id === selectedConversation),
+    [selectedConversation, conversations],
   )
 
   const currentCanal = useMemo(() => CANALES.find((c) => c.id === currentConversation?.canal), [currentConversation])
 
-  const lastClientMessage = useMemo(() => [...MOCK_MESSAGES].reverse().find((m) => m.sender === "client"), [])
+  const lastClientMessage = useMemo(() => [...messages].reverse().find((m) => m.sender === "client"), [messages])
 
   const minutesSinceLastMessage = lastClientMessage ? getMinutesSinceLastMessage(lastClientMessage.timestamp) : 0
 
@@ -316,31 +510,329 @@ export default function CRMPage() {
   }, [])
 
   const handleAttachment = useCallback(() => {
-    fileInputRef.current?.click()
+    setShowAttachmentMenu(prev => !prev)
+    setShowEmojiPicker(false)
   }, [])
+
+  // Estado para envío de mensajes
+  const [sendingMessage, setSendingMessage] = useState(false)
+
+  // Función para enviar mensaje de texto
+  const handleSendMessage = useCallback(async () => {
+    if (!messageInput.trim() || !selectedConversation || !currentConversation) return
+
+    const messageToSend = messageInput.trim()
+    setMessageInput("")
+    setSendingMessage(true)
+    // Priorizar remote_jid para evitar confusiones de contactos
+    const phoneToSend = currentConversation.remote_jid || currentConversation.phone || "";
+    
+    // Validación básica (usamos normalizeToE164 solo para validar el formato si no es JID)
+    if (!phoneToSend.includes('@') && !normalizeToE164(phoneToSend)) {
+      alert('Número de teléfono inválido para WhatsApp.');
+      setSendingMessage(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/crm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation,
+          phone: phoneToSend,
+          message: messageToSend,
+          type: 'text',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.ok) {
+        // Agregar mensaje a la lista local inmediatamente
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          sender: 'agent',
+          content: messageToSend,
+          timestamp: new Date(),
+          avatar: '/business-agent.png',
+        }])
+
+        // Recargar mensajes para sincronizar
+        setTimeout(() => loadMessages(selectedConversation), 1000)
+      } else {
+        alert('Error enviando mensaje: ' + (data.error || 'Error desconocido'))
+        setMessageInput(messageToSend) // Restaurar mensaje
+      }
+    } catch (error) {
+      console.error('Error enviando mensaje:', error)
+      alert('Error de conexión al enviar mensaje')
+      setMessageInput(messageToSend)
+    } finally {
+      setSendingMessage(false)
+    }
+  }, [messageInput, selectedConversation, currentConversation, loadMessages])
+
+  // Función para enviar archivo (imagen, video, documento)
+  const handleSendFile = useCallback(async (file: File, caption?: string) => {
+    if (!selectedConversation || !currentConversation) {
+      alert('Selecciona una conversación primero')
+      return
+    }
+
+    // Validar tamaño
+    if (file.size > 10 * 1024 * 1024) {
+      alert('El archivo es muy grande. Máximo 10MB.')
+      return
+    }
+
+    setSendingMessage(true)
+
+    try {
+      // Determinar tipo de archivo
+      let type = 'document'
+      if (file.type.startsWith('image/')) type = 'image'
+      else if (file.type.startsWith('video/')) type = 'video'
+      else if (file.type.startsWith('audio/')) type = 'audio'
+
+      console.log('📤 Subiendo archivo a Cloudinary:', file.name, file.type, file.size, 'bytes')
+
+      // PASO 1: Subir a Cloudinary
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const uploadRes = await fetch('/api/crm/upload-cloudinary', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const uploadData = await uploadRes.json()
+      console.log('📤 Cloudinary respuesta:', uploadData)
+
+      if (!uploadData.ok) {
+        alert('Error subiendo archivo: ' + (uploadData.error || 'Error desconocido'))
+        setSendingMessage(false)
+        return
+      }
+
+      // PASO 2: Enviar mensaje con la URL de Cloudinary al gateway
+      console.log('📤 Enviando URL al gateway:', uploadData.url)
+
+      const phoneToSend = currentConversation.remote_jid || currentConversation.phone || "";
+      if (!phoneToSend.includes('@') && !normalizeToE164(phoneToSend)) {
+        alert('Número de teléfono inválido para WhatsApp.')
+        setSendingMessage(false)
+        return
+      }
+
+      const sendRes = await fetch('/api/crm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation,
+          phone: phoneToSend,
+          type,
+          mediaUrl: uploadData.url,
+          mimetype: file.type,
+          filename: file.name,
+          caption: caption || undefined,
+        }),
+      })
+
+      const sendData = await sendRes.json()
+      console.log('📤 Gateway respuesta:', sendData)
+      // LOG: Verificar mediaUrl enviada
+      if (type === 'audio') {
+        console.log('[CRM] Enviando audio:', {
+          conversationId: selectedConversation,
+          phone: phoneNormalizado,
+          mediaUrl: uploadData.url,
+          mimetype: file.type,
+          filename: file.name,
+        })
+      }
+
+      if (sendData.ok) {
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          sender: 'agent',
+          content: caption || `[${type}: ${file.name}]`,
+          timestamp: new Date(),
+          avatar: '/business-agent.png',
+          mediaType: type,
+        }])
+        setTimeout(() => loadMessages(selectedConversation), 1000)
+      } else {
+        alert('Error enviando archivo: ' + (sendData.error || 'Error desconocido'))
+      }
+    } catch (error) {
+      console.error('Error enviando archivo:', error)
+      alert('Error de conexión. Verifica tu internet e intenta de nuevo.')
+    } finally {
+      setSendingMessage(false)
+    }
+  }, [selectedConversation, currentConversation, loadMessages])
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      alert(`Archivo seleccionado: ${files[0].name}`)
+      setPendingFile(files[0])
+      setFileCaption("")
+      setShowAttachmentMenu(false)
     }
+    // Limpiar el input para permitir seleccionar el mismo archivo
+    e.target.value = ""
   }, [])
+
+  // Función para cancelar el archivo pendiente
+  const cancelPendingFile = useCallback(() => {
+    setPendingFile(null)
+    setFileCaption("")
+  }, [])
+
+  // Función para enviar el archivo pendiente con su descripción
+  const sendPendingFile = useCallback(async () => {
+    if (pendingFile) {
+      await handleSendFile(pendingFile, fileCaption)
+      setPendingFile(null)
+      setFileCaption("")
+    }
+  }, [pendingFile, fileCaption, handleSendFile])
 
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+
+      // Detectar el mejor formato de audio soportado
+      let mimeType = 'audio/webm'
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        mimeType = 'audio/webm;codecs=opus'
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        mimeType = 'audio/ogg;codecs=opus'
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4'
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType })
       mediaRecorderRef.current = mediaRecorder
 
       const audioChunks: Blob[] = []
       mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data)
+        if (event.data.size > 0) {
+          audioChunks.push(event.data)
+        }
       }
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" })
-        alert(`Nota de voz grabada: ${(audioBlob.size / 1024).toFixed(2)} KB`)
+      mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop())
+
+        if (audioChunks.length === 0) {
+          alert('No se grabó audio. Intenta de nuevo.')
+          return
+        }
+
+        const audioBlob = new Blob(audioChunks, { type: mimeType })
+        console.log('🎤 Audio grabado:', audioBlob.size, 'bytes, tipo:', mimeType)
+
+        // Enviar nota de voz
+        if (selectedConversation && currentConversation) {
+          setSendingMessage(true)
+          try {
+            // Determinar extensión del archivo
+            const extension = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : 'mp4'
+
+            // Crear archivo de audio
+            const audioFile = new File([audioBlob], `nota-voz-${Date.now()}.${extension}`, { type: mimeType })
+
+            console.log('📤 Subiendo audio a Cloudinary:', audioFile.name, audioFile.size, 'bytes')
+
+            let audioUrl: string
+            let usedBase64 = false
+
+            // PASO 1: Intentar subir a Cloudinary
+            try {
+              const formData = new FormData()
+              formData.append('file', audioFile)
+
+              const uploadRes = await fetch('/api/crm/upload-cloudinary', {
+                method: 'POST',
+                body: formData,
+              })
+
+              const uploadData = await uploadRes.json()
+              console.log('📤 Cloudinary respuesta:', uploadData)
+
+              if (uploadData.ok && uploadData.url && !uploadData.url.startsWith('data:')) {
+                audioUrl = uploadData.url
+                console.log('✅ Usando URL de Cloudinary:', audioUrl)
+              } else {
+                throw new Error(uploadData.error || 'URL inválida de Cloudinary')
+              }
+            } catch (cloudinaryError) {
+              // Fallback: Convertir a base64 y enviar directamente
+              console.log('⚠️ Cloudinary falló, usando base64 directo:', cloudinaryError)
+              const reader = new FileReader()
+              audioUrl = await new Promise<string>((resolve) => {
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.readAsDataURL(audioBlob)
+              })
+              usedBase64 = true
+              console.log('📦 Usando base64 directo, tamaño:', audioUrl.length)
+            }
+
+            // PASO 2: Enviar mensaje con la URL al gateway
+            console.log('📤 Enviando al gateway:', usedBase64 ? 'base64' : 'URL Cloudinary')
+
+            const phoneToSend = currentConversation.remote_jid || currentConversation.phone || "";
+            if (!phoneToSend.includes('@') && !normalizeToE164(phoneToSend)) {
+              alert('Número de teléfono inválido para WhatsApp.')
+              setSendingMessage(false)
+              return
+            }
+
+            const sendRes = await fetch('/api/crm/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                conversationId: selectedConversation,
+                phone: phoneToSend,
+                type: 'audio',
+                mediaUrl: audioUrl,
+                mimetype: mimeType,
+                filename: audioFile.name,
+              }),
+            })
+
+            const sendData = await sendRes.json()
+            console.log('📤 Gateway respuesta:', sendData)
+            // LOG: Verificar mediaUrl enviada
+            console.log('[CRM] Enviando audio grabado:', {
+              conversationId: selectedConversation,
+              phone: phoneNormalizado,
+              mediaUrl: audioUrl,
+              mimetype: mimeType,
+              filename: audioFile.name,
+            })
+
+            if (sendData.ok) {
+              setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                sender: 'agent',
+                content: '[Nota de voz]',
+                timestamp: new Date(),
+                avatar: '/business-agent.png',
+              }])
+              setTimeout(() => loadMessages(selectedConversation), 1000)
+            } else {
+              alert('Error enviando nota de voz: ' + (sendData.error || 'Error desconocido'))
+            }
+          } catch (error) {
+            console.error('Error enviando nota de voz:', error)
+            alert('Error al enviar nota de voz')
+          } finally {
+            setSendingMessage(false)
+          }
+        }
       }
 
       mediaRecorder.start()
@@ -353,7 +845,7 @@ export default function CRMPage() {
     } catch (error) {
       alert("No se pudo acceder al micrófono. Por favor, verifica los permisos.")
     }
-  }, [])
+  }, [selectedConversation, currentConversation, loadMessages])
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -364,12 +856,6 @@ export default function CRMPage() {
       }
     }
   }, [isRecording])
-
-  const handleCall = useCallback(() => {
-    if (currentConversation) {
-      alert(`Iniciando llamada con ${currentConversation.clientName}...`)
-    }
-  }, [currentConversation])
 
   const toggleEmojiPicker = useCallback(() => {
     setShowEmojiPicker((prev) => !prev)
@@ -445,7 +931,54 @@ export default function CRMPage() {
         <div className="flex w-80 flex-col border-r border-zinc-200 bg-white">
           {/* Header */}
           <div className="border-b border-zinc-200 p-4">
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900">Inbox</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-zinc-900">Inbox</h2>
+              <div className="flex items-center gap-2">
+                {/* Indicador de conexión */}
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+                  isConnected
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+                )}>
+                  {isConnected ? (
+                    <>
+                      <Wifi className="w-3 h-3" />
+                      <span>En vivo</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="w-3 h-3" />
+                      <span>Demo</span>
+                    </>
+                  )}
+                </div>
+                {/* Mostrar última actualización si está disponible */}
+                {lastUpdate && (
+                  <div className="text-[11px] text-zinc-500">Última: {new Date(lastUpdate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                )}
+                {/* Botón refrescar */}
+                <button
+                  onClick={loadConversations}
+                  disabled={loading}
+                  className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500 hover:text-zinc-700 transition-colors disabled:opacity-50"
+                  title="Actualizar conversaciones"
+                >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                </button>
+                {/* Botón sincronizar WhatsApp */}
+                {!isConnected && (
+                  <button
+                    onClick={syncWhatsAppChats}
+                    disabled={loading}
+                    className="px-2 py-1 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 text-xs font-medium transition-colors disabled:opacity-50"
+                    title="Sincronizar chats de WhatsApp"
+                  >
+                    Sync
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
               <Input
@@ -559,7 +1092,7 @@ export default function CRMPage() {
 
         {/* Panel Central - Chat */}
         <div
-          className="flex flex-1 flex-col bg-[#e5ddd5]"
+          className="flex flex-1 flex-col bg-[#e5ddd5] overflow-hidden min-h-0"
           style={{
             backgroundImage:
               "url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pattern_wide_1920x1920-kJIowfHC7yUPTogefHRI2QcjeEGcKc.jpg')",
@@ -570,8 +1103,8 @@ export default function CRMPage() {
         >
           {selectedConversation && currentConversation ? (
             <>
-              {/* Header del Chat */}
-              <div className="flex items-center justify-between border-b border-zinc-200 bg-[#f0f0f0] p-3">
+              {/* Header del Chat - Altura fija */}
+              <div className="flex-shrink-0 flex items-center justify-between border-b border-zinc-200 bg-[#f0f0f0] p-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={currentConversation.avatar || "/placeholder.svg"} />
@@ -589,12 +1122,7 @@ export default function CRMPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95" onClick={handleCall}>
-                    <Phone className="h-5 w-5 text-zinc-600" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95">
-                    <Video className="h-5 w-5 text-zinc-600" />
-                  </Button>
+                  {/* Botones de llamada ocultos - WhatsApp Web no soporta llamadas directas */}
                   <Button variant="ghost" size="icon" className="h-9 w-9 active:scale-95">
                     <MoreVertical className="h-5 w-5 text-zinc-600" />
                   </Button>
@@ -602,9 +1130,14 @@ export default function CRMPage() {
               </div>
 
               {/* Área de Mensajes - Estilo WhatsApp */}
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 min-h-0 p-4">
                 <div className="space-y-3">
-                  {MOCK_MESSAGES.map((message) => {
+                  {loadingMessages ? (
+                    <div className="flex justify-center items-center h-32">
+                      <RefreshCw className="h-6 w-6 animate-spin text-zinc-400" />
+                    </div>
+                  ) : messages.length > 0 ? (
+                    messages.map((message) => {
                     return (
                       <div
                         key={message.id}
@@ -622,7 +1155,21 @@ export default function CRMPage() {
                             message.sender === "agent" ? "bg-[#dcf8c6] text-zinc-900" : "bg-white text-zinc-900",
                           )}
                         >
-                          <p className="text-sm leading-relaxed">{message.content}</p>
+                          {/* Renderizar media: audio, imagen, video o texto */}
+                          {message.mediaType === 'audio' ? (
+                            // Preferir mediaUrl (Cloudinary/url) o content (base64 data URL)
+                            <>
+                              <audio controls src={message.mediaUrl || message.content} className="w-full rounded-md" />
+                              {/* LOG: Mostrar mediaUrl renderizada */}
+                              <div style={{fontSize:10, color:'#888'}}>mediaUrl: {message.mediaUrl || 'N/A'}</div>
+                            </>
+                          ) : message.mediaType === 'image' ? (
+                            <img src={message.mediaUrl || message.content} alt={message.filename || 'imagen'} className="max-w-full rounded-md" />
+                          ) : message.mediaType === 'video' ? (
+                            <video controls src={message.mediaUrl || message.content} className="max-w-full rounded-md" />
+                          ) : (
+                            <p className="text-sm leading-relaxed">{message.content}</p>
+                          )}
 
                           <div className="mt-1 flex items-center justify-end gap-1">
                             <span className="text-[11px] text-zinc-500">{formatTime(message.timestamp)}</span>
@@ -637,36 +1184,86 @@ export default function CRMPage() {
                         )}
                       </div>
                     )
-                  })}
+                  })
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-32 text-zinc-400">
+                      <MessageSquare className="h-8 w-8 mb-2" />
+                      <p className="text-sm">No hay mensajes aún</p>
+                    </div>
+                  )}
                 </div>
+                <div ref={messagesEndRef} />
               </ScrollArea>
 
-              {/* Canales de Comunicación */}
-              <div className="flex items-center justify-center gap-2 border-y border-zinc-200 bg-white p-2">
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">🎨</span>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">📷</span>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">🎬</span>
-                </Button>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full active:scale-95">
-                  <span className="text-lg">🎭</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 rounded-full active:scale-95"
-                  onClick={handleCall}
-                >
-                  <Phone className="h-5 w-5 text-red-500" />
-                </Button>
-              </div>
+              {/* Vista previa de archivo pendiente (estilo WhatsApp) */}
+              {pendingFile && (
+                <div className="flex-shrink-0 border-t border-zinc-200 bg-[#f0f0f0] p-4">
+                  <div className="flex items-start gap-3">
+                    {/* Vista previa del archivo */}
+                    <div className="relative flex-shrink-0">
+                      {pendingFile.type.startsWith('image/') ? (
+                        <img
+                          src={URL.createObjectURL(pendingFile)}
+                          alt="Vista previa"
+                          className="h-24 w-24 rounded-lg object-cover border border-zinc-300"
+                        />
+                      ) : pendingFile.type.startsWith('video/') ? (
+                        <div className="h-24 w-24 rounded-lg bg-zinc-800 flex items-center justify-center border border-zinc-300">
+                          <span className="text-3xl">🎬</span>
+                        </div>
+                      ) : (
+                        <div className="h-24 w-24 rounded-lg bg-zinc-200 flex flex-col items-center justify-center border border-zinc-300">
+                          <span className="text-3xl">📄</span>
+                          <span className="text-[10px] text-zinc-600 mt-1 px-1 truncate max-w-full">
+                            {pendingFile.name.split('.').pop()?.toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      {/* Botón cerrar */}
+                      <button
+                        onClick={cancelPendingFile}
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600 shadow-md"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {/* Info y descripción */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 truncate">{pendingFile.name}</p>
+                      <p className="text-xs text-zinc-500 mb-2">
+                        {(pendingFile.size / 1024).toFixed(1)} KB
+                      </p>
+                      <Input
+                        placeholder="Añadir descripción (opcional)"
+                        value={fileCaption}
+                        onChange={(e) => setFileCaption(e.target.value)}
+                        className="text-sm bg-white"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            sendPendingFile()
+                          }
+                        }}
+                      />
+                    </div>
+                    {/* Botón enviar */}
+                    <Button
+                      onClick={sendPendingFile}
+                      disabled={sendingMessage}
+                      className="h-10 w-10 rounded-full bg-[#25d366] hover:bg-[#20bd5a] flex-shrink-0"
+                    >
+                      {sendingMessage ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Tabs y Input - Estilo WhatsApp */}
-              <div className="bg-[#f0f0f0] p-3">
+              <div className="flex-shrink-0 bg-[#f0f0f0] p-3">
                 <div className="mb-2 flex gap-4 px-2">
                   <button
                     onClick={() => setActiveTab("reply")}
@@ -729,17 +1326,78 @@ export default function CRMPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-9 w-9 text-zinc-600 active:scale-95"
+                      className="h-9 w-9 text-zinc-600 active:scale-95 relative"
                       onClick={handleAttachment}
+                      data-menu-trigger
                     >
                       <Paperclip className="h-5 w-5" />
                     </Button>
+
+                    {/* Menú de adjuntos */}
+                    {showAttachmentMenu && (
+                      <div className="absolute bottom-14 left-12 z-50 w-48 rounded-lg border border-zinc-200 bg-white shadow-xl overflow-hidden" data-menu-content>
+                        <button
+                          onClick={() => {
+                            imageInputRef.current?.click()
+                            setShowAttachmentMenu(false)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 text-left"
+                        >
+                          <span className="text-lg">🖼️</span>
+                          <span className="text-zinc-700">Fotos y Videos</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            cameraInputRef.current?.click()
+                            setShowAttachmentMenu(false)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 text-left border-t border-zinc-100"
+                        >
+                          <span className="text-lg">📷</span>
+                          <span className="text-zinc-700">Cámara</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            documentInputRef.current?.click()
+                            setShowAttachmentMenu(false)
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-zinc-50 text-left border-t border-zinc-100"
+                        >
+                          <span className="text-lg">📄</span>
+                          <span className="text-zinc-700">Documento</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Inputs de archivo ocultos */}
                     <input
                       ref={fileInputRef}
                       type="file"
                       className="hidden"
                       onChange={handleFileChange}
-                      accept="image/*,video/*,.pdf,.doc,.docx"
+                      accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    />
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept="image/*,video/*"
+                    />
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      capture="environment"
+                    />
+                    <input
+                      ref={documentInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.ppt,.pptx"
                     />
 
                     <Input
@@ -747,10 +1405,11 @@ export default function CRMPage() {
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       className="flex-1 rounded-full border-zinc-300 bg-white"
+                      disabled={sendingMessage}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault()
-                          setMessageInput("")
+                          handleSendMessage()
                         }
                       }}
                     />
@@ -778,8 +1437,16 @@ export default function CRMPage() {
                       </Button>
                     )}
 
-                    <Button className="h-9 w-9 rounded-full bg-[#25d366] p-0 hover:bg-[#20bd5a] active:scale-95">
-                      <Send className="h-4 w-4" />
+                    <Button
+                      className="h-9 w-9 rounded-full bg-[#25d366] p-0 hover:bg-[#20bd5a] active:scale-95 disabled:opacity-50"
+                      onClick={handleSendMessage}
+                      disabled={sendingMessage || !messageInput.trim()}
+                    >
+                      {sendingMessage ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>

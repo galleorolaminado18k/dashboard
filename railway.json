@@ -1,0 +1,36 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile.waha"
+  },
+  "deploy": {
+    "startCommand": "node dist/server.js",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300
+  }
+}
+FROM devlikeapro/waha:latest
+
+# Variables de entorno para Railway
+ENV WAHA_HTTP_API_HOST=0.0.0.0
+ENV WAHA_MULTI_DEVICE=true
+ENV WAHA_LICENSE_ACCEPT=true
+ENV WAHA_LOG_LEVEL=info
+ENV PORT=3000
+
+# Exponer puerto
+EXPOSE 3000
+
+# Volumen para persistencia de sesiones
+VOLUME ["/app/data"]
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Comando de inicio
+CMD ["node", "dist/server.js"]
+

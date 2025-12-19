@@ -1,0 +1,5 @@
+wpp.galle18k.com {
+  encode zstd gzip
+  reverse_proxy baileys:3001
+}
+
