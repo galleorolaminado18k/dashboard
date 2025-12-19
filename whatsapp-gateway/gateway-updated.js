@@ -317,79 +317,53 @@ app.post("/restart", async (_, res) => {
 });
 
 app.post("/send", async (req, res) => {
-    const { phone, message, type = "text", mediaUrl, mediaData, mimetype, filename, caption } = req.body;
-    if (!phone) return res.status(400).json({ ok: false, error: "Falta phone" });
-    if (type === "text" && !message) return res.status(400).json({ ok: false, error: "Falta message" });
-    if (type !== "text" && !mediaUrl && !mediaData) return res.status(400).json({ ok: false, error: "Falta mediaUrl o mediaData" });
-    if (!isConnected || !sock) return res.status(503).json({ ok: false, error: "No conectado" });
+    const {
+        phone,      // puede venir jid o dígitos
+        to,         // soporte alterno
+        message,
+        type = "text",
+        mediaUrl,
+        mimetype,
+        filename,
+        caption,
+    } = req.body || {};
+
+    const destRaw = phone || to;
+    if (!destRaw) return res.status(400).json({ ok: false, error: "Falta phone" });
+
+    // Normalizar destino a JID
+    let jid = String(destRaw).trim();
+
+    // si ya viene con @lid o @s.whatsapp.net lo dejamos
+    if (!jid.includes("@")) {
+        const digits = jid.replace(/\D/g, "");
+        if (digits.length < 10 || digits.length > 15) {
+            return res.status(400).json({ ok: false, error: "phone inválido" });
+        }
+        jid = `${digits}@s.whatsapp.net`;
+    }
 
     try {
-        let jid;
-        if (phone.includes("@")) {
-            jid = phone;
-        } else {
-            let cleanPhone = phone.replace(/\D/g, "");
-            if (!cleanPhone.startsWith("57") && cleanPhone.length === 10) {
-                cleanPhone = "57" + cleanPhone;
-            }
-            jid = cleanPhone + "@s.whatsapp.net";
+        if (type === "text") {
+            if (!message) return res.status(400).json({ ok: false, error: "Falta message" });
+            await sock.sendMessage(jid, { text: message });
+            return res.json({ ok: true });
         }
 
-        let msgContent;
-        const captionText = caption || message || "";
-
-        // Preparar la fuente del media (URL o Buffer base64)
-        let mediaSource;
-        if (mediaData) {
-            // mediaData es un data URL: data:mime/type;base64,XXXXX
-            const matches = mediaData.match(/^data:([^;]+);base64,(.+)$/);
-            if (matches) {
-                mediaSource = Buffer.from(matches[2], 'base64');
-                console.log("📦 Media recibido como base64, tamaño:", mediaSource.length, "bytes");
-            } else {
-                return res.status(400).json({ ok: false, error: "Formato de mediaData inválido" });
-            }
-        } else {
-            mediaSource = { url: mediaUrl };
+        if (mediaUrl) {
+            await sock.sendMessage(jid, {
+                document: { url: mediaUrl },
+                mimetype: mimetype || "application/octet-stream",
+                fileName: filename || "archivo",
+                caption: caption || undefined,
+            });
+            return res.json({ ok: true });
         }
 
-        switch (type) {
-            case "image":
-                msgContent = {
-                    image: mediaSource,
-                    caption: captionText
-                };
-                break;
-            case "video":
-                msgContent = {
-                    video: mediaSource,
-                    caption: captionText
-                };
-                break;
-            case "audio":
-                msgContent = {
-                    audio: mediaSource,
-                    mimetype: mimetype || "audio/ogg; codecs=opus",
-                    ptt: true // Push to talk (nota de voz)
-                };
-                break;
-            case "document":
-                msgContent = {
-                    document: mediaSource,
-                    mimetype: mimetype || "application/pdf",
-                    fileName: filename || "documento"
-                };
-                break;
-            default:
-                msgContent = { text: message };
-        }
-
-        await sock.sendMessage(jid, msgContent);
-        console.log("📤 Mensaje enviado a", jid, "tipo:", type);
-        res.json({ ok: true, message: "Enviado", type });
+        return res.status(400).json({ ok: false, error: "Falta mediaUrl para enviar medio" });
     } catch (e) {
-        console.error("❌ Error enviando mensaje:", e);
-        res.status(500).json({ ok: false, error: String(e) });
+        console.error("❌ /send error:", e);
+        return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
 });
 
@@ -428,4 +402,3 @@ app.listen(PORT, "0.0.0.0", async () => {
         connectionError = String(e);
     }
 });
-
