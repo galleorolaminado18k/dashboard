@@ -56,14 +56,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ ok: false, error: 'Destinatario inválido (sin client_jid y phone inválido)' }, { status: 400 })
         }
 
-        console.log('🚨 CRÍTICO - DESTINO FINAL AL GATEWAY:', destJid)
+        console.log('🚨 CRÍTICO - JID FINAL AL GATEWAY:', destJid)
 
-        // ✅ UNA SOLA LLAMADA AL GATEWAY Y CON "phone"
+        // ✅ Enviar al gateway usando JID
         const gatewayRes = await fetch(`${GATEWAY_URL}/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                phone: destJid,
+                to: destJid,          // ✅ Aquí se usa el JID
                 message,
                 type,
                 mediaUrl,
